@@ -20,7 +20,7 @@ const Background = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-[#000435] to-[#000655]">
+    <div className="fixed inset-0 bg-gradient-to-br from-[#000435] to-[#E06002]">
       <Canvas camera={{ position: [0, 0, 1000], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} />
