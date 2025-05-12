@@ -2,22 +2,50 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Background from '../components/auth/Background';
 import { LogIn } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-interface LoginProps {
-  onLoginSuccess: () => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual login logic here with your backend
-    // For now, we'll simulate a successful login
-    onLoginSuccess();
-    navigate('/dashboard');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:7500/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
+
+      // Store auth data using AuthContext
+      login(data.user_id, data.token, data.status);
+
+      // Redirect based on status
+      if (data.status === 'active') {
+        navigate('/dashboard');
+      } else {
+        navigate('/verify');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -32,6 +60,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </h1>
             <p className="text-gray-600">Welcome back! Please sign in to continue.</p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -80,10 +114,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
             <button
               type="submit"
-              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-gradient-to-r from-[#E06002] to-[#FB7E03] hover:from-[#FB7E03] hover:to-[#E06002] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E06002]"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-gradient-to-r from-[#E06002] to-[#FB7E03] hover:from-[#FB7E03] hover:to-[#E06002] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#E06002] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <LogIn size={20} className="mr-2" />
-              Sign In
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <LogIn size={20} className="mr-2" />
+              )}
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
