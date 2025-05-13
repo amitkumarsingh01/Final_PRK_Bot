@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://server.prktechindia.in';
 
 interface Profile {
   id: string;
