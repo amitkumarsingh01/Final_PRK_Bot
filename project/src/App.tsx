@@ -7,6 +7,8 @@ import Signup from './pages/Signup';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Verification from './pages/Verify';
 import UserProfile from './pages/Admin/UserProfile';
+import PropertiesProfiles from './pages/Admin/PropertiesProfiles';
+import PropertyUsers from './pages/Admin/PropertyUsers';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -46,10 +48,13 @@ const AppRoutes = () => {
         )
       }>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        {/* <Route path="dashboard" element={<Dashboard />} /> */}
+        <Route path="dashboard" element={<div className="p-4">Dashboard</div>} />
         {/* <Route path="users" element={<div className="p-4">User Management Page</div>} /> */}
         <Route path="users" element={<UserProfile />} />
-        <Route path="properties" element={<div className="p-4">Properties Management Page</div>} />
+        {/* <Route path="properties" element={<div className="p-4">Properties Management Page</div>} /> */}
+        <Route path="properties" element={<PropertiesProfiles />} />
+        <Route path="properties/:propertyId/users" element={<PropertyUsers />} />
         <Route path="tasks/categories" element={<div className="p-4">Task Categories Page</div>} />
         <Route path="tasks/all" element={<div className="p-4">All Tasks Page</div>} />
         <Route path="tasks/assigned" element={<div className="p-4">Tasks Assigned To Me Page</div>} />
