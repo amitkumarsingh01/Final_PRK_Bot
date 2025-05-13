@@ -81,6 +81,7 @@ interface SidebarProps {
 
 interface UserProfile {
   id: string;
+  user_id: string;
   name: string;
   email: string;
   phone_no: string;
@@ -110,7 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           const data = await response.json();
           console.log('API response data:', data);
           // Find the profile matching the current user's ID
-          const currentUserProfile = data.find((profile: UserProfile) => profile.id === user.userId);
+          const currentUserProfile = data.find((profile: UserProfile) => profile.user_id === user.userId);
           console.log('Found user profile:', currentUserProfile);
           if (currentUserProfile) {
             setUserProfile(currentUserProfile);
