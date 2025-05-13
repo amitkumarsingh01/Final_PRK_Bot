@@ -65,14 +65,14 @@ class LoginSchema(BaseModel):
     password: str
 
 class ProfileSchema(BaseModel):
-    id: Optional[str]
+    id: Optional[str] = None
     name: Optional[str]
     email: Optional[str]
     phone_no: Optional[str]
     user_role: Optional[str]
     user_type: Optional[str]
     property_id: Optional[str]
-    status: Optional[str]
+    status: Optional[str] = "active"
 
     class Config:
         orm_mode = True
@@ -132,7 +132,9 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
 
 @app.post("/profile")
 def create_profile(profile: ProfileSchema, db: Session = Depends(get_db)):
-    user = User(**profile.dict(exclude_unset=True))
+    user_data = profile.dict(exclude_unset=True)
+    user = User(**user_data)
+    user.id = str(uuid.uuid4())
     user.user_id = str(uuid.uuid4())
     user.created_at = datetime.utcnow()
     db.add(user)
@@ -180,6 +182,17 @@ def activate_user(user_id: str, db: Session = Depends(get_db)):
         "user_id": user.user_id,
         "status": user.status
     }
+
+# Add this endpoint to your existing code
+@app.get("/profile/property/{property_id}", response_model=List[ProfileSchema])
+def get_profiles_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Get all users with a specific property_id
+    """
+    users = db.query(User).filter(User.property_id == property_id).all()
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found for this property")
+    return users
 
 @app.get("/profile", response_model=List[ProfileSchema])
 def get_all_profiles(db: Session = Depends(get_db)):
