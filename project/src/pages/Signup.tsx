@@ -13,7 +13,7 @@ interface Property {
 const Signup: React.FC = () => {
   const [step, setStep] = useState<'property' | 'details'>('property');
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<number | ''>('');
+  const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,8 +49,9 @@ const Signup: React.FC = () => {
   }, []);
 
   const handlePropertySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProperty(Number(e.target.value));
+    setSelectedProperty(e.target.value); // keep as string
   };
+  
 
   const handlePropertySubmit = (e: React.FormEvent) => {
     e.preventDefault();
