@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   Users, 
@@ -12,9 +12,13 @@ import {
   Menu,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon,
+  User
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavItemProps {
   to: string;
@@ -24,6 +28,19 @@ interface NavItemProps {
   hasSubmenu?: boolean;
   isOpen?: boolean;
   onClick?: () => void;
+}
+
+interface SubMenuItem {
+  path: string;
+  label: string;
+}
+
+interface NavItem {
+  path: string;
+  icon: React.ReactNode;
+  label: string;
+  hasSubmenu?: boolean;
+  submenuItems?: SubMenuItem[];
 }
 
 const NavItem: React.FC<NavItemProps> = ({ 
@@ -62,56 +79,143 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone_no: string;
+  user_role: string;
+  user_type: string;
+  property_id: string;
+  status: string;
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   const location = useLocation();
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, logout } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
-  const navItems = [
-    { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-    { path: '/users', icon: <Users size={20} />, label: 'Users' },
-    { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-    { 
-      path: '/tasks', 
-      icon: <CheckSquare size={20} />, 
-      label: 'Tasks',
-      hasSubmenu: true,
-      submenuItems: [
-        { path: '/tasks/categories', label: 'Categories' },
-        { path: '/tasks/all', label: 'All Tasks' },
-        { path: '/tasks/assigned', label: 'Assigned to Me' },
-      ]
-    },
-    { path: '/activity', icon: <Activity size={20} />, label: 'Activity Log' },
-    { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
-    { path: '/notifications', icon: <Bell size={20} />, label: 'Notifications' },
-    { path: '/settings', icon: <Settings size={20} />, label: 'Settings' },
-  ];
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.userId) {
+        try {
+          const response = await fetch('/api/profile', {
+            headers: {
+              'Authorization': `Bearer ${user.token}`
+            }
+          });
+          const data = await response.json();
+          // Find the profile matching the current user's ID
+          const currentUserProfile = data.find((profile: UserProfile) => profile.id === user.userId);
+          if (currentUserProfile) {
+            setUserProfile(currentUserProfile);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  const getNavItems = (): NavItem[] => {
+    const baseItems: NavItem[] = [
+      { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
+      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
+    ];
+
+    const adminItems: NavItem[] = [
+      { path: '/users', icon: <Users size={20} />, label: 'Users' },
+      { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
+      { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+    ];
+
+    const cadminItems: NavItem[] = [
+      { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
+      { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+    ];
+
+    const commonItems: NavItem[] = [
+      { 
+        path: '/tasks', 
+        icon: <CheckSquare size={20} />, 
+        label: 'Tasks',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '/tasks/categories', label: 'Categories' },
+          { path: '/tasks/all', label: 'All Tasks' },
+          { path: '/tasks/assigned', label: 'Assigned to Me' },
+        ]
+      },
+      { path: '/activity', icon: <Activity size={20} />, label: 'Activity Log' },
+      { path: '/notifications', icon: <Bell size={20} />, label: 'Notifications' },
+      { path: '/settings', icon: <Settings size={20} />, label: 'Settings' },
+    ];
+
+    switch (userProfile?.user_type) {
+      case 'admin':
+        return [...baseItems, ...adminItems, ...commonItems];
+      case 'cadmin':
+        return [...baseItems, ...cadminItems, ...commonItems];
+      case 'user':
+        return [...baseItems, ...commonItems];
+      default:
+        return baseItems;
+    }
+  };
+
+  const navItems = getNavItems();
+  
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+    if (tasksOpen) setTasksOpen(false);
+  };
   
   return (
     <div 
       className={`
         ${isMobile 
           ? 'fixed inset-y-0 left-0 z-50 w-72 shadow-xl transition-transform duration-300 ease-in-out transform'
-          : 'sticky top-0 h-screen w-64 flex-shrink-0'
+          : 'sticky top-0 h-screen flex-shrink-0 transition-all duration-300 ease-in-out'
         }
         ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
+        ${!isMobile && (isCollapsed ? 'w-20' : 'w-64')}
         bg-white flex flex-col border-r border-gray-200
       `}
     >
       {/* Logo and company name */}
-      <div className="px-6 py-6 mb-2 flex items-center justify-between">
-        <Link to="/dashboard" className="flex items-center text-xl font-bold">
-          <span className="text-[#000435]">Track</span>
-          <span className="text-[#E06002]">Bot</span>
-        </Link>
-        {isMobile && (
-          <button 
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100"
-          >
-            <X size={20} />
-          </button>
+      <div className={`px-6 py-6 mb-2 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+        {!isCollapsed && (
+          <Link to="/dashboard" className="flex items-center text-xl font-bold">
+            <span className="text-[#000435]">Track</span>
+            <span className="text-[#E06002]">Bot</span>
+          </Link>
         )}
+        {isCollapsed && (
+          <Link to="/dashboard" className="flex items-center text-xl font-bold">
+            <span className="text-[#E06002]">T</span>
+          </Link>
+        )}
+        <div className="flex items-center">
+          {isMobile ? (
+            <button 
+              onClick={onClose}
+              className="p-1 rounded-full hover:bg-gray-100"
+            >
+              <X size={20} />
+            </button>
+          ) : (
+            <button 
+              onClick={toggleCollapse}
+              className="p-1 rounded-full hover:bg-gray-100"
+            >
+              {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeft size={20} />}
+            </button>
+          )}
+        </div>
       </div>
       
       {/* Navigation items */}
@@ -121,12 +225,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
             <NavItem
               to={item.hasSubmenu ? '#' : item.path}
               icon={item.icon}
-              label={item.label}
+              label={!isCollapsed ? item.label : ''}
               active={location.pathname === item.path}
-              hasSubmenu={item.hasSubmenu}
+              hasSubmenu={item.hasSubmenu && !isCollapsed}
               isOpen={item.hasSubmenu && tasksOpen}
               onClick={() => {
-                if (item.hasSubmenu) {
+                if (item.hasSubmenu && !isCollapsed) {
                   setTasksOpen(!tasksOpen);
                 } else if (isMobile) {
                   onClose();
@@ -135,7 +239,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
             />
             
             {/* Submenu items */}
-            {item.hasSubmenu && tasksOpen && (
+            {item.hasSubmenu && tasksOpen && !isCollapsed && (
               <div className="ml-9 mt-1 space-y-1">
                 {item.submenuItems!.map((subItem) => (
                   <Link
@@ -158,12 +262,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       </div>
       
       {/* Logout button */}
-      <div className="px-3 py-4 border-t border-gray-200">
+      <div className={`px-3 py-4 border-t border-gray-200 ${isCollapsed ? 'flex justify-center' : ''}`}>
         <button
-          className="flex items-center w-full px-4 py-3 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors duration-200"
+          onClick={logout}
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full'} px-4 py-3 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors duration-200`}
         >
-          <LogOut size={20} className="mr-3" />
-          <span>Logout</span>
+          <LogOut size={20} className={isCollapsed ? '' : 'mr-3'} />
+          {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
     </div>
