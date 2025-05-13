@@ -65,7 +65,8 @@ class LoginSchema(BaseModel):
     password: str
 
 class ProfileSchema(BaseModel):
-    id: Optional[str] = None
+    # Use user_id as the identifier instead of id
+    user_id: Optional[str] = None
     name: Optional[str]
     email: Optional[str]
     phone_no: Optional[str]
@@ -104,12 +105,13 @@ def signup(data: SignupSchema, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    user_id = str(uuid.uuid4())  # Generate user_id
     user = User(
         name=data.name,
         email=data.email,
         phone_no=data.phone_no,
         password=data.password,
-        user_id=str(uuid.uuid4()),
+        user_id=user_id,  # Use the generated user_id
         user_role=data.user_role,
         user_type=data.user_type,
         property_id=data.property_id,
@@ -142,16 +144,19 @@ def get_profile(user_id: str, db: Session = Depends(get_db)):
 
 @app.post("/profile")
 def create_profile(profile: ProfileSchema, db: Session = Depends(get_db)):
-    # Check if user already exists with this user_id
-    if profile.user_id:
-        existing_user = db.query(User).filter(User.user_id == profile.user_id).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="User with this user_id already exists")
-    
+    # This endpoint should not be needed if using signup
+    # But if you want to create a profile directly, generate a new user_id
     user_data = profile.dict(exclude_unset=True)
+    if not user_data.get('user_id'):
+        user_data['user_id'] = str(uuid.uuid4())  # Generate new user_id if not provided
+    
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.user_id == user_data['user_id']).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this user_id already exists")
+    
     user = User(**user_data)
-    user.id = str(uuid.uuid4())  # Only generate a new primary key id
-    # Don't generate a new user_id, use the one from signup
+    user.id = str(uuid.uuid4())  # Generate primary key
     user.created_at = datetime.utcnow()
     db.add(user)
     db.commit()
@@ -192,7 +197,6 @@ def activate_user(user_id: str, db: Session = Depends(get_db)):
         "status": user.status
     }
 
-# Add this endpoint to your existing code
 @app.get("/profile/property/{property_id}", response_model=List[ProfileSchema])
 def get_profiles_by_property(property_id: str, db: Session = Depends(get_db)):
     """
