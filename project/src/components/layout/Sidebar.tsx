@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       if (user?.userId) {
         console.log('Current user ID:', user.userId);
         try {
-          const response = await fetch('http://localhost:8000/profile', {
+          const response = await fetch('https://server.prktechindia.in/profile', {
             headers: {
               'Authorization': `Bearer ${user.token}`
             }
