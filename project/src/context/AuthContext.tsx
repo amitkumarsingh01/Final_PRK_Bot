@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface AuthContextType {
   isAuthenticated: boolean;
   user: {
+    role: string;
     userId: string | null;
     token: string | null;
     status: string | null;
@@ -22,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user?.token;
 
   const login = (userId: string, token: string, status: string) => {
-    const userData = { userId, token, status };
+    const userData = { userId, token, status, role: 'user' };
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
