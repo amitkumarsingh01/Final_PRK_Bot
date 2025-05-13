@@ -129,6 +129,16 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
     return {"user_id": user.user_id, "token": token, "status": user.status}
 
 # --- Profile Routes ---
+@app.get("/profile", response_model=List[ProfileSchema])
+def get_all_profiles(db: Session = Depends(get_db)):
+    return db.query(User).all()
+
+@app.get("/profile/{user_id}")
+def get_profile(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return user
 
 @app.post("/profile")
 def create_profile(profile: ProfileSchema, db: Session = Depends(get_db)):
@@ -140,13 +150,6 @@ def create_profile(profile: ProfileSchema, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
-
-@app.get("/profile/{user_id}", response_model=ProfileSchema)
-def get_profile(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.user_id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 @app.put("/profile/{user_id}")
@@ -193,10 +196,6 @@ def get_profiles_by_property(property_id: str, db: Session = Depends(get_db)):
     if not users:
         raise HTTPException(status_code=404, detail="No users found for this property")
     return users
-
-@app.get("/profile", response_model=List[ProfileSchema])
-def get_all_profiles(db: Session = Depends(get_db)):
-    return db.query(User).all()
 
 # --- Property CRUD Routes ---
 
