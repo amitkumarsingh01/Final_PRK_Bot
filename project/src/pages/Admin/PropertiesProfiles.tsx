@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Edit, Trash2, Plus, X } from 'lucide-react';
+import { Building2, Edit, Trash2, Plus, X, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -10,6 +11,17 @@ interface Property {
   description?: string;
 }
 
+interface PropertyUser {
+  id: string;
+  name?: string;
+  email?: string;
+  phone_no?: string;
+  user_role?: string;
+  user_type?: string;
+  property_id?: string;
+  status?: string;
+}
+
 interface PropertyFormData {
   name: string;
   title: string;
@@ -17,6 +29,7 @@ interface PropertyFormData {
 }
 
 const PropertiesProfiles: React.FC = () => {
+  const navigate = useNavigate();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +151,10 @@ const PropertiesProfiles: React.FC = () => {
       description: property.description || ''
     });
     setShowCreateForm(true);
+  };
+
+  const handleViewUsers = (propertyId: string) => {
+    navigate(`/properties/${propertyId}/users`);
   };
 
   useEffect(() => {
@@ -307,6 +324,15 @@ const PropertiesProfiles: React.FC = () => {
               </div>
               
               <div className="flex space-x-2">
+                <button
+                  onClick={() => handleViewUsers(property.id)}
+                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: '#DD6A1A' }}
+                >
+                  <Users size={16} />
+                  <span>Users</span>
+                </button>
+                
                 <button
                   onClick={() => startEditing(property)}
                   className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
