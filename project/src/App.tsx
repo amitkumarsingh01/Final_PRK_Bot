@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Verification from './pages/Verify';
+import UserProfile from './pages/Admin/UserProfile';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -46,7 +47,8 @@ const AppRoutes = () => {
       }>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="users" element={<div className="p-4">User Management Page</div>} />
+        {/* <Route path="users" element={<div className="p-4">User Management Page</div>} /> */}
+        <Route path="users" element={<UserProfile />} />
         <Route path="properties" element={<div className="p-4">Properties Management Page</div>} />
         <Route path="tasks/categories" element={<div className="p-4">Task Categories Page</div>} />
         <Route path="tasks/all" element={<div className="p-4">All Tasks Page</div>} />

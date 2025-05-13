@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Column, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from datetime import datetime
 import uuid
@@ -28,7 +28,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String)
     email = Column(String, unique=True, index=True)
     phone_no = Column(String)
@@ -42,7 +42,7 @@ class User(Base):
 
 class Property(Base):
     __tablename__ = "properties"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String)
     title = Column(String)
     description = Column(String)
@@ -65,7 +65,7 @@ class LoginSchema(BaseModel):
     password: str
 
 class ProfileSchema(BaseModel):
-    id: Optional[int]
+    id: Optional[str]
     name: Optional[str]
     email: Optional[str]
     phone_no: Optional[str]
@@ -83,7 +83,7 @@ class PropertyCreate(BaseModel):
     description: Optional[str] = None
 
 class PropertyOut(PropertyCreate):
-    id: int
+    id: str
 
     class Config:
         orm_mode = True
@@ -166,6 +166,21 @@ def delete_profile(user_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "User deleted"}
 
+@app.patch("/profile/{user_id}/activate")
+def activate_user(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.status = "active"
+    db.commit()
+    db.refresh(user)
+    return {
+        "message": "User activated successfully",
+        "user_id": user.user_id,
+        "status": user.status
+    }
+
 @app.get("/profile", response_model=List[ProfileSchema])
 def get_all_profiles(db: Session = Depends(get_db)):
     return db.query(User).all()
@@ -185,14 +200,14 @@ def get_all_properties(db: Session = Depends(get_db)):
     return db.query(Property).all()
 
 @app.get("/properties/{id}", response_model=PropertyOut)
-def get_property_by_id(id: int, db: Session = Depends(get_db)):
+def get_property_by_id(id: str, db: Session = Depends(get_db)):
     prop = db.query(Property).filter(Property.id == id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
     return prop
 
 @app.put("/properties/{id}", response_model=PropertyOut)
-def update_property(id: int, data: PropertyCreate, db: Session = Depends(get_db)):
+def update_property(id: str, data: PropertyCreate, db: Session = Depends(get_db)):
     prop = db.query(Property).filter(Property.id == id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
@@ -203,7 +218,7 @@ def update_property(id: int, data: PropertyCreate, db: Session = Depends(get_db)
     return prop
 
 @app.delete("/properties/{id}")
-def delete_property(id: int, db: Session = Depends(get_db)):
+def delete_property(id: str, db: Session = Depends(get_db)):
     prop = db.query(Property).filter(Property.id == id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")

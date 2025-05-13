@@ -34,7 +34,7 @@ const Signup: React.FC = () => {
     // Fetch properties when component mounts
     const fetchProperties = async () => {
       try {
-        const response = await fetch('http://localhost:7500/properties');
+        const response = await fetch('http://localhost:8000/properties');
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
@@ -78,7 +78,7 @@ const Signup: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:7500/signup', {
+      const response = await fetch('http://localhost:8000/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
