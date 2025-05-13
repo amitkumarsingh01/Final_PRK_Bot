@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
 
+const API_BASE_URL = 'http://localhost:8000';
+
 interface Profile {
   id: string;
   name?: string;
@@ -40,8 +42,11 @@ const UserProfile: React.FC = () => {
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/profile');
-      if (!response.ok) throw new Error('Failed to fetch profiles');
+      const response = await fetch(`${API_BASE_URL}/profile`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to fetch profiles');
+      }
       const data = await response.json();
       setProfiles(data);
     } catch (err) {
@@ -54,14 +59,20 @@ const UserProfile: React.FC = () => {
   // Create new profile
   const createProfile = async (profile: ProfileFormData) => {
     try {
-      const response = await fetch('/profile', {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(profile)
+        body: JSON.stringify({
+          ...profile,
+          status: 'active' // Set default status to active
+        })
       });
-      if (!response.ok) throw new Error('Failed to create profile');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to create profile');
+      }
       await fetchProfiles();
       setShowCreateForm(false);
       resetForm();
@@ -73,14 +84,20 @@ const UserProfile: React.FC = () => {
   // Update profile
   const updateProfile = async (id: string, profile: ProfileFormData) => {
     try {
-      const response = await fetch(`/profile/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(profile)
+        body: JSON.stringify({
+          ...profile,
+          status: 'active' // Maintain active status on update
+        })
       });
-      if (!response.ok) throw new Error('Failed to update profile');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to update profile');
+      }
       await fetchProfiles();
       setEditingProfile(null);
       resetForm();
@@ -94,10 +111,13 @@ const UserProfile: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this profile?')) return;
     
     try {
-      const response = await fetch(`/profile/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${id}`, {
         method: 'DELETE'
       });
-      if (!response.ok) throw new Error('Failed to delete profile');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to delete profile');
+      }
       await fetchProfiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete profile');
@@ -107,10 +127,13 @@ const UserProfile: React.FC = () => {
   // Activate user
   const activateUser = async (id: string) => {
     try {
-      const response = await fetch(`/profile/${id}/activate`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${id}/activate`, {
         method: 'PATCH'
       });
-      if (!response.ok) throw new Error('Failed to activate user');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to activate user');
+      }
       await fetchProfiles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to activate user');
