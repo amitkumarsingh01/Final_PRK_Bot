@@ -55,8 +55,8 @@ const Login: React.FC = () => {
         <div className="bg-white/90 backdrop-blur-sm p-8 rounded-lg shadow-xl w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">
-              <span className="text-[#000435]">Track</span>
-              <span className="text-[#E06002]">Bot</span>
+              <span className="text-[#000435]">PRK</span>
+              <span className="text-[#E06002]">TECH</span>
             </h1>
             <p className="text-gray-600">Welcome back! Please sign in to continue.</p>
           </div>

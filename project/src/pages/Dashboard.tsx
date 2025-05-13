@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Welcome message */}
       <div className="bg-gradient-to-r from-[#000435] to-[#000655] text-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold mb-2">Welcome to TrackBot Dashboard</h2>
+        <h2 className="text-xl font-bold mb-2">Welcome to PRK Tech Dashboard</h2>
         <p className="opacity-80">Manage your properties, tasks, and teams efficiently</p>
       </div>
       
