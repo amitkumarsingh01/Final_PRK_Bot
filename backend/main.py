@@ -142,10 +142,16 @@ def get_profile(user_id: str, db: Session = Depends(get_db)):
 
 @app.post("/profile")
 def create_profile(profile: ProfileSchema, db: Session = Depends(get_db)):
+    # Check if user already exists with this user_id
+    if profile.user_id:
+        existing_user = db.query(User).filter(User.user_id == profile.user_id).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="User with this user_id already exists")
+    
     user_data = profile.dict(exclude_unset=True)
     user = User(**user_data)
-    user.id = str(uuid.uuid4())
-    user.user_id = str(uuid.uuid4())
+    user.id = str(uuid.uuid4())  # Only generate a new primary key id
+    # Don't generate a new user_id, use the one from signup
     user.created_at = datetime.utcnow()
     db.add(user)
     db.commit()
