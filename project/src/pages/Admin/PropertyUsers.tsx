@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://server.prktechindia.in';
 
 interface PropertyUser {
   id: string;
