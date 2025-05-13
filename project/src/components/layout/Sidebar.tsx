@@ -100,21 +100,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.userId) {
+        console.log('Current user ID:', user.userId);
         try {
-          const response = await fetch('/api/profile', {
+          const response = await fetch('http://localhost:8000/profile', {
             headers: {
               'Authorization': `Bearer ${user.token}`
             }
           });
           const data = await response.json();
+          console.log('API response data:', data);
           // Find the profile matching the current user's ID
           const currentUserProfile = data.find((profile: UserProfile) => profile.id === user.userId);
+          console.log('Found user profile:', currentUserProfile);
           if (currentUserProfile) {
             setUserProfile(currentUserProfile);
+          } else {
+            console.log('No matching profile found for user ID:', user.userId);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
         }
+      } else {
+        console.log('No user ID available');
       }
     };
 
