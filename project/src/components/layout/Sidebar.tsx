@@ -15,7 +15,9 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  User
+  User,
+  Heart,
+  Search
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -139,6 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
       { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+      { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
     ];
 
     const cadminItems: NavItem[] = [
