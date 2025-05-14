@@ -8,7 +8,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
   return (
-    <div className="sticky top-0 z-30 bg-black border-b border-gray-200 flex items-center justify-between h-16 px-4 md:px-6">
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 flex items-center justify-between h-16 px-4 md:px-6">
       <div className="flex items-center">
         <button 
           onClick={onMenuClick}
