@@ -9,6 +9,7 @@ interface Property {
   name: string;
   title: string;
   description?: string;
+  logo_base64?: string;
 }
 
 interface PropertyUser {
@@ -26,6 +27,7 @@ interface PropertyFormData {
   name: string;
   title: string;
   description: string;
+  logo_base64?: string;
 }
 
 const PropertiesProfiles: React.FC = () => {
@@ -38,7 +40,8 @@ const PropertiesProfiles: React.FC = () => {
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
     title: '',
-    description: ''
+    description: '',
+    logo_base64: ''
   });
 
   // Fetch all properties
@@ -125,13 +128,25 @@ const PropertiesProfiles: React.FC = () => {
     setFormData({
       name: '',
       title: '',
-      description: ''
+      description: '',
+      logo_base64: ''
     });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, logo_base64: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -148,7 +163,8 @@ const PropertiesProfiles: React.FC = () => {
     setFormData({
       name: property.name,
       title: property.title,
-      description: property.description || ''
+      description: property.description || '',
+      logo_base64: property.logo_base64 || ''
     });
     setShowCreateForm(true);
   };
@@ -261,6 +277,25 @@ const PropertiesProfiles: React.FC = () => {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+                    Logo Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                  {formData.logo_base64 && (
+                    <img
+                      src={formData.logo_base64}
+                      alt="Logo Preview"
+                      className="mt-2 w-20 h-20 object-contain border rounded"
+                    />
+                  )}
+                </div>
+                
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="submit"
@@ -300,12 +335,20 @@ const PropertiesProfiles: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#060C18' }}
-                  >
-                    <Building2 size={20} className="text-white" />
-                  </div>
+                  {property.logo_base64 ? (
+                    <img
+                      src={property.logo_base64}
+                      alt="Logo"
+                      className="w-10 h-10 rounded-full object-cover border"
+                    />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: '#060C18' }}
+                    >
+                      <Building2 size={20} className="text-white" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold" style={{ color: '#060C18' }}>
                       {property.name}
