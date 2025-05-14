@@ -148,11 +148,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Daily Logs',
         hasSubmenu: true,
         submenuItems: [
-          { path: '/daily-logs/all', label: 'All Daily Logs' },
-          { path: '/daily-logs/assigned', label: 'Assigned to Me' },
+          { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
+          { path: '/daily-logs/waste-water', label: 'Waste Water' },
         ]
       },
       { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
     ];
 
     const cadminItems: NavItem[] = [
@@ -248,7 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               to={item.hasSubmenu ? '#' : item.path}
               icon={item.icon}
               label={!isCollapsed ? item.label : ''}
-              active={location.pathname === item.path}
+              active={location.pathname === item.path || (!!item.hasSubmenu && location.pathname.startsWith(item.path + '/'))}
               hasSubmenu={item.hasSubmenu && !isCollapsed}
               isOpen={item.hasSubmenu && tasksOpen}
               onClick={() => {
@@ -268,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
                     key={subItem.path}
                     to={subItem.path}
                     className={`block px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
-                      location.pathname === subItem.path
+                      location.pathname.includes(subItem.path)
                         ? 'bg-orange-100 text-[#E06002]'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
