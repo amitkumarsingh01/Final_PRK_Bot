@@ -10,6 +10,7 @@ import UserProfile from './pages/Admin/UserProfile';
 import PropertiesProfiles from './pages/Admin/PropertiesProfiles';
 import PropertyUsers from './pages/Admin/PropertyUsers';
 import Tasks from './pages/Admin/Tasks';
+import Staff from './pages/Admin/Staff';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -55,6 +56,7 @@ const AppRoutes = () => {
         <Route path="users" element={<UserProfile />} />
         {/* <Route path="properties" element={<div className="p-4">Properties Management Page</div>} /> */}
         <Route path="tasks" element={<Tasks />} />
+        <Route path="staff-categories" element={<Staff />} />
         <Route path="properties" element={<PropertiesProfiles />} />
         <Route path="properties/:propertyId/users" element={<PropertyUsers />} />
         {/* <Route path="tasks/categories" element={<div className="p-4">Task Categories Page</div>} />
