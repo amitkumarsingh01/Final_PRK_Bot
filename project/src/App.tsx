@@ -11,6 +11,8 @@ import PropertiesProfiles from './pages/Admin/PropertiesProfiles';
 import PropertyUsers from './pages/Admin/PropertyUsers';
 import Tasks from './pages/Admin/Tasks';
 import Staff from './pages/Admin/Staff';
+import FreshWater from './pages/Admin/DailyLogs/FreshWater';
+import Profile from './pages/Profile';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -63,6 +65,12 @@ const AppRoutes = () => {
         <Route path="tasks/all" element={<div className="p-4">All Tasks Page</div>} />
         <Route path="tasks/assigned" element={<div className="p-4">Tasks Assigned To Me Page</div>} />
         <Route path="tasks" element={<Navigate to="/tasks/all" replace />} /> */}
+        <Route path="daily-logs">
+          <Route index element={<Navigate to="/daily-logs/fresh-water" replace />} />
+          <Route path="fresh-water" element={<FreshWater />} />
+          <Route path="waste-water" element={<div className="p-4">Waste Water Page</div>} />
+        </Route>
+        <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
         <Route path="notifications" element={<div className="p-4">Notifications Page</div>} />
