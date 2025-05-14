@@ -51,6 +51,7 @@ interface Task {
   active?: boolean;
   completed?: boolean;
   default?: boolean;
+  reset?: boolean;
   opening_time?: string;
   closing_time?: string;
   comment?: string;
@@ -68,6 +69,10 @@ interface Activity {
   created_at?: string;
   updated_at?: string;
   tasks?: Task[];
+  total_tasks: number;
+  active_tasks: number;
+  default_tasks: number;
+  completed_tasks: number;
 }
 
 const Tasks: React.FC = () => {
@@ -317,6 +322,57 @@ const Tasks: React.FC = () => {
     setShowTaskForm(true);
   };
 
+  const handleSetTaskActive = async (task: Task) => {
+    setLoading(true);
+    try {
+      await api.updateTask(task.id, {
+        ...task,
+        active: true,
+        default: false,
+        reset: false,
+      });
+      loadActivities();
+    } catch (error) {
+      console.error('Error setting task active:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetTaskDefault = async (task: Task) => {
+    setLoading(true);
+    try {
+      await api.updateTask(task.id, {
+        ...task,
+        active: false,
+        default: true,
+        reset: false,
+      });
+      loadActivities();
+    } catch (error) {
+      console.error('Error setting task default:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetTaskReset = async (task: Task) => {
+    setLoading(true);
+    try {
+      await api.updateTask(task.id, {
+        ...task,
+        active: false,
+        default: false,
+        reset: true,
+      });
+      loadActivities();
+    } catch (error) {
+      console.error('Error setting task reset:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="container mx-auto px-4 py-8">
@@ -356,6 +412,12 @@ const Tasks: React.FC = () => {
                     {activity.description && (
                       <p className="text-sm opacity-75">{activity.description}</p>
                     )}
+                    <div className="flex flex-wrap gap-4 mt-2 text-xs text-orange-200">
+                      <span>Total: {activity.total_tasks}</span>
+                      <span>Active: {activity.active_tasks}</span>
+                      <span>Default: {activity.default_tasks}</span>
+                      <span>Completed: {activity.completed_tasks}</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -445,16 +507,28 @@ const Tasks: React.FC = () => {
                                 </button>
                               )}
                               <button
-                                onClick={() => handleToggleTaskActive(task.id)}
+                                onClick={() => handleSetTaskActive(task)}
                                 className="p-2 rounded hover:opacity-75"
                                 style={{ backgroundColor: task.active ? '#DB7723' : '#F88024' }}
-                                title={task.active ? 'Deactivate' : 'Activate'}
+                                title="Set Active"
                               >
-                                {task.active ? (
-                                  <Pause className="w-4 h-4 text-white" />
-                                ) : (
-                                  <Play className="w-4 h-4 text-white" />
-                                )}
+                                <Play className="w-4 h-4 text-white" />
+                              </button>
+                              <button
+                                onClick={() => handleSetTaskDefault(task)}
+                                className="p-2 rounded hover:opacity-75"
+                                style={{ backgroundColor: task.default ? '#DB7723' : '#F88024' }}
+                                title="Set Default"
+                              >
+                                D
+                              </button>
+                              <button
+                                onClick={() => handleSetTaskReset(task)}
+                                className="p-2 rounded hover:opacity-75"
+                                style={{ backgroundColor: task.reset ? '#DB7723' : '#F88024' }}
+                                title="Set Reset"
+                              >
+                                R
                               </button>
                               <button
                                 onClick={() => handleResetTask(task.id)}
