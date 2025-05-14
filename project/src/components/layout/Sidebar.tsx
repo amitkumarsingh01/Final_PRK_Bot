@@ -142,6 +142,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
       { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
+      { 
+        path: '/daily-logs', 
+        icon: <CheckSquare size={20} />, 
+        label: 'Daily Logs',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '/daily-logs/all', label: 'All Daily Logs' },
+          { path: '/daily-logs/assigned', label: 'Assigned to Me' },
+        ]
+      },
+      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
     ];
 
     const cadminItems: NavItem[] = [
@@ -168,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
     switch (userProfile?.user_type) {
       case 'admin':
-        return [...baseItems, ...adminItems, ...commonItems];
+        return [...adminItems];
       case 'cadmin':
         return [...baseItems, ...cadminItems, ...commonItems];
       case 'user':
