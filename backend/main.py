@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -46,6 +46,16 @@ class Property(Base):
     name = Column(String)
     title = Column(String)
     description = Column(String)
+    logo_base64 = Column(Text, nullable=True)  # New field for base64 logo
+
+# --- Staff Category Model ---
+class StaffCategoryModel(Base):
+    __tablename__ = "staff_categories"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String, nullable=False)
+    user_ids = Column(String, nullable=True)  # Comma-separated user_ids for now
+    created_at = Column(DateTime, default=datetime.utcnow)
+    property_id = Column(String, nullable=False)
 
 class ActivityModel(Base):
     __tablename__ = "activities"
@@ -57,6 +67,10 @@ class ActivityModel(Base):
     description = Column(Text)
     user_role = Column(String(100))
     user_type = Column(String(100))
+    total_tasks = Column(Integer, default=0)
+    active_tasks = Column(Integer, default=0)
+    default_tasks = Column(Integer, default=0)
+    completed_tasks = Column(Integer, default=0)
     
     # Relationship with tasks
     tasks = relationship("TaskModel", back_populates="activity", cascade="all, delete-orphan")
@@ -118,10 +132,31 @@ class PropertyCreate(BaseModel):
     name: str
     title: str
     description: Optional[str] = None
+    logo_base64: Optional[str] = None  # New field for base64 logo
 
 class PropertyOut(PropertyCreate):
     id: str
 
+    class Config:
+        from_attributes = True
+
+# --- Staff Category Schemas ---
+class StaffCategoryBase(BaseModel):
+    title: str
+    user_ids: Optional[List[str]] = []
+    property_id: str
+
+class StaffCategoryCreate(StaffCategoryBase):
+    pass
+
+class StaffCategoryUpdate(BaseModel):
+    title: Optional[str] = None
+    user_ids: Optional[List[str]] = None
+    property_id: Optional[str] = None
+
+class StaffCategoryResponse(StaffCategoryBase):
+    id: str
+    created_at: datetime
     class Config:
         from_attributes = True
 
@@ -168,6 +203,10 @@ class ActivityBase(BaseModel):
     description: Optional[str] = None
     user_role: Optional[str] = None
     user_type: Optional[str] = None
+    total_tasks: Optional[int] = 0
+    active_tasks: Optional[int] = 0
+    default_tasks: Optional[int] = 0
+    completed_tasks: Optional[int] = 0
 
 class ActivityCreate(ActivityBase):
     pass
@@ -416,6 +455,106 @@ def delete_property(id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting property: {str(e)}")
 
+# --- Staff Category CRUD Routes ---
+
+@app.post("/staff-categories", response_model=StaffCategoryResponse)
+def create_staff_category(data: StaffCategoryCreate, db: Session = Depends(get_db)):
+    try:
+        user_ids_str = ",".join(data.user_ids) if data.user_ids else None
+        staff_cat = StaffCategoryModel(
+            title=data.title,
+            user_ids=user_ids_str,
+            property_id=data.property_id
+        )
+        db.add(staff_cat)
+        db.commit()
+        db.refresh(staff_cat)
+        return StaffCategoryResponse(
+            id=staff_cat.id,
+            title=staff_cat.title,
+            user_ids=staff_cat.user_ids.split(",") if staff_cat.user_ids else [],
+            property_id=staff_cat.property_id,
+            created_at=staff_cat.created_at
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating staff category: {str(e)}")
+
+@app.get("/staff-categories", response_model=List[StaffCategoryResponse])
+def get_all_staff_categories(db: Session = Depends(get_db)):
+    try:
+        cats = db.query(StaffCategoryModel).all()
+        return [
+            StaffCategoryResponse(
+                id=c.id,
+                title=c.title,
+                user_ids=c.user_ids.split(",") if c.user_ids else [],
+                property_id=c.property_id,
+                created_at=c.created_at
+            ) for c in cats
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching staff categories: {str(e)}")
+
+@app.get("/staff-categories/{id}", response_model=StaffCategoryResponse)
+def get_staff_category(id: str, db: Session = Depends(get_db)):
+    try:
+        c = db.query(StaffCategoryModel).filter(StaffCategoryModel.id == id).first()
+        if not c:
+            raise HTTPException(status_code=404, detail="Staff category not found")
+        return StaffCategoryResponse(
+            id=c.id,
+            title=c.title,
+            user_ids=c.user_ids.split(",") if c.user_ids else [],
+            property_id=c.property_id,
+            created_at=c.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching staff category: {str(e)}")
+
+@app.put("/staff-categories/{id}", response_model=StaffCategoryResponse)
+def update_staff_category(id: str, data: StaffCategoryUpdate, db: Session = Depends(get_db)):
+    try:
+        cat = db.query(StaffCategoryModel).filter(StaffCategoryModel.id == id).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail="Staff category not found")
+        update_data = data.dict(exclude_unset=True)
+        if "user_ids" in update_data and update_data["user_ids"] is not None:
+            update_data["user_ids"] = ",".join(update_data["user_ids"])
+        for key, value in update_data.items():
+            setattr(cat, key, value)
+        db.commit()
+        db.refresh(cat)
+        return StaffCategoryResponse(
+            id=cat.id,
+            title=cat.title,
+            user_ids=cat.user_ids.split(",") if cat.user_ids else [],
+            property_id=cat.property_id,
+            created_at=cat.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating staff category: {str(e)}")
+
+@app.delete("/staff-categories/{id}")
+def delete_staff_category(id: str, db: Session = Depends(get_db)):
+    try:
+        cat = db.query(StaffCategoryModel).filter(StaffCategoryModel.id == id).first()
+        if not cat:
+            raise HTTPException(status_code=404, detail="Staff category not found")
+        db.delete(cat)
+        db.commit()
+        return {"message": f"Staff category {id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting staff category: {str(e)}")
+
 # --- Activity CRUD Routes ---
 
 @app.post("/activities", response_model=ActivityResponse)
@@ -492,6 +631,19 @@ def delete_activity(activity_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting activity: {str(e)}")
 
+# --- Utility function to update activity task counts ---
+def update_activity_task_counts(db: Session, activity_id: str):
+    activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
+    if not activity:
+        return
+    tasks = db.query(TaskModel).filter(TaskModel.activity_id == activity_id).all()
+    activity.total_tasks = len(tasks)
+    activity.active_tasks = sum(1 for t in tasks if t.active)
+    activity.default_tasks = sum(1 for t in tasks if t.default)
+    activity.completed_tasks = sum(1 for t in tasks if t.completed)
+    db.commit()
+    db.refresh(activity)
+
 # --- Task CRUD Routes ---
 
 @app.post("/tasks", response_model=TaskResponse)
@@ -502,11 +654,11 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         activity = db.query(ActivityModel).filter(ActivityModel.id == task.activity_id).first()
         if not activity:
             raise HTTPException(status_code=404, detail="Activity not found")
-        
         db_task = TaskModel(**task.dict())
         db.add(db_task)
         db.commit()
         db.refresh(db_task)
+        update_activity_task_counts(db, task.activity_id)
         return db_task
     except HTTPException:
         raise
@@ -559,14 +711,13 @@ def update_task(task_id: str, task_update: TaskUpdate, db: Session = Depends(get
         task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
         if task is None:
             raise HTTPException(status_code=404, detail="Task not found")
-        
         update_data = task_update.dict(exclude_unset=True)
         for field, value in update_data.items():
             setattr(task, field, value)
-        
         task.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(task)
+        update_activity_task_counts(db, task.activity_id)
         return task
     except HTTPException:
         raise
@@ -581,9 +732,10 @@ def delete_task(task_id: str, db: Session = Depends(get_db)):
         task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
         if task is None:
             raise HTTPException(status_code=404, detail="Task not found")
-        
+        activity_id = task.activity_id
         db.delete(task)
         db.commit()
+        update_activity_task_counts(db, activity_id)
         return {"message": "Task deleted successfully"}
     except HTTPException:
         raise
