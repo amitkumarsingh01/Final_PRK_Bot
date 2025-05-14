@@ -22,8 +22,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user?.token;
 
-  const login = (userId: string, token: string, status: string) => {
-    const userData = { userId, token, status, role: 'user' };
+  const login = (user_id: string, token: string, status: string) => {
+    const userData = { userId: user_id, token, status, role: 'user' };
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
