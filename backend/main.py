@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -47,6 +47,15 @@ class Property(Base):
     title = Column(String)
     description = Column(String)
     logo_base64 = Column(Text, nullable=True)  # New field for base64 logo
+    created_time = Column(DateTime, default=datetime.utcnow)
+    updated_time = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    wtp_phases = relationship("WTP", back_populates="property")
+    stp_phases = relationship("STP", back_populates="property")
+    swimming_pools = relationship("SwimmingPool", back_populates="property", cascade="all, delete-orphan")
+    diesel_generators = relationship("DieselGenerator", back_populates="property", cascade="all, delete-orphan")
+    electricity_consumptions = relationship("ElectricityConsumption", back_populates="property", cascade="all, delete-orphan")
 
 # --- Staff Category Model ---
 class StaffCategoryModel(Base):
@@ -264,6 +273,79 @@ class WaterReading(Base):
     
     water_source = relationship("WaterSource", back_populates="readings")
 
+class SwimmingPool(Base):
+    __tablename__ = "swimming_pools"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    ph_value = Column(Float, nullable=True)
+    chlorine_value = Column(Float, nullable=True)
+    ph_updated_at = Column(DateTime, nullable=True)
+    chlorine_updated_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = relationship("Property", back_populates="swimming_pools")
+
+
+class DieselGenerator(Base):
+    __tablename__ = "diesel_generators"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=False)  # DG-1, DG-2, etc.
+    capacity = Column(String, nullable=True)  # e.g., 750 KVA
+    running_hours = Column(Float, default=0)
+    diesel_balance = Column(Float, default=0)  # in liters
+    diesel_capacity = Column(Float, default=0)  # total capacity in liters
+    kwh_units = Column(Float, default=0)
+    battery_voltage = Column(Float, nullable=True)
+    voltage_line_to_line = Column(Float, nullable=True)
+    voltage_line_to_neutral = Column(Float, nullable=True)
+    frequency = Column(Float, nullable=True)
+    oil_pressure = Column(Float, nullable=True)  # in psi
+    rpm = Column(Integer, nullable=True)
+    coolant_temperature = Column(Float, nullable=True)  # in °C
+    diesel_topup = Column(Float, default=0)  # in liters
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = relationship("Property", back_populates="diesel_generators")
+
+
+class ElectricityConsumption(Base):
+    __tablename__ = "electricity_consumptions"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    block_name = Column(String, nullable=False)  # Block-C, Block-D, etc.
+    reference_number = Column(String, nullable=True)  # RR: number
+    reading = Column(Float, default=0)  # in kWh
+    consumption_type = Column(String, nullable=False)  # "Block" or "STP"
+    phase = Column(String, nullable=True)  # For STP: Phase-1, Phase-2, etc.
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = relationship("Property", back_populates="electricity_consumptions")
+
+
+class DieselStock(Base):
+    __tablename__ = "diesel_stocks"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    purchase_amount = Column(Float, default=0)  # in liters
+    total_stock = Column(Float, default=0)  # in liters
+    capacity = Column(Float, default=0)  # total capacity in liters
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = relationship("Property")
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -343,6 +425,375 @@ def update_history_string(existing_history: str, db_object) -> str:
     if existing_history:
         return f"{existing_history},{current_time}"
     return current_time
+
+
+class WTP(Base):
+    __tablename__ = "wtp"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id"))
+    phase_name = Column(String)
+    created_time = Column(DateTime, default=datetime.utcnow)
+    updated_time = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Sump Levels
+    raw_sump_level = Column(Float, nullable=True)
+    treated_water_sump_level = Column(Float, nullable=True)
+    
+    # Water Quality
+    raw_water_hardness = Column(Float, nullable=True)
+    treated_water_hardness_morning = Column(Float, nullable=True)
+    treated_water_hardness_evening = Column(Float, nullable=True)
+    
+    # Meter Readings
+    treated_water_meter = Column(Float, nullable=True)
+    energy_consumption = Column(Float, nullable=True)
+    
+    # Salt Usage
+    salt_todays_usage = Column(Integer, nullable=True)
+    salt_stock = Column(Integer, nullable=True)
+    
+    # Additional parameters
+    ph_level = Column(Float, nullable=True)
+    chlorine_level = Column(Float, nullable=True)
+    turbidity = Column(Float, nullable=True)
+    
+    property = relationship("Property", back_populates="wtp_phases")
+
+class STP(Base):
+    __tablename__ = "stp"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, ForeignKey("properties.id"))
+    phase_name = Column(String)
+    created_time = Column(DateTime, default=datetime.utcnow)
+    updated_time = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Water Quality
+    tank1_mlss = Column(Float, nullable=True)
+    tank2_mlss = Column(Float, nullable=True)
+    ph_level = Column(Float, nullable=True)
+    chlorine_level = Column(Float, nullable=True)
+    smell = Column(String, nullable=True)
+    
+    # Meter Readings
+    energy_consumption = Column(Float, nullable=True)
+    raw_sewage_flow = Column(Float, nullable=True)
+    treated_water_flow = Column(Float, nullable=True)
+    
+    # Tank Levels
+    raw_sewage_tank_level = Column(Float, nullable=True)
+    filter_feed_tank_level = Column(Float, nullable=True)
+    flush_water_tank_level = Column(Float, nullable=True)
+    
+    # Air Quality
+    air_smell = Column(String, nullable=True)
+    
+    # Additional parameters
+    bod_inlet = Column(Float, nullable=True)
+    bod_outlet = Column(Float, nullable=True)
+    cod_inlet = Column(Float, nullable=True)
+    cod_outlet = Column(Float, nullable=True)
+    
+    property = relationship("Property", back_populates="stp_phases")
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Pydantic models for requests/responses
+class PropertyCreate(BaseModel):
+    name: str
+    title: str
+    description: str
+    logo_base64: Optional[str] = None
+
+class PropertyResponse(BaseModel):
+    id: str
+    name: str
+    title: str
+    description: str
+    logo_base64: Optional[str] = None
+    created_time: datetime
+    updated_time: datetime
+
+class WTPCreate(BaseModel):
+    property_id: str
+    phase_name: str
+    raw_sump_level: Optional[float] = None
+    treated_water_sump_level: Optional[float] = None
+    raw_water_hardness: Optional[float] = None
+    treated_water_hardness_morning: Optional[float] = None
+    treated_water_hardness_evening: Optional[float] = None
+    treated_water_meter: Optional[float] = None
+    energy_consumption: Optional[float] = None
+    salt_todays_usage: Optional[int] = None
+    salt_stock: Optional[int] = None
+    ph_level: Optional[float] = None
+    chlorine_level: Optional[float] = None
+    turbidity: Optional[float] = None
+
+class WTPUpdate(BaseModel):
+    phase_name: Optional[str] = None
+    raw_sump_level: Optional[float] = None
+    treated_water_sump_level: Optional[float] = None
+    raw_water_hardness: Optional[float] = None
+    treated_water_hardness_morning: Optional[float] = None
+    treated_water_hardness_evening: Optional[float] = None
+    treated_water_meter: Optional[float] = None
+    energy_consumption: Optional[float] = None
+    salt_todays_usage: Optional[int] = None
+    salt_stock: Optional[int] = None
+    ph_level: Optional[float] = None
+    chlorine_level: Optional[float] = None
+    turbidity: Optional[float] = None
+
+class WTPResponse(BaseModel):
+    id: str
+    property_id: str
+    phase_name: str
+    raw_sump_level: Optional[float]
+    treated_water_sump_level: Optional[float]
+    raw_water_hardness: Optional[float]
+    treated_water_hardness_morning: Optional[float]
+    treated_water_hardness_evening: Optional[float]
+    treated_water_meter: Optional[float]
+    energy_consumption: Optional[float]
+    salt_todays_usage: Optional[int]
+    salt_stock: Optional[int]
+    ph_level: Optional[float]
+    chlorine_level: Optional[float]
+    turbidity: Optional[float]
+    created_time: datetime
+    updated_time: datetime
+
+class STPCreate(BaseModel):
+    property_id: str
+    phase_name: str
+    tank1_mlss: Optional[float] = None
+    tank2_mlss: Optional[float] = None
+    ph_level: Optional[float] = None
+    chlorine_level: Optional[float] = None
+    smell: Optional[str] = None
+    energy_consumption: Optional[float] = None
+    raw_sewage_flow: Optional[float] = None
+    treated_water_flow: Optional[float] = None
+    raw_sewage_tank_level: Optional[float] = None
+    filter_feed_tank_level: Optional[float] = None
+    flush_water_tank_level: Optional[float] = None
+    air_smell: Optional[str] = None
+    bod_inlet: Optional[float] = None
+    bod_outlet: Optional[float] = None
+    cod_inlet: Optional[float] = None
+    cod_outlet: Optional[float] = None
+
+class STPUpdate(BaseModel):
+    phase_name: Optional[str] = None
+    tank1_mlss: Optional[float] = None
+    tank2_mlss: Optional[float] = None
+    ph_level: Optional[float] = None
+    chlorine_level: Optional[float] = None
+    smell: Optional[str] = None
+    energy_consumption: Optional[float] = None
+    raw_sewage_flow: Optional[float] = None
+    treated_water_flow: Optional[float] = None
+    raw_sewage_tank_level: Optional[float] = None
+    filter_feed_tank_level: Optional[float] = None
+    flush_water_tank_level: Optional[float] = None
+    air_smell: Optional[str] = None
+    bod_inlet: Optional[float] = None
+    bod_outlet: Optional[float] = None
+    cod_inlet: Optional[float] = None
+    cod_outlet: Optional[float] = None
+
+class STPResponse(BaseModel):
+    id: str
+    property_id: str
+    phase_name: str
+    tank1_mlss: Optional[float]
+    tank2_mlss: Optional[float]
+    ph_level: Optional[float]
+    chlorine_level: Optional[float]
+    smell: Optional[str]
+    energy_consumption: Optional[float]
+    raw_sewage_flow: Optional[float]
+    treated_water_flow: Optional[float]
+    raw_sewage_tank_level: Optional[float]
+    filter_feed_tank_level: Optional[float]
+    flush_water_tank_level: Optional[float]
+    air_smell: Optional[str]
+    bod_inlet: Optional[float]
+    bod_outlet: Optional[float]
+    cod_inlet: Optional[float]
+    cod_outlet: Optional[float]
+    created_time: datetime
+    updated_time: datetime
+
+
+class PropertyBase(BaseModel):
+    name: str
+    title: str
+    description: Optional[str] = None
+    logo_base64: Optional[str] = None
+
+
+class PropertyCreate(PropertyBase):
+    pass
+
+
+class PropertyUpdate(BaseModel):
+    name: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    logo_base64: Optional[str] = None
+
+
+class PropertyResponse(PropertyBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+# Swimming Pool Models
+class SwimmingPoolBase(BaseModel):
+    property_id: str
+    ph_value: Optional[float] = None
+    chlorine_value: Optional[float] = None
+
+
+class SwimmingPoolCreate(SwimmingPoolBase):
+    pass
+
+
+class SwimmingPoolUpdate(BaseModel):
+    ph_value: Optional[float] = None
+    chlorine_value: Optional[float] = None
+
+
+class SwimmingPoolResponse(SwimmingPoolBase):
+    id: str
+    ph_updated_at: Optional[datetime] = None
+    chlorine_updated_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+# Diesel Generator Models
+class DieselGeneratorBase(BaseModel):
+    property_id: str
+    name: str
+    capacity: Optional[str] = None
+    running_hours: float = 0
+    diesel_balance: float = 0
+    diesel_capacity: float = 0
+    kwh_units: float = 0
+    battery_voltage: Optional[float] = None
+    voltage_line_to_line: Optional[float] = None
+    voltage_line_to_neutral: Optional[float] = None
+    frequency: Optional[float] = None
+    oil_pressure: Optional[float] = None
+    rpm: Optional[int] = None
+    coolant_temperature: Optional[float] = None
+    diesel_topup: float = 0
+
+
+class DieselGeneratorCreate(DieselGeneratorBase):
+    pass
+
+
+class DieselGeneratorUpdate(BaseModel):
+    name: Optional[str] = None
+    capacity: Optional[str] = None
+    running_hours: Optional[float] = None
+    diesel_balance: Optional[float] = None
+    diesel_capacity: Optional[float] = None
+    kwh_units: Optional[float] = None
+    battery_voltage: Optional[float] = None
+    voltage_line_to_line: Optional[float] = None
+    voltage_line_to_neutral: Optional[float] = None
+    frequency: Optional[float] = None
+    oil_pressure: Optional[float] = None
+    rpm: Optional[int] = None
+    coolant_temperature: Optional[float] = None
+    diesel_topup: Optional[float] = None
+
+
+class DieselGeneratorResponse(DieselGeneratorBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+# Electricity Consumption Models
+class ElectricityConsumptionBase(BaseModel):
+    property_id: str
+    block_name: str
+    reference_number: Optional[str] = None
+    reading: float = 0
+    consumption_type: str  # "Block" or "STP"
+    phase: Optional[str] = None
+
+
+class ElectricityConsumptionCreate(ElectricityConsumptionBase):
+    pass
+
+
+class ElectricityConsumptionUpdate(BaseModel):
+    block_name: Optional[str] = None
+    reference_number: Optional[str] = None
+    reading: Optional[float] = None
+    consumption_type: Optional[str] = None
+    phase: Optional[str] = None
+
+
+class ElectricityConsumptionResponse(ElectricityConsumptionBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+# Diesel Stock Models
+class DieselStockBase(BaseModel):
+    property_id: str
+    purchase_amount: float = 0
+    total_stock: float = 0
+    capacity: float = 0
+
+
+class DieselStockCreate(DieselStockBase):
+    pass
+
+
+class DieselStockUpdate(BaseModel):
+    purchase_amount: Optional[float] = None
+    total_stock: Optional[float] = None
+    capacity: Optional[float] = None
+
+
+class DieselStockResponse(DieselStockBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
 
 # --- Dependency ---
 
@@ -1115,6 +1566,725 @@ def get_total_water_intake(water_source_id: str, db: Session = Depends(get_db)):
         "total_intake": total_intake,
         "unit": "KL"
     }
+
+@app.post("/properties/", response_model=PropertyResponse)
+def create_property(property: PropertyCreate, db: Session = Depends(get_db)):
+    db_property = Property(**property.dict())
+    db.add(db_property)
+    db.commit()
+    db.refresh(db_property)
+    return db_property
+
+@app.get("/properties/", response_model=List[PropertyResponse])
+def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    properties = db.query(Property).offset(skip).limit(limit).all()
+    return properties
+
+@app.get("/properties/{property_id}", response_model=PropertyResponse)
+def get_property(property_id: str, db: Session = Depends(get_db)):
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    return property
+
+@app.put("/properties/{property_id}", response_model=PropertyResponse)
+def update_property(property_id: str, property_update: PropertyCreate, db: Session = Depends(get_db)):
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    for field, value in property_update.dict(exclude_unset=True).items():
+        setattr(property, field, value)
+    
+    property.updated_time = datetime.utcnow()
+    db.commit()
+    db.refresh(property)
+    return property
+
+@app.delete("/properties/{property_id}")
+def delete_property(property_id: str, db: Session = Depends(get_db)):
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    db.delete(property)
+    db.commit()
+    return {"message": "Property deleted successfully"}
+
+# WTP APIS
+@app.post("/wtp/", response_model=WTPResponse)
+def create_wtp(wtp: WTPCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    property = db.query(Property).filter(Property.id == wtp.property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    db_wtp = WTP(**wtp.dict())
+    db.add(db_wtp)
+    db.commit()
+    db.refresh(db_wtp)
+    return db_wtp
+
+@app.get("/wtp/", response_model=List[WTPResponse])
+def get_wtps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = db.query(WTP)
+    if property_id:
+        query = query.filter(WTP.property_id == property_id)
+    wtps = query.offset(skip).limit(limit).all()
+    return wtps
+
+@app.get("/wtp/{wtp_id}", response_model=WTPResponse)
+def get_wtp(wtp_id: str, db: Session = Depends(get_db)):
+    wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
+    if wtp is None:
+        raise HTTPException(status_code=404, detail="WTP not found")
+    return wtp
+
+@app.put("/wtp/{wtp_id}", response_model=WTPResponse)
+def update_wtp(wtp_id: str, wtp_update: WTPUpdate, db: Session = Depends(get_db)):
+    wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
+    if wtp is None:
+        raise HTTPException(status_code=404, detail="WTP not found")
+    
+    for field, value in wtp_update.dict(exclude_unset=True).items():
+        setattr(wtp, field, value)
+    
+    wtp.updated_time = datetime.utcnow()
+    db.commit()
+    db.refresh(wtp)
+    return wtp
+
+@app.delete("/wtp/{wtp_id}")
+def delete_wtp(wtp_id: str, db: Session = Depends(get_db)):
+    wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
+    if wtp is None:
+        raise HTTPException(status_code=404, detail="WTP not found")
+    
+    db.delete(wtp)
+    db.commit()
+    return {"message": "WTP deleted successfully"}
+
+# STP APIS
+@app.post("/stp/", response_model=STPResponse)
+def create_stp(stp: STPCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    property = db.query(Property).filter(Property.id == stp.property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    db_stp = STP(**stp.dict())
+    db.add(db_stp)
+    db.commit()
+    db.refresh(db_stp)
+    return db_stp
+
+@app.get("/stp/", response_model=List[STPResponse])
+def get_stps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = db.query(STP)
+    if property_id:
+        query = query.filter(STP.property_id == property_id)
+    stps = query.offset(skip).limit(limit).all()
+    return stps
+
+@app.get("/stp/{stp_id}", response_model=STPResponse)
+def get_stp(stp_id: str, db: Session = Depends(get_db)):
+    stp = db.query(STP).filter(STP.id == stp_id).first()
+    if stp is None:
+        raise HTTPException(status_code=404, detail="STP not found")
+    return stp
+
+@app.put("/stp/{stp_id}", response_model=STPResponse)
+def update_stp(stp_id: str, stp_update: STPUpdate, db: Session = Depends(get_db)):
+    stp = db.query(STP).filter(STP.id == stp_id).first()
+    if stp is None:
+        raise HTTPException(status_code=404, detail="STP not found")
+    
+    for field, value in stp_update.dict(exclude_unset=True).items():
+        setattr(stp, field, value)
+    
+    stp.updated_time = datetime.utcnow()
+    db.commit()
+    db.refresh(stp)
+    return stp
+
+@app.delete("/stp/{stp_id}")
+def delete_stp(stp_id: str, db: Session = Depends(get_db)):
+    stp = db.query(STP).filter(STP.id == stp_id).first()
+    if stp is None:
+        raise HTTPException(status_code=404, detail="STP not found")
+    
+    db.delete(stp)
+    db.commit()
+    return {"message": "STP deleted successfully"}
+
+# Additional APIs for bulk operations
+@app.get("/properties/{property_id}/wtp", response_model=List[WTPResponse])
+def get_property_wtps(property_id: str, db: Session = Depends(get_db)):
+    # Check if property exists
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    wtps = db.query(WTP).filter(WTP.property_id == property_id).all()
+    return wtps
+
+@app.get("/properties/{property_id}/stp", response_model=List[STPResponse])
+def get_property_stps(property_id: str, db: Session = Depends(get_db)):
+    # Check if property exists
+    property = db.query(Property).filter(Property.id == property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    stps = db.query(STP).filter(STP.property_id == property_id).all()
+    return stps
+
+@app.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
+def create_property(property_data: PropertyCreate, db: Session = Depends(get_db)):
+    db_property = Property(**property_data.dict())
+    db.add(db_property)
+    db.commit()
+    db.refresh(db_property)
+    return db_property
+
+
+@app.get("/properties/", response_model=List[PropertyResponse])
+def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    properties = db.query(Property).offset(skip).limit(limit).all()
+    return properties
+
+
+@app.get("/properties/{property_id}", response_model=PropertyResponse)
+def get_property(property_id: str, db: Session = Depends(get_db)):
+    db_property = db.query(Property).filter(Property.id == property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    return db_property
+
+
+@app.put("/properties/{property_id}", response_model=PropertyResponse)
+def update_property(property_id: str, property_data: PropertyUpdate, db: Session = Depends(get_db)):
+    db_property = db.query(Property).filter(Property.id == property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    update_data = property_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_property, key, value)
+    
+    db_property.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_property)
+    return db_property
+
+
+@app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_property(property_id: str, db: Session = Depends(get_db)):
+    db_property = db.query(Property).filter(Property.id == property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    db.delete(db_property)
+    db.commit()
+    return None
+
+
+# Swimming Pool Endpoints
+@app.post("/swimming-pools/", response_model=SwimmingPoolResponse, status_code=status.HTTP_201_CREATED)
+def create_swimming_pool(pool_data: SwimmingPoolCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    db_property = db.query(Property).filter(Property.id == pool_data.property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Check if pool already exists for this property
+    existing_pool = db.query(SwimmingPool).filter(SwimmingPool.property_id == pool_data.property_id).first()
+    if existing_pool:
+        raise HTTPException(status_code=400, detail="Swimming pool already exists for this property")
+    
+    db_pool = SwimmingPool(**pool_data.dict())
+    
+    if pool_data.ph_value is not None:
+        db_pool.ph_updated_at = datetime.utcnow()
+    
+    if pool_data.chlorine_value is not None:
+        db_pool.chlorine_updated_at = datetime.utcnow()
+    
+    db.add(db_pool)
+    db.commit()
+    db.refresh(db_pool)
+    return db_pool
+
+
+@app.get("/swimming-pools/", response_model=List[SwimmingPoolResponse])
+def get_swimming_pools(
+    property_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    query = db.query(SwimmingPool)
+    if property_id:
+        query = query.filter(SwimmingPool.property_id == property_id)
+    
+    pools = query.offset(skip).limit(limit).all()
+    return pools
+
+
+@app.get("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse)
+def get_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
+    db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
+    if db_pool is None:
+        raise HTTPException(status_code=404, detail="Swimming pool not found")
+    return db_pool
+
+
+@app.put("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse)
+def update_swimming_pool(pool_id: str, pool_data: SwimmingPoolUpdate, db: Session = Depends(get_db)):
+    db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
+    if db_pool is None:
+        raise HTTPException(status_code=404, detail="Swimming pool not found")
+    
+    update_data = pool_data.dict(exclude_unset=True)
+    
+    # Update timestamp for pH if changed
+    if "ph_value" in update_data and update_data["ph_value"] is not None:
+        update_data["ph_updated_at"] = datetime.utcnow()
+    
+    # Update timestamp for chlorine if changed
+    if "chlorine_value" in update_data and update_data["chlorine_value"] is not None:
+        update_data["chlorine_updated_at"] = datetime.utcnow()
+    
+    for key, value in update_data.items():
+        setattr(db_pool, key, value)
+    
+    db_pool.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_pool)
+    return db_pool
+
+
+@app.delete("/swimming-pools/{pool_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
+    db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
+    if db_pool is None:
+        raise HTTPException(status_code=404, detail="Swimming pool not found")
+    
+    db.delete(db_pool)
+    db.commit()
+    return None
+
+
+# Diesel Generator Endpoints
+@app.post("/diesel-generators/", response_model=DieselGeneratorResponse, status_code=status.HTTP_201_CREATED)
+def create_diesel_generator(generator_data: DieselGeneratorCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    db_property = db.query(Property).filter(Property.id == generator_data.property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Check if generator with same name already exists for this property
+    existing_generator = db.query(DieselGenerator).filter(
+        DieselGenerator.property_id == generator_data.property_id,
+        DieselGenerator.name == generator_data.name
+    ).first()
+    
+    if existing_generator:
+        raise HTTPException(status_code=400, detail=f"Diesel generator '{generator_data.name}' already exists for this property")
+    
+    db_generator = DieselGenerator(**generator_data.dict())
+    db.add(db_generator)
+    db.commit()
+    db.refresh(db_generator)
+    return db_generator
+
+
+@app.get("/diesel-generators/", response_model=List[DieselGeneratorResponse])
+def get_diesel_generators(
+    property_id: Optional[str] = None,
+    name: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    query = db.query(DieselGenerator)
+    
+    if property_id:
+        query = query.filter(DieselGenerator.property_id == property_id)
+    
+    if name:
+        query = query.filter(DieselGenerator.name == name)
+    
+    generators = query.offset(skip).limit(limit).all()
+    return generators
+
+
+@app.get("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse)
+def get_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
+    db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
+    if db_generator is None:
+        raise HTTPException(status_code=404, detail="Diesel generator not found")
+    return db_generator
+
+
+@app.put("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse)
+def update_diesel_generator(generator_id: str, generator_data: DieselGeneratorUpdate, db: Session = Depends(get_db)):
+    db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
+    if db_generator is None:
+        raise HTTPException(status_code=404, detail="Diesel generator not found")
+    
+    update_data = generator_data.dict(exclude_unset=True)
+    
+    # If name is being updated, check for duplicates
+    if "name" in update_data and update_data["name"] is not None and update_data["name"] != db_generator.name:
+        existing_generator = db.query(DieselGenerator).filter(
+            DieselGenerator.property_id == db_generator.property_id,
+            DieselGenerator.name == update_data["name"]
+        ).first()
+        
+        if existing_generator:
+            raise HTTPException(status_code=400, detail=f"Diesel generator '{update_data['name']}' already exists for this property")
+    
+    for key, value in update_data.items():
+        setattr(db_generator, key, value)
+    
+    db_generator.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_generator)
+    return db_generator
+
+
+@app.delete("/diesel-generators/{generator_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
+    db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
+    if db_generator is None:
+        raise HTTPException(status_code=404, detail="Diesel generator not found")
+    
+    db.delete(db_generator)
+    db.commit()
+    return None
+
+
+# Electricity Consumption Endpoints
+@app.post("/electricity-consumptions/", response_model=ElectricityConsumptionResponse, status_code=status.HTTP_201_CREATED)
+def create_electricity_consumption(consumption_data: ElectricityConsumptionCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    db_property = db.query(Property).filter(Property.id == consumption_data.property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Validate consumption type
+    if consumption_data.consumption_type not in ["Block", "STP"]:
+        raise HTTPException(status_code=400, detail="Consumption type must be either 'Block' or 'STP'")
+    
+    # For STP type, phase should be specified
+    if consumption_data.consumption_type == "STP" and not consumption_data.phase:
+        raise HTTPException(status_code=400, detail="Phase must be specified for STP consumption type")
+    
+    # Check if electricity consumption with same block_name/phase already exists for this property
+    filter_conditions = [
+        ElectricityConsumption.property_id == consumption_data.property_id,
+        ElectricityConsumption.consumption_type == consumption_data.consumption_type
+    ]
+    
+    if consumption_data.consumption_type == "Block":
+        filter_conditions.append(ElectricityConsumption.block_name == consumption_data.block_name)
+    else:  # STP
+        filter_conditions.append(ElectricityConsumption.phase == consumption_data.phase)
+    
+    existing_consumption = db.query(ElectricityConsumption).filter(*filter_conditions).first()
+    
+    if existing_consumption:
+        entity_name = consumption_data.block_name if consumption_data.consumption_type == "Block" else consumption_data.phase
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Electricity consumption for {consumption_data.consumption_type} '{entity_name}' already exists for this property"
+        )
+    
+    db_consumption = ElectricityConsumption(**consumption_data.dict())
+    db.add(db_consumption)
+    db.commit()
+    db.refresh(db_consumption)
+    return db_consumption
+
+
+@app.get("/electricity-consumptions/", response_model=List[ElectricityConsumptionResponse])
+def get_electricity_consumptions(
+    property_id: Optional[str] = None,
+    consumption_type: Optional[str] = None,
+    block_name: Optional[str] = None,
+    phase: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    query = db.query(ElectricityConsumption)
+    
+    if property_id:
+        query = query.filter(ElectricityConsumption.property_id == property_id)
+    
+    if consumption_type:
+        query = query.filter(ElectricityConsumption.consumption_type == consumption_type)
+    
+    if block_name:
+        query = query.filter(ElectricityConsumption.block_name == block_name)
+    
+    if phase:
+        query = query.filter(ElectricityConsumption.phase == phase)
+    
+    consumptions = query.offset(skip).limit(limit).all()
+    return consumptions
+
+
+@app.get("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse)
+def get_electricity_consumption(consumption_id: str, db: Session = Depends(get_db)):
+    db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
+    if db_consumption is None:
+        raise HTTPException(status_code=404, detail="Electricity consumption not found")
+    return db_consumption
+
+
+@app.put("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse)
+def update_electricity_consumption(consumption_id: str, consumption_data: ElectricityConsumptionUpdate, db: Session = Depends(get_db)):
+    db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
+    if db_consumption is None:
+        raise HTTPException(status_code=404, detail="Electricity consumption not found")
+    
+    update_data = consumption_data.dict(exclude_unset=True)
+    
+    # Validate consumption type if it's being updated
+    if "consumption_type" in update_data and update_data["consumption_type"] is not None:
+        if update_data["consumption_type"] not in ["Block", "STP"]:
+            raise HTTPException(status_code=400, detail="Consumption type must be either 'Block' or 'STP'")
+        
+        # For STP type, phase should be specified
+        if update_data["consumption_type"] == "STP" and not (db_consumption.phase or ("phase" in update_data and update_data["phase"])):
+            raise HTTPException(status_code=400, detail="Phase must be specified for STP consumption type")
+    
+    # Check for duplicates if block_name, consumption_type, or phase is being updated
+    if ("block_name" in update_data or "consumption_type" in update_data or "phase" in update_data):
+        new_block_name = update_data.get("block_name", db_consumption.block_name)
+        new_consumption_type = update_data.get("consumption_type", db_consumption.consumption_type)
+        new_phase = update_data.get("phase", db_consumption.phase)
+        
+        filter_conditions = [
+            ElectricityConsumption.property_id == db_consumption.property_id,
+            ElectricityConsumption.consumption_type == new_consumption_type,
+            ElectricityConsumption.id != consumption_id
+        ]
+        
+        if new_consumption_type == "Block":
+            filter_conditions.append(ElectricityConsumption.block_name == new_block_name)
+        else:  # STP
+            if new_phase:
+                filter_conditions.append(ElectricityConsumption.phase == new_phase)
+            else:
+                raise HTTPException(status_code=400, detail="Phase must be specified for STP consumption type")
+        
+        existing_consumption = db.query(ElectricityConsumption).filter(*filter_conditions).first()
+        
+        if existing_consumption:
+            entity_name = new_block_name if new_consumption_type == "Block" else new_phase
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Electricity consumption for {new_consumption_type} '{entity_name}' already exists for this property"
+            )
+    
+    for key, value in update_data.items():
+        setattr(db_consumption, key, value)
+    
+    db_consumption.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_consumption)
+    return db_consumption
+
+
+@app.delete("/electricity-consumptions/{consumption_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_electricity_consumption(consumption_id: str, db: Session = Depends(get_db)):
+    db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
+    if db_consumption is None:
+        raise HTTPException(status_code=404, detail="Electricity consumption not found")
+    
+    db.delete(db_consumption)
+    db.commit()
+    return None
+
+
+# Diesel Stock Endpoints
+@app.post("/diesel-stocks/", response_model=DieselStockResponse, status_code=status.HTTP_201_CREATED)
+def create_diesel_stock(stock_data: DieselStockCreate, db: Session = Depends(get_db)):
+    # Check if property exists
+    db_property = db.query(Property).filter(Property.id == stock_data.property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Check if diesel stock already exists for this property
+    existing_stock = db.query(DieselStock).filter(DieselStock.property_id == stock_data.property_id).first()
+    if existing_stock:
+        raise HTTPException(status_code=400, detail="Diesel stock already exists for this property")
+    
+    db_stock = DieselStock(**stock_data.dict())
+    db.add(db_stock)
+    db.commit()
+    db.refresh(db_stock)
+    return db_stock
+
+
+@app.get("/diesel-stocks/", response_model=List[DieselStockResponse])
+def get_diesel_stocks(
+    property_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    query = db.query(DieselStock)
+    
+    if property_id:
+        query = query.filter(DieselStock.property_id == property_id)
+    
+    stocks = query.offset(skip).limit(limit).all()
+    return stocks
+
+
+@app.get("/diesel-stocks/{stock_id}", response_model=DieselStockResponse)
+def get_diesel_stock(stock_id: str, db: Session = Depends(get_db)):
+    db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
+    if db_stock is None:
+        raise HTTPException(status_code=404, detail="Diesel stock not found")
+    return db_stock
+
+@app.put("/diesel-stocks/{stock_id}", response_model=DieselStockResponse)
+def update_diesel_stock(stock_id: str, stock_data: DieselStockUpdate, db: Session = Depends(get_db)):
+    db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
+    if db_stock is None:
+        raise HTTPException(status_code=404, detail="Diesel stock not found")
+    
+    update_data = stock_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_stock, key, value)
+    
+    db_stock.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_stock)
+    return db_stock
+
+
+@app.delete("/diesel-stocks/{stock_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_diesel_stock(stock_id: str, db: Session = Depends(get_db)):
+    db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
+    if db_stock is None:
+        raise HTTPException(status_code=404, detail="Diesel stock not found")
+    
+    db.delete(db_stock)
+    db.commit()
+    return None
+
+
+# Dashboard and Summary Endpoints
+
+@app.get("/properties/{property_id}/dashboard")
+def get_property_dashboard(property_id: str, db: Session = Depends(get_db)):
+    """
+    Get a consolidated dashboard view of property data including:
+    - Swimming pool status
+    - Diesel generators status
+    - Electricity consumption summary
+    - Diesel stock information
+    """
+    # Check if property exists
+    db_property = db.query(Property).filter(Property.id == property_id).first()
+    if db_property is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Get swimming pool data
+    pool = db.query(SwimmingPool).filter(SwimmingPool.property_id == property_id).first()
+    pool_data = None
+    if pool:
+        pool_data = {
+            "id": pool.id,
+            "ph_value": pool.ph_value,
+            "ph_updated_at": pool.ph_updated_at,
+            "chlorine_value": pool.chlorine_value,
+            "chlorine_updated_at": pool.chlorine_updated_at
+        }
+    
+    # Get diesel generators data
+    generators = db.query(DieselGenerator).filter(DieselGenerator.property_id == property_id).all()
+    generators_data = []
+    for generator in generators:
+        generators_data.append({
+            "id": generator.id,
+            "name": generator.name,
+            "capacity": generator.capacity,
+            "running_hours": generator.running_hours,
+            "diesel_balance": generator.diesel_balance,
+            "diesel_capacity": generator.diesel_capacity,
+            "kwh_units": generator.kwh_units,
+            "battery_voltage": generator.battery_voltage,
+            "voltage_line_to_line": generator.voltage_line_to_line,
+            "voltage_line_to_neutral": generator.voltage_line_to_neutral,
+            "frequency": generator.frequency,
+            "oil_pressure": generator.oil_pressure,
+            "rpm": generator.rpm,
+            "coolant_temperature": generator.coolant_temperature
+        })
+    
+    # Get electricity consumption data
+    block_consumptions = db.query(ElectricityConsumption).filter(
+        ElectricityConsumption.property_id == property_id,
+        ElectricityConsumption.consumption_type == "Block"
+    ).all()
+    
+    stp_consumptions = db.query(ElectricityConsumption).filter(
+        ElectricityConsumption.property_id == property_id,
+        ElectricityConsumption.consumption_type == "STP"
+    ).all()
+    
+    block_data = []
+    for consumption in block_consumptions:
+        block_data.append({
+            "id": consumption.id,
+            "block_name": consumption.block_name,
+            "reference_number": consumption.reference_number,
+            "reading": consumption.reading
+        })
+    
+    stp_data = []
+    for consumption in stp_consumptions:
+        stp_data.append({
+            "id": consumption.id,
+            "phase": consumption.phase,
+            "reference_number": consumption.reference_number,
+            "reading": consumption.reading
+        })
+    
+    # Get diesel stock data
+    stock = db.query(DieselStock).filter(DieselStock.property_id == property_id).first()
+    stock_data = None
+    if stock:
+        stock_data = {
+            "id": stock.id,
+            "purchase_amount": stock.purchase_amount,
+            "total_stock": stock.total_stock,
+            "capacity": stock.capacity
+        }
+    
+    # Compile dashboard data
+    dashboard = {
+        "property": {
+            "id": db_property.id,
+            "name": db_property.name,
+            "title": db_property.title
+        },
+        "swimming_pool": pool_data,
+        "diesel_generators": generators_data,
+        "electricity_consumption": {
+            "blocks": block_data,
+            "stp": stp_data
+        },
+        "diesel_stock": stock_data
+    }
+    
+    return dashboard
 
 # --- Health check endpoint ---
 
