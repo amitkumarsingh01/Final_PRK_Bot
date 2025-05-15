@@ -13,6 +13,8 @@ import Tasks from './pages/Admin/Tasks';
 import Staff from './pages/Admin/Staff';
 import FreshWater from './pages/Admin/DailyLogs/FreshWater';
 import Profile from './pages/Profile';
+import DieselGeneratorManager from './pages/Admin/DailyLogs/Generator';
+import StpWtp from './pages/Admin/DailyLogs/StpWtp';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -68,7 +70,8 @@ const AppRoutes = () => {
         <Route path="daily-logs">
           <Route index element={<Navigate to="/daily-logs/fresh-water" replace />} />
           <Route path="fresh-water" element={<FreshWater />} />
-          <Route path="waste-water" element={<div className="p-4">Waste Water Page</div>} />
+          <Route path="generator" element={<DieselGeneratorManager />} />
+          <Route path="stp-wtp" element={<StpWtp />} />
         </Route>
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
