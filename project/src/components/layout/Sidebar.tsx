@@ -149,7 +149,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
-          { path: '/daily-logs/waste-water', label: 'Waste Water' },
+          { path: '/daily-logs/generator', label: 'Generator' },
+          { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
         ]
       },
       { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
