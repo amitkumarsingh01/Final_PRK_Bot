@@ -1723,7 +1723,7 @@ def get_total_water_intake(water_source_id: str, db: Session = Depends(get_db)):
         "unit": "KL"
     }
 
-@app.post("/properties/", response_model=PropertyResponse)
+@app.post("/properties/", response_model=PropertyResponse, tags=["Properties"])
 def create_property(property: PropertyCreate, db: Session = Depends(get_db)):
     db_property = Property(**property.dict())
     db.add(db_property)
@@ -1731,19 +1731,19 @@ def create_property(property: PropertyCreate, db: Session = Depends(get_db)):
     db.refresh(db_property)
     return db_property
 
-@app.get("/properties/", response_model=List[PropertyResponse])
+@app.get("/properties/", response_model=List[PropertyResponse], tags=["Properties"])
 def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     properties = db.query(Property).offset(skip).limit(limit).all()
     return properties
 
-@app.get("/properties/{property_id}", response_model=PropertyResponse)
+@app.get("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def get_property(property_id: str, db: Session = Depends(get_db)):
     property = db.query(Property).filter(Property.id == property_id).first()
     if property is None:
         raise HTTPException(status_code=404, detail="Property not found")
     return property
 
-@app.put("/properties/{property_id}", response_model=PropertyResponse)
+@app.put("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def update_property(property_id: str, property_update: PropertyCreate, db: Session = Depends(get_db)):
     property = db.query(Property).filter(Property.id == property_id).first()
     if property is None:
@@ -1757,7 +1757,7 @@ def update_property(property_id: str, property_update: PropertyCreate, db: Sessi
     db.refresh(property)
     return property
 
-@app.delete("/properties/{property_id}")
+@app.delete("/properties/{property_id}" , tags=["Properties"])
 def delete_property(property_id: str, db: Session = Depends(get_db)):
     property = db.query(Property).filter(Property.id == property_id).first()
     if property is None:
@@ -1768,7 +1768,7 @@ def delete_property(property_id: str, db: Session = Depends(get_db)):
     return {"message": "Property deleted successfully"}
 
 # WTP APIS
-@app.post("/wtp/", response_model=WTPResponse)
+@app.post("/wtp/", response_model=WTPResponse, tags=["WTP"])
 def create_wtp(wtp: WTPCreate, db: Session = Depends(get_db)):
     # Check if property exists
     property = db.query(Property).filter(Property.id == wtp.property_id).first()
@@ -1781,7 +1781,7 @@ def create_wtp(wtp: WTPCreate, db: Session = Depends(get_db)):
     db.refresh(db_wtp)
     return db_wtp
 
-@app.get("/wtp/", response_model=List[WTPResponse])
+@app.get("/wtp/", response_model=List[WTPResponse], tags=["WTP"])
 def get_wtps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     query = db.query(WTP)
     if property_id:
@@ -1789,14 +1789,14 @@ def get_wtps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100,
     wtps = query.offset(skip).limit(limit).all()
     return wtps
 
-@app.get("/wtp/{wtp_id}", response_model=WTPResponse)
+@app.get("/wtp/{wtp_id}", response_model=WTPResponse, tags=["WTP"])
 def get_wtp(wtp_id: str, db: Session = Depends(get_db)):
     wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
     if wtp is None:
         raise HTTPException(status_code=404, detail="WTP not found")
     return wtp
 
-@app.put("/wtp/{wtp_id}", response_model=WTPResponse)
+@app.put("/wtp/{wtp_id}", response_model=WTPResponse, tags=["WTP"])
 def update_wtp(wtp_id: str, wtp_update: WTPUpdate, db: Session = Depends(get_db)):
     wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
     if wtp is None:
@@ -1810,7 +1810,7 @@ def update_wtp(wtp_id: str, wtp_update: WTPUpdate, db: Session = Depends(get_db)
     db.refresh(wtp)
     return wtp
 
-@app.delete("/wtp/{wtp_id}")
+@app.delete("/wtp/{wtp_id}", tags=["WTP"])
 def delete_wtp(wtp_id: str, db: Session = Depends(get_db)):
     wtp = db.query(WTP).filter(WTP.id == wtp_id).first()
     if wtp is None:
@@ -1821,7 +1821,7 @@ def delete_wtp(wtp_id: str, db: Session = Depends(get_db)):
     return {"message": "WTP deleted successfully"}
 
 # STP APIS
-@app.post("/stp/", response_model=STPResponse)
+@app.post("/stp/", response_model=STPResponse, tags=["STP"])
 def create_stp(stp: STPCreate, db: Session = Depends(get_db)):
     # Check if property exists
     property = db.query(Property).filter(Property.id == stp.property_id).first()
@@ -1834,7 +1834,7 @@ def create_stp(stp: STPCreate, db: Session = Depends(get_db)):
     db.refresh(db_stp)
     return db_stp
 
-@app.get("/stp/", response_model=List[STPResponse])
+@app.get("/stp/", response_model=List[STPResponse], tags=["STP"])
 def get_stps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     query = db.query(STP)
     if property_id:
@@ -1842,14 +1842,14 @@ def get_stps(property_id: Optional[str] = None, skip: int = 0, limit: int = 100,
     stps = query.offset(skip).limit(limit).all()
     return stps
 
-@app.get("/stp/{stp_id}", response_model=STPResponse)
+@app.get("/stp/{stp_id}", response_model=STPResponse, tags=["STP"])
 def get_stp(stp_id: str, db: Session = Depends(get_db)):
     stp = db.query(STP).filter(STP.id == stp_id).first()
     if stp is None:
         raise HTTPException(status_code=404, detail="STP not found")
     return stp
 
-@app.put("/stp/{stp_id}", response_model=STPResponse)
+@app.put("/stp/{stp_id}", response_model=STPResponse, tags=["STP"])
 def update_stp(stp_id: str, stp_update: STPUpdate, db: Session = Depends(get_db)):
     stp = db.query(STP).filter(STP.id == stp_id).first()
     if stp is None:
@@ -1863,7 +1863,7 @@ def update_stp(stp_id: str, stp_update: STPUpdate, db: Session = Depends(get_db)
     db.refresh(stp)
     return stp
 
-@app.delete("/stp/{stp_id}")
+@app.delete("/stp/{stp_id}", tags=["STP"])
 def delete_stp(stp_id: str, db: Session = Depends(get_db)):
     stp = db.query(STP).filter(STP.id == stp_id).first()
     if stp is None:
@@ -1874,7 +1874,7 @@ def delete_stp(stp_id: str, db: Session = Depends(get_db)):
     return {"message": "STP deleted successfully"}
 
 # Additional APIs for bulk operations
-@app.get("/properties/{property_id}/wtp", response_model=List[WTPResponse])
+@app.get("/properties/{property_id}/wtp", response_model=List[WTPResponse], tags=["WTP"])
 def get_property_wtps(property_id: str, db: Session = Depends(get_db)):
     # Check if property exists
     property = db.query(Property).filter(Property.id == property_id).first()
@@ -1884,7 +1884,7 @@ def get_property_wtps(property_id: str, db: Session = Depends(get_db)):
     wtps = db.query(WTP).filter(WTP.property_id == property_id).all()
     return wtps
 
-@app.get("/properties/{property_id}/stp", response_model=List[STPResponse])
+@app.get("/properties/{property_id}/stp", response_model=List[STPResponse], tags=["STP"])
 def get_property_stps(property_id: str, db: Session = Depends(get_db)):
     # Check if property exists
     property = db.query(Property).filter(Property.id == property_id).first()
@@ -1894,7 +1894,7 @@ def get_property_stps(property_id: str, db: Session = Depends(get_db)):
     stps = db.query(STP).filter(STP.property_id == property_id).all()
     return stps
 
-@app.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED, tags=["Properties"])
 def create_property(property_data: PropertyCreate, db: Session = Depends(get_db)):
     db_property = Property(**property_data.dict())
     db.add(db_property)
@@ -1903,13 +1903,13 @@ def create_property(property_data: PropertyCreate, db: Session = Depends(get_db)
     return db_property
 
 
-@app.get("/properties/", response_model=List[PropertyResponse])
+@app.get("/properties/", response_model=List[PropertyResponse], tags=["Properties"])
 def get_properties(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     properties = db.query(Property).offset(skip).limit(limit).all()
     return properties
 
 
-@app.get("/properties/{property_id}", response_model=PropertyResponse)
+@app.get("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def get_property(property_id: str, db: Session = Depends(get_db)):
     db_property = db.query(Property).filter(Property.id == property_id).first()
     if db_property is None:
@@ -1917,7 +1917,7 @@ def get_property(property_id: str, db: Session = Depends(get_db)):
     return db_property
 
 
-@app.put("/properties/{property_id}", response_model=PropertyResponse)
+@app.put("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def update_property(property_id: str, property_data: PropertyUpdate, db: Session = Depends(get_db)):
     db_property = db.query(Property).filter(Property.id == property_id).first()
     if db_property is None:
@@ -1933,7 +1933,7 @@ def update_property(property_id: str, property_data: PropertyUpdate, db: Session
     return db_property
 
 
-@app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Properties"])
 def delete_property(property_id: str, db: Session = Depends(get_db)):
     db_property = db.query(Property).filter(Property.id == property_id).first()
     if db_property is None:
@@ -1945,7 +1945,7 @@ def delete_property(property_id: str, db: Session = Depends(get_db)):
 
 
 # Swimming Pool Endpoints
-@app.post("/swimming-pools/", response_model=SwimmingPoolResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/swimming-pools/", response_model=SwimmingPoolResponse, status_code=status.HTTP_201_CREATED, tags=["Swimming Pool"])
 def create_swimming_pool(pool_data: SwimmingPoolCreate, db: Session = Depends(get_db)):
     # Check if property exists
     db_property = db.query(Property).filter(Property.id == pool_data.property_id).first()
@@ -1971,7 +1971,7 @@ def create_swimming_pool(pool_data: SwimmingPoolCreate, db: Session = Depends(ge
     return db_pool
 
 
-@app.get("/swimming-pools/", response_model=List[SwimmingPoolResponse])
+@app.get("/swimming-pools/", response_model=List[SwimmingPoolResponse], tags=["Swimming Pool"])
 def get_swimming_pools(
     property_id: Optional[str] = None,
     skip: int = 0,
@@ -1986,7 +1986,7 @@ def get_swimming_pools(
     return pools
 
 
-@app.get("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse)
+@app.get("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse, tags=["Swimming Pool"])
 def get_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
     db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
     if db_pool is None:
@@ -1994,7 +1994,7 @@ def get_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
     return db_pool
 
 
-@app.put("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse)
+@app.put("/swimming-pools/{pool_id}", response_model=SwimmingPoolResponse, tags=["Swimming Pool"])
 def update_swimming_pool(pool_id: str, pool_data: SwimmingPoolUpdate, db: Session = Depends(get_db)):
     db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
     if db_pool is None:
@@ -2019,7 +2019,7 @@ def update_swimming_pool(pool_id: str, pool_data: SwimmingPoolUpdate, db: Sessio
     return db_pool
 
 
-@app.delete("/swimming-pools/{pool_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/swimming-pools/{pool_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Swimming Pool"])
 def delete_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
     db_pool = db.query(SwimmingPool).filter(SwimmingPool.id == pool_id).first()
     if db_pool is None:
@@ -2031,7 +2031,7 @@ def delete_swimming_pool(pool_id: str, db: Session = Depends(get_db)):
 
 
 # Diesel Generator Endpoints
-@app.post("/diesel-generators/", response_model=DieselGeneratorResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/diesel-generators/", response_model=DieselGeneratorResponse, status_code=status.HTTP_201_CREATED, tags=["Diesel Generator"])
 def create_diesel_generator(generator_data: DieselGeneratorCreate, db: Session = Depends(get_db)):
     # Check if property exists
     db_property = db.query(Property).filter(Property.id == generator_data.property_id).first()
@@ -2054,7 +2054,7 @@ def create_diesel_generator(generator_data: DieselGeneratorCreate, db: Session =
     return db_generator
 
 
-@app.get("/diesel-generators/", response_model=List[DieselGeneratorResponse])
+@app.get("/diesel-generators/", response_model=List[DieselGeneratorResponse], tags=["Diesel Generator"])
 def get_diesel_generators(
     property_id: Optional[str] = None,
     name: Optional[str] = None,
@@ -2074,7 +2074,7 @@ def get_diesel_generators(
     return generators
 
 
-@app.get("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse)
+@app.get("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse, tags=["Diesel Generator"])
 def get_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
     db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
     if db_generator is None:
@@ -2082,7 +2082,7 @@ def get_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
     return db_generator
 
 
-@app.put("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse)
+@app.put("/diesel-generators/{generator_id}", response_model=DieselGeneratorResponse, tags=["Diesel Generator"])
 def update_diesel_generator(generator_id: str, generator_data: DieselGeneratorUpdate, db: Session = Depends(get_db)):
     db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
     if db_generator is None:
@@ -2109,7 +2109,7 @@ def update_diesel_generator(generator_id: str, generator_data: DieselGeneratorUp
     return db_generator
 
 
-@app.delete("/diesel-generators/{generator_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/diesel-generators/{generator_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Diesel Generator"])
 def delete_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
     db_generator = db.query(DieselGenerator).filter(DieselGenerator.id == generator_id).first()
     if db_generator is None:
@@ -2121,7 +2121,7 @@ def delete_diesel_generator(generator_id: str, db: Session = Depends(get_db)):
 
 
 # Electricity Consumption Endpoints
-@app.post("/electricity-consumptions/", response_model=ElectricityConsumptionResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/electricity-consumptions/", response_model=ElectricityConsumptionResponse, status_code=status.HTTP_201_CREATED, tags=["Electricity Consumption"])
 def create_electricity_consumption(consumption_data: ElectricityConsumptionCreate, db: Session = Depends(get_db)):
     # Check if property exists
     db_property = db.query(Property).filter(Property.id == consumption_data.property_id).first()
@@ -2163,7 +2163,7 @@ def create_electricity_consumption(consumption_data: ElectricityConsumptionCreat
     return db_consumption
 
 
-@app.get("/electricity-consumptions/", response_model=List[ElectricityConsumptionResponse])
+@app.get("/electricity-consumptions/", response_model=List[ElectricityConsumptionResponse], tags=["Electricity Consumption"])
 def get_electricity_consumptions(
     property_id: Optional[str] = None,
     consumption_type: Optional[str] = None,
@@ -2191,7 +2191,7 @@ def get_electricity_consumptions(
     return consumptions
 
 
-@app.get("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse)
+@app.get("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse, tags=["Electricity Consumption"])
 def get_electricity_consumption(consumption_id: str, db: Session = Depends(get_db)):
     db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
     if db_consumption is None:
@@ -2199,7 +2199,7 @@ def get_electricity_consumption(consumption_id: str, db: Session = Depends(get_d
     return db_consumption
 
 
-@app.put("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse)
+@app.put("/electricity-consumptions/{consumption_id}", response_model=ElectricityConsumptionResponse, tags=["Electricity Consumption"])
 def update_electricity_consumption(consumption_id: str, consumption_data: ElectricityConsumptionUpdate, db: Session = Depends(get_db)):
     db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
     if db_consumption is None:
@@ -2254,7 +2254,7 @@ def update_electricity_consumption(consumption_id: str, consumption_data: Electr
     return db_consumption
 
 
-@app.delete("/electricity-consumptions/{consumption_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/electricity-consumptions/{consumption_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Electricity Consumption"])
 def delete_electricity_consumption(consumption_id: str, db: Session = Depends(get_db)):
     db_consumption = db.query(ElectricityConsumption).filter(ElectricityConsumption.id == consumption_id).first()
     if db_consumption is None:
@@ -2266,7 +2266,7 @@ def delete_electricity_consumption(consumption_id: str, db: Session = Depends(ge
 
 
 # Diesel Stock Endpoints
-@app.post("/diesel-stocks/", response_model=DieselStockResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/diesel-stocks/", response_model=DieselStockResponse, status_code=status.HTTP_201_CREATED, tags=["Diesel Stock"])
 def create_diesel_stock(stock_data: DieselStockCreate, db: Session = Depends(get_db)):
     # Check if property exists
     db_property = db.query(Property).filter(Property.id == stock_data.property_id).first()
@@ -2285,7 +2285,7 @@ def create_diesel_stock(stock_data: DieselStockCreate, db: Session = Depends(get
     return db_stock
 
 
-@app.get("/diesel-stocks/", response_model=List[DieselStockResponse])
+@app.get("/diesel-stocks/", response_model=List[DieselStockResponse], tags=["Diesel Stock"])
 def get_diesel_stocks(
     property_id: Optional[str] = None,
     skip: int = 0,
@@ -2301,14 +2301,14 @@ def get_diesel_stocks(
     return stocks
 
 
-@app.get("/diesel-stocks/{stock_id}", response_model=DieselStockResponse)
+@app.get("/diesel-stocks/{stock_id}", response_model=DieselStockResponse, tags=["Diesel Stock"])
 def get_diesel_stock(stock_id: str, db: Session = Depends(get_db)):
     db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
     if db_stock is None:
         raise HTTPException(status_code=404, detail="Diesel stock not found")
     return db_stock
 
-@app.put("/diesel-stocks/{stock_id}", response_model=DieselStockResponse)
+@app.put("/diesel-stocks/{stock_id}", response_model=DieselStockResponse, tags=["Diesel Stock"])
 def update_diesel_stock(stock_id: str, stock_data: DieselStockUpdate, db: Session = Depends(get_db)):
     db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
     if db_stock is None:
@@ -2324,7 +2324,7 @@ def update_diesel_stock(stock_id: str, stock_data: DieselStockUpdate, db: Sessio
     return db_stock
 
 
-@app.delete("/diesel-stocks/{stock_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/diesel-stocks/{stock_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Diesel Stock"])
 def delete_diesel_stock(stock_id: str, db: Session = Depends(get_db)):
     db_stock = db.query(DieselStock).filter(DieselStock.id == stock_id).first()
     if db_stock is None:
@@ -2337,7 +2337,7 @@ def delete_diesel_stock(stock_id: str, db: Session = Depends(get_db)):
 
 # Dashboard and Summary Endpoints
 
-@app.get("/properties/{property_id}/dashboard")
+@app.get("/properties/{property_id}/dashboard", tags=["Dashboard"])
 def get_property_dashboard(property_id: str, db: Session = Depends(get_db)):
     """
     Get a consolidated dashboard view of property data including:
@@ -2517,7 +2517,7 @@ def generate_asset_pdf_and_qr(asset_id: str, db: Session):
 # Endpoints for Asset Management
 
 # Get all assets
-@app.get("/assets/", response_model=List[AssetResponse], status_code=status.HTTP_200_OK)
+@app.get("/assets/", response_model=List[AssetResponse], status_code=status.HTTP_200_OK, tags=["Assets"])
 def get_all_assets(
     skip: int = 0, 
     limit: int = 100, 
@@ -2537,7 +2537,7 @@ def get_all_assets(
     return assets
 
 # Get asset by ID
-@app.get("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK)
+@app.get("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK, tags=["Assets"])
 def get_asset_by_id(asset_id: str, db: Session = Depends(get_db)):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
@@ -2545,7 +2545,7 @@ def get_asset_by_id(asset_id: str, db: Session = Depends(get_db)):
     return asset
 
 # Create new asset
-@app.post("/assets/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/assets/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED, tags=["Assets"])
 def create_asset(asset: AssetCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # Check if property exists
     property = db.query(Property).filter(Property.id == asset.property_id).first()
@@ -2583,7 +2583,7 @@ def create_asset(asset: AssetCreate, background_tasks: BackgroundTasks, db: Sess
     return db_asset
 
 # Update asset
-@app.put("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK)
+@app.put("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK, tags=["Assets"])
 def update_asset(
     asset_id: str, 
     asset_update: AssetUpdate, 
@@ -2615,7 +2615,7 @@ def update_asset(
     return db_asset
 
 # Delete asset
-@app.delete("/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Assets"])
 def delete_asset(asset_id: str, db: Session = Depends(get_db)):
     db_asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not db_asset:
@@ -2638,7 +2638,7 @@ def delete_asset(asset_id: str, db: Session = Depends(get_db)):
     return None
 
 # Get asset PDF
-@app.get("/assets/pdf/{asset_id}")
+@app.get("/assets/pdf/{asset_id}", tags=["Assets"])
 def get_asset_pdf(asset_id: str, db: Session = Depends(get_db)):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
@@ -2652,7 +2652,7 @@ def get_asset_pdf(asset_id: str, db: Session = Depends(get_db)):
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"asset_{asset_id}.pdf")
 
 # Get asset QR code
-@app.get("/assets/qr/{asset_id}")
+@app.get("/assets/qr/{asset_id}", tags=["Assets"])
 def get_asset_qr(asset_id: str, db: Session = Depends(get_db)):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
@@ -2747,7 +2747,7 @@ def process_inventory_item(db: Session, inventory_id: str, base_url: str = "http
 # API Endpoints for Inventory Management
 
 # Create a new inventory item
-@app.post("/inventory/", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/inventory/", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED, tags=["Inventory"])
 def create_inventory(
     inventory: InventoryCreate, 
     background_tasks: BackgroundTasks,
@@ -2788,7 +2788,7 @@ def create_inventory(
     return db_inventory
 
 # Get all inventory items
-@app.get("/inventory/", response_model=List[InventoryResponse])
+@app.get("/inventory/", response_model=List[InventoryResponse], tags=["Inventory"])
 def get_all_inventory(
     skip: int = 0, 
     limit: int = 100,
@@ -2807,7 +2807,7 @@ def get_all_inventory(
     return query.offset(skip).limit(limit).all()
 
 # Get inventory item by ID
-@app.get("/inventory/{inventory_id}", response_model=InventoryResponse)
+@app.get("/inventory/{inventory_id}", response_model=InventoryResponse, tags=["Inventory"])
 def get_inventory_by_id(inventory_id: str, db: Session = Depends(get_db)):
     inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not inventory:
@@ -2815,7 +2815,7 @@ def get_inventory_by_id(inventory_id: str, db: Session = Depends(get_db)):
     return inventory
 
 # Update inventory item
-@app.put("/inventory/{inventory_id}", response_model=InventoryResponse)
+@app.put("/inventory/{inventory_id}", response_model=InventoryResponse, tags=["Inventory"])
 def update_inventory(
     inventory_id: str,
     inventory_update: InventoryUpdate,
@@ -2842,7 +2842,7 @@ def update_inventory(
     return db_inventory
 
 # Delete inventory item
-@app.delete("/inventory/{inventory_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/inventory/{inventory_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Inventory"])
 def delete_inventory(inventory_id: str, db: Session = Depends(get_db)):
     db_inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not db_inventory:
@@ -2863,7 +2863,7 @@ def delete_inventory(inventory_id: str, db: Session = Depends(get_db)):
     return None
 
 # Get PDF by inventory ID
-@app.get("/inventory/pdf/{inventory_id}")
+@app.get("/inventory/pdf/{inventory_id}", tags=["Inventory"])
 def get_inventory_pdf(inventory_id: str, db: Session = Depends(get_db)):
     inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not inventory:
@@ -2879,7 +2879,7 @@ def get_inventory_pdf(inventory_id: str, db: Session = Depends(get_db)):
     return FileResponse(pdf_path, media_type="application/pdf", filename=f"asset_{inventory.stock_name}.pdf")
 
 # Get QR code image by inventory ID
-@app.get("/inventory/qr/{inventory_id}")
+@app.get("/inventory/qr/{inventory_id}", tags=["Inventory"])
 def get_inventory_qr(inventory_id: str, db: Session = Depends(get_db)):
     inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not inventory:
@@ -2896,7 +2896,7 @@ def get_inventory_qr(inventory_id: str, db: Session = Depends(get_db)):
     return FileResponse(qr_path, media_type="image/png", filename=f"qr_{inventory.stock_name}.png")
 
 # Regenerate PDF and QR code for an inventory item
-@app.post("/inventory/{inventory_id}/regenerate", response_model=InventoryResponse)
+@app.post("/inventory/{inventory_id}/regenerate", response_model=InventoryResponse, tags=["Inventory"])
 def regenerate_inventory_files(
     inventory_id: str, 
     db: Session = Depends(get_db),
@@ -2914,7 +2914,7 @@ def regenerate_inventory_files(
 
 # Initialize database tables
 
-@app.get("/health", tags=["Health Check"]   )
+@app.get("/health", tags=["Health Check"])
 def health_check():
     """Health check endpoint"""
     try:
