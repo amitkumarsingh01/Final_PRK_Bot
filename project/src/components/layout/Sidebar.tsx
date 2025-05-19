@@ -15,7 +15,9 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  User
+  User,
+  Heart,
+  Search
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -139,6 +141,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
       { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+      { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
+      { 
+        path: '/daily-logs', 
+        icon: <CheckSquare size={20} />, 
+        label: 'Daily Logs',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
+          { path: '/daily-logs/generator', label: 'Generator' },
+          { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
+        ]
+      },
+      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
     ];
 
     const cadminItems: NavItem[] = [
@@ -165,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
     switch (userProfile?.user_type) {
       case 'admin':
-        return [...baseItems, ...adminItems, ...commonItems];
+        return [...adminItems];
       case 'cadmin':
         return [...baseItems, ...cadminItems, ...commonItems];
       case 'user':
@@ -234,7 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               to={item.hasSubmenu ? '#' : item.path}
               icon={item.icon}
               label={!isCollapsed ? item.label : ''}
-              active={location.pathname === item.path}
+              active={location.pathname === item.path || (!!item.hasSubmenu && location.pathname.startsWith(item.path + '/'))}
               hasSubmenu={item.hasSubmenu && !isCollapsed}
               isOpen={item.hasSubmenu && tasksOpen}
               onClick={() => {
@@ -254,7 +270,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
                     key={subItem.path}
                     to={subItem.path}
                     className={`block px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
-                      location.pathname === subItem.path
+                      location.pathname.includes(subItem.path)
                         ? 'bg-orange-100 text-[#E06002]'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
