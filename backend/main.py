@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query, status
+from fastapi import FastAPI, HTTPException, Depends, Query, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -6,6 +6,14 @@ from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from datetime import datetime
 import uuid
+import os
+import qrcode
+from fpdf import FPDF
+from sqlalchemy.sql import func
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+import shutil
+
 
 app = FastAPI(title="User Auth and Property API")
 
@@ -56,6 +64,7 @@ class Property(Base):
     swimming_pools = relationship("SwimmingPool", back_populates="property", cascade="all, delete-orphan")
     diesel_generators = relationship("DieselGenerator", back_populates="property", cascade="all, delete-orphan")
     electricity_consumptions = relationship("ElectricityConsumption", back_populates="property", cascade="all, delete-orphan")
+    assets = relationship("Asset", back_populates="property", cascade="all, delete-orphan")
 
 # --- Staff Category Model ---
 class StaffCategoryModel(Base):
@@ -111,6 +120,150 @@ Base.metadata.create_all(bind=engine)
 
 # --- Schemas ---
 
+class Asset(Base):
+    __tablename__ = "assets"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    property_id = Column(String, ForeignKey("properties.id"))
+    asset_category = Column(String)
+    asset_name = Column(String)
+    tag_number = Column(String, unique=True)
+    additional_info = Column(Text, nullable=True)
+    location = Column(String)
+    vendor_name = Column(String)
+    purchase_date = Column(DateTime)
+    asset_cost = Column(Float)
+    warranty_date = Column(DateTime, nullable=True)
+    depreciation_value = Column(Float)  # Depreciation in percent
+    qr_code_url = Column(String)
+    
+    # Relationship
+    property = relationship("Property", back_populates="assets")
+
+# Pydantic models for request/response
+
+class Inventory(Base):
+    __tablename__ = "inventories"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    property_id = Column(String, ForeignKey("properties.id"))
+    stock_name = Column(String)
+    department = Column(String)
+    stock_id = Column(String, unique=True)
+    inventory_subledger = Column(String)
+    units = Column(Integer)
+    units_of_measurement = Column(String)
+    date_of_purchase = Column(DateTime)
+    custodian = Column(String)
+    location = Column(String)
+    opening_balance = Column(Integer)
+    issued = Column(Integer)
+    closing_balance = Column(Integer)
+    description = Column(Text, nullable=True)
+    qr_code_url = Column(String, nullable=True)
+    
+    # Relationship
+    property = relationship("Property", back_populates="inventories")
+
+# Pydantic models for request/response
+class PropertyBase(BaseModel):
+    name: str
+    title: str
+    description: Optional[str] = None
+    logo_base64: Optional[str] = None
+
+class PropertyCreate(PropertyBase):
+    pass
+
+class PropertyResponse(PropertyBase):
+    id: str
+    created_time: datetime
+    updated_time: datetime
+    
+    class Config:
+        orm_mode = True
+
+class InventoryBase(BaseModel):
+    property_id: str
+    stock_name: str
+    department: str
+    stock_id: str
+    inventory_subledger: str
+    units: int
+    units_of_measurement: str
+    date_of_purchase: datetime
+    custodian: str
+    location: str
+    opening_balance: int
+    issued: int
+    closing_balance: int
+    description: Optional[str] = None
+
+class InventoryCreate(InventoryBase):
+    pass
+
+class InventoryUpdate(BaseModel):
+    stock_name: Optional[str] = None
+    department: Optional[str] = None
+    inventory_subledger: Optional[str] = None
+    units: Optional[int] = None
+    units_of_measurement: Optional[str] = None
+    date_of_purchase: Optional[datetime] = None
+    custodian: Optional[str] = None
+    location: Optional[str] = None
+    opening_balance: Optional[int] = None
+    issued: Optional[int] = None
+    closing_balance: Optional[int] = None
+    description: Optional[str] = None
+
+class InventoryResponse(InventoryBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    qr_code_url: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
+
+class AssetBase(BaseModel):
+    asset_category: str
+    asset_name: str
+    tag_number: str
+    additional_info: Optional[str] = None
+    location: str
+    vendor_name: str
+    purchase_date: datetime
+    asset_cost: float
+    warranty_date: Optional[datetime] = None
+    depreciation_value: float
+    
+class AssetCreate(AssetBase):
+    property_id: str
+
+class AssetUpdate(BaseModel):
+    asset_category: Optional[str] = None
+    asset_name: Optional[str] = None
+    tag_number: Optional[str] = None
+    additional_info: Optional[str] = None
+    location: Optional[str] = None
+    vendor_name: Optional[str] = None
+    purchase_date: Optional[datetime] = None
+    asset_cost: Optional[float] = None
+    warranty_date: Optional[datetime] = None
+    depreciation_value: Optional[float] = None
+
+class AssetResponse(AssetBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    property_id: str
+    qr_code_url: str
+    
+    class Config:
+        orm_mode = True
 class SignupSchema(BaseModel):
     name: str
     email: str
@@ -348,6 +501,9 @@ class DieselStock(Base):
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+os.makedirs("assets/pdf", exist_ok=True)
+os.makedirs("assets/qr", exist_ok=True)
 
 # Dependency
 def get_db():
@@ -2287,6 +2443,476 @@ def get_property_dashboard(property_id: str, db: Session = Depends(get_db)):
     return dashboard
 
 # --- Health check endpoint ---
+
+def generate_asset_pdf_and_qr(asset_id: str, db: Session):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    property = db.query(Property).filter(Property.id == asset.property_id).first()
+    
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Set up fonts
+    pdf.set_font("Arial", "B", 16)
+    
+    # Title
+    pdf.cell(0, 10, "Asset Details", 0, 1, "C")
+    pdf.ln(10)
+    
+    # Property details
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, f"Property: {property.name}", 0, 1)
+    
+    # Asset details
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, f"Asset ID: {asset.id}", 0, 1)
+    pdf.cell(0, 10, f"Asset Name: {asset.asset_name}", 0, 1)
+    pdf.cell(0, 10, f"Category: {asset.asset_category}", 0, 1)
+    pdf.cell(0, 10, f"Tag Number: {asset.tag_number}", 0, 1)
+    pdf.cell(0, 10, f"Location: {asset.location}", 0, 1)
+    pdf.cell(0, 10, f"Vendor: {asset.vendor_name}", 0, 1)
+    pdf.cell(0, 10, f"Purchase Date: {asset.purchase_date.strftime('%Y-%m-%d')}", 0, 1)
+    pdf.cell(0, 10, f"Cost: ${asset.asset_cost:.2f}", 0, 1)
+    
+    if asset.warranty_date:
+        pdf.cell(0, 10, f"Warranty Until: {asset.warranty_date.strftime('%Y-%m-%d')}", 0, 1)
+    
+    pdf.cell(0, 10, f"Depreciation: {asset.depreciation_value}%", 0, 1)
+    
+    if asset.additional_info:
+        pdf.ln(5)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, "Additional Information:", 0, 1)
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 10, asset.additional_info)
+    
+    # Save the PDF
+    pdf_filename = f"assets/pdf/asset_{asset.id}.pdf"
+    pdf.output(pdf_filename)
+    
+    # Generate QR code
+    qr_url = f"{BASE_URL}/assets/pdf/{asset.id}"
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    qr_filename = f"assets/qr/qr_{asset.id}.png"
+    img.save(qr_filename)
+    
+    # Update asset with QR code URL
+    asset.qr_code_url = f"{BASE_URL}/assets/qr/{asset.id}"
+    db.commit()
+    
+    return pdf_filename, qr_filename
+
+# Endpoints for Asset Management
+
+# Get all assets
+@app.get("/assets/", response_model=List[AssetResponse], status_code=status.HTTP_200_OK)
+def get_all_assets(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None,
+    category: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Asset)
+    
+    if property_id:
+        query = query.filter(Asset.property_id == property_id)
+    
+    if category:
+        query = query.filter(Asset.asset_category == category)
+    
+    assets = query.offset(skip).limit(limit).all()
+    return assets
+
+# Get asset by ID
+@app.get("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK)
+def get_asset_by_id(asset_id: str, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
+# Create new asset
+@app.post("/assets/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
+def create_asset(asset: AssetCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    # Check if property exists
+    property = db.query(Property).filter(Property.id == asset.property_id).first()
+    if not property:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Check if tag number is unique
+    existing_tag = db.query(Asset).filter(Asset.tag_number == asset.tag_number).first()
+    if existing_tag:
+        raise HTTPException(status_code=400, detail="Tag number already exists")
+    
+    # Create new asset
+    db_asset = Asset(
+        property_id=asset.property_id,
+        asset_category=asset.asset_category,
+        asset_name=asset.asset_name,
+        tag_number=asset.tag_number,
+        additional_info=asset.additional_info,
+        location=asset.location,
+        vendor_name=asset.vendor_name,
+        purchase_date=asset.purchase_date,
+        asset_cost=asset.asset_cost,
+        warranty_date=asset.warranty_date,
+        depreciation_value=asset.depreciation_value,
+        qr_code_url=""  # Temporarily empty, will be updated after creating the PDF
+    )
+    
+    db.add(db_asset)
+    db.commit()
+    db.refresh(db_asset)
+    
+    # Generate PDF and QR code in the background
+    background_tasks.add_task(generate_asset_pdf_and_qr, db_asset.id, db)
+    
+    return db_asset
+
+# Update asset
+@app.put("/assets/{asset_id}", response_model=AssetResponse, status_code=status.HTTP_200_OK)
+def update_asset(
+    asset_id: str, 
+    asset_update: AssetUpdate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    db_asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not db_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # If tag number is being updated, check if it's unique
+    if asset_update.tag_number and asset_update.tag_number != db_asset.tag_number:
+        existing_tag = db.query(Asset).filter(Asset.tag_number == asset_update.tag_number).first()
+        if existing_tag:
+            raise HTTPException(status_code=400, detail="Tag number already exists")
+    
+    # Update asset fields
+    asset_data = asset_update.dict(exclude_unset=True)
+    for key, value in asset_data.items():
+        setattr(db_asset, key, value)
+    
+    db_asset.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_asset)
+    
+    # Regenerate PDF and QR code in the background
+    background_tasks.add_task(generate_asset_pdf_and_qr, asset_id, db)
+    
+    return db_asset
+
+# Delete asset
+@app.delete("/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_asset(asset_id: str, db: Session = Depends(get_db)):
+    db_asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not db_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    # Delete associated files
+    pdf_path = f"assets/pdf/asset_{asset_id}.pdf"
+    qr_path = f"assets/qr/qr_{asset_id}.png"
+    
+    if os.path.exists(pdf_path):
+        os.remove(pdf_path)
+    
+    if os.path.exists(qr_path):
+        os.remove(qr_path)
+    
+    # Delete from database
+    db.delete(db_asset)
+    db.commit()
+    
+    return None
+
+# Get asset PDF
+@app.get("/assets/pdf/{asset_id}")
+def get_asset_pdf(asset_id: str, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    pdf_path = f"assets/pdf/asset_{asset_id}.pdf"
+    if not os.path.exists(pdf_path):
+        # Regenerate if missing
+        generate_asset_pdf_and_qr(asset_id, db)
+    
+    return FileResponse(pdf_path, media_type="application/pdf", filename=f"asset_{asset_id}.pdf")
+
+# Get asset QR code
+@app.get("/assets/qr/{asset_id}")
+def get_asset_qr(asset_id: str, db: Session = Depends(get_db)):
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    qr_path = f"assets/qr/qr_{asset_id}.png"
+    if not os.path.exists(qr_path):
+        # Regenerate if missing
+        generate_asset_pdf_and_qr(asset_id, db)
+    
+    return FileResponse(qr_path, media_type="image/png", filename=f"qr_{asset_id}.png")
+
+def generate_pdf(inventory_id: str, inventory_data: dict):
+    """Generate PDF for inventory item and save it"""
+    pdf_path = f"assets/pdf/{inventory_id}.pdf"
+    
+    # Create PDF
+    c = canvas.Canvas(pdf_path, pagesize=A4)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, 800, "Asset Information")
+    
+    c.setFont("Helvetica", 12)
+    y_position = 770
+    
+    # Add inventory data to PDF
+    for key, value in inventory_data.items():
+        if key not in ["id", "created_at", "updated_at", "qr_code_url", "property_id"]:
+            if value is not None:
+                if isinstance(value, datetime):
+                    value = value.strftime("%Y-%m-%d %H:%M:%S")
+                c.drawString(50, y_position, f"{key.replace('_', ' ').title()}: {value}")
+                y_position -= 20
+    
+    c.save()
+    return pdf_path
+
+def generate_qr_code(base_url: str, inventory_id: str):
+    """Generate QR code for inventory PDF URL"""
+    qr_path = f"assets/qr/{inventory_id}.png"
+    pdf_url = f"{base_url}/inventory/pdf/{inventory_id}"
+    
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(pdf_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(qr_path)
+    return qr_path
+
+def process_inventory_item(db: Session, inventory_id: str, base_url: str = "http://localhost:8000"):
+    """Process inventory item to generate PDF and QR code"""
+    inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not inventory:
+        return None
+    
+    # Convert to dict for PDF generation
+    inventory_data = {
+        "id": inventory.id,
+        "stock_name": inventory.stock_name,
+        "department": inventory.department,
+        "stock_id": inventory.stock_id,
+        "inventory_subledger": inventory.inventory_subledger,
+        "units": inventory.units,
+        "units_of_measurement": inventory.units_of_measurement,
+        "date_of_purchase": inventory.date_of_purchase,
+        "custodian": inventory.custodian,
+        "location": inventory.location,
+        "opening_balance": inventory.opening_balance,
+        "issued": inventory.issued,
+        "closing_balance": inventory.closing_balance,
+        "description": inventory.description
+    }
+    
+    # Generate PDF
+    pdf_path = generate_pdf(inventory.id, inventory_data)
+    
+    # Generate QR code
+    generate_qr_code(base_url, inventory.id)
+    
+    # Update QR code URL
+    qr_code_url = f"{base_url}/inventory/pdf/{inventory.id}"
+    inventory.qr_code_url = qr_code_url
+    db.commit()
+    
+    return qr_code_url
+
+# API Endpoints for Inventory Management
+
+# Create a new inventory item
+@app.post("/inventory/", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED)
+def create_inventory(
+    inventory: InventoryCreate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+):
+    # Check if property exists
+    property_exists = db.query(Property).filter(Property.id == inventory.property_id).first()
+    if not property_exists:
+        raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Create inventory item
+    db_inventory = Inventory(
+        id=str(uuid.uuid4()),
+        property_id=inventory.property_id,
+        stock_name=inventory.stock_name,
+        department=inventory.department,
+        stock_id=inventory.stock_id,
+        inventory_subledger=inventory.inventory_subledger,
+        units=inventory.units,
+        units_of_measurement=inventory.units_of_measurement,
+        date_of_purchase=inventory.date_of_purchase,
+        custodian=inventory.custodian,
+        location=inventory.location,
+        opening_balance=inventory.opening_balance,
+        issued=inventory.issued,
+        closing_balance=inventory.closing_balance,
+        description=inventory.description
+    )
+    
+    db.add(db_inventory)
+    db.commit()
+    db.refresh(db_inventory)
+    
+    # Process PDF and QR code in background
+    background_tasks.add_task(process_inventory_item, db, db_inventory.id, base_url)
+    
+    return db_inventory
+
+# Get all inventory items
+@app.get("/inventory/", response_model=List[InventoryResponse])
+def get_all_inventory(
+    skip: int = 0, 
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    department: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Inventory)
+    
+    # Apply filters if provided
+    if property_id:
+        query = query.filter(Inventory.property_id == property_id)
+    if department:
+        query = query.filter(Inventory.department == department)
+    
+    return query.offset(skip).limit(limit).all()
+
+# Get inventory item by ID
+@app.get("/inventory/{inventory_id}", response_model=InventoryResponse)
+def get_inventory_by_id(inventory_id: str, db: Session = Depends(get_db)):
+    inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    return inventory
+
+# Update inventory item
+@app.put("/inventory/{inventory_id}", response_model=InventoryResponse)
+def update_inventory(
+    inventory_id: str,
+    inventory_update: InventoryUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+):
+    db_inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not db_inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Update fields if provided
+    update_data = inventory_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_inventory, key, value)
+    
+    db_inventory.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_inventory)
+    
+    # Regenerate PDF and QR code in background
+    background_tasks.add_task(process_inventory_item, db, db_inventory.id, base_url)
+    
+    return db_inventory
+
+# Delete inventory item
+@app.delete("/inventory/{inventory_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_inventory(inventory_id: str, db: Session = Depends(get_db)):
+    db_inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not db_inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Delete PDF and QR code files if they exist
+    pdf_path = f"assets/pdf/{inventory_id}.pdf"
+    qr_path = f"assets/qr/{inventory_id}.png"
+    
+    if os.path.exists(pdf_path):
+        os.remove(pdf_path)
+    if os.path.exists(qr_path):
+        os.remove(qr_path)
+    
+    db.delete(db_inventory)
+    db.commit()
+    
+    return None
+
+# Get PDF by inventory ID
+@app.get("/inventory/pdf/{inventory_id}")
+def get_inventory_pdf(inventory_id: str, db: Session = Depends(get_db)):
+    inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    pdf_path = f"assets/pdf/{inventory_id}.pdf"
+    if not os.path.exists(pdf_path):
+        # Regenerate PDF if it doesn't exist
+        process_inventory_item(db, inventory_id)
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=404, detail="PDF not found")
+    
+    return FileResponse(pdf_path, media_type="application/pdf", filename=f"asset_{inventory.stock_name}.pdf")
+
+# Get QR code image by inventory ID
+@app.get("/inventory/qr/{inventory_id}")
+def get_inventory_qr(inventory_id: str, db: Session = Depends(get_db)):
+    inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    qr_path = f"assets/qr/{inventory_id}.png"
+    if not os.path.exists(qr_path):
+        # Regenerate QR if it doesn't exist
+        base_url = "http://localhost:8000"  # Default base URL
+        process_inventory_item(db, inventory_id, base_url)
+        if not os.path.exists(qr_path):
+            raise HTTPException(status_code=404, detail="QR code not found")
+    
+    return FileResponse(qr_path, media_type="image/png", filename=f"qr_{inventory.stock_name}.png")
+
+# Regenerate PDF and QR code for an inventory item
+@app.post("/inventory/{inventory_id}/regenerate", response_model=InventoryResponse)
+def regenerate_inventory_files(
+    inventory_id: str, 
+    db: Session = Depends(get_db),
+    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+):
+    inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    # Regenerate PDF and QR code
+    process_inventory_item(db, inventory_id, base_url)
+    
+    db.refresh(inventory)
+    return inventory
+
+# Initialize database tables
 
 @app.get("/health", tags=["Health Check"]   )
 def health_check():
