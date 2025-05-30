@@ -65,6 +65,7 @@ class Property(Base):
     diesel_generators = relationship("DieselGenerator", back_populates="property", cascade="all, delete-orphan")
     electricity_consumptions = relationship("ElectricityConsumption", back_populates="property", cascade="all, delete-orphan")
     assets = relationship("Asset", back_populates="property", cascade="all, delete-orphan")
+    inventories = relationship("Inventory", back_populates="property", cascade="all, delete-orphan")
 
 # --- Staff Category Model ---
 class StaffCategoryModel(Base):
@@ -2707,7 +2708,7 @@ def generate_qr_code(base_url: str, inventory_id: str):
     img.save(qr_path)
     return qr_path
 
-def process_inventory_item(db: Session, inventory_id: str, base_url: str = "http://localhost:8000"):
+def process_inventory_item(db: Session, inventory_id: str, base_url: str = "https://server.prktechindia.in"):
     """Process inventory item to generate PDF and QR code"""
     inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not inventory:
@@ -2752,7 +2753,7 @@ def create_inventory(
     inventory: InventoryCreate, 
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+    base_url: str = Query("https://server.prktechindia.in", description="Base URL for QR code generation")
 ):
     # Check if property exists
     property_exists = db.query(Property).filter(Property.id == inventory.property_id).first()
@@ -2821,7 +2822,7 @@ def update_inventory(
     inventory_update: InventoryUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+    base_url: str = Query("https://server.prktechindia.in", description="Base URL for QR code generation")
 ):
     db_inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not db_inventory:
@@ -2888,7 +2889,7 @@ def get_inventory_qr(inventory_id: str, db: Session = Depends(get_db)):
     qr_path = f"assets/qr/{inventory_id}.png"
     if not os.path.exists(qr_path):
         # Regenerate QR if it doesn't exist
-        base_url = "http://localhost:8000"  # Default base URL
+        base_url = "https://server.prktechindia.in"  # Default base URL
         process_inventory_item(db, inventory_id, base_url)
         if not os.path.exists(qr_path):
             raise HTTPException(status_code=404, detail="QR code not found")
@@ -2900,7 +2901,7 @@ def get_inventory_qr(inventory_id: str, db: Session = Depends(get_db)):
 def regenerate_inventory_files(
     inventory_id: str, 
     db: Session = Depends(get_db),
-    base_url: str = Query("http://localhost:8000", description="Base URL for QR code generation")
+    base_url: str = Query("https://server.prktechindia.in", description="Base URL for QR code generation")
 ):
     inventory = db.query(Inventory).filter(Inventory.id == inventory_id).first()
     if not inventory:
