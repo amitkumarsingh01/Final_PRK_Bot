@@ -221,8 +221,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       <div className={`px-6 py-6 mb-2 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed && (
           <Link to="/dashboard" className="flex items-center text-xl font-bold">
-            <span className="text-[#000435]">Track</span>
-            <span className="text-[#E06002]">Bot</span>
+            <span className="text-[#000435]">PRKTECH</span>
+            <span className="text-[#E06002]">INDIA</span>
           </Link>
         )}
         {isCollapsed && (
