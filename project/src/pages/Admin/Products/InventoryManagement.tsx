@@ -698,12 +698,12 @@ const InventoryManagement: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
+      {/* Footer
       <footer className="bg-blue-900 text-white mt-12">
         <div className="container mx-auto px-4 py-6">
           <p className="text-center">© {new Date().getFullYear()} Inventory Management System. All rights reserved.</p>
         </div>
-      </footer>
+      </footer> */}
 
       {/* Delete Confirmation Modal */}
       {confirmDeleteId && (
