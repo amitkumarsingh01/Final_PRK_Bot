@@ -140,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     const adminItems: NavItem[] = [
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-      { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+      // { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
       { 
         path: '/daily-logs', 
@@ -150,10 +150,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         submenuItems: [
           { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
           { path: '/daily-logs/generator', label: 'Generator' },
-          { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
+          // { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
+          { path: '/daily-logs/stp', label: 'STP' },
+          { path: '/daily-logs/wtp', label: 'WTP' },
+          { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
+          { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
         ]
       },
       { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/assets-management', icon: <Users size={20} />, label: 'Assets Management' },
+      { path: '/inventory-management', icon: <Users size={20} />, label: 'Inventory Management' },
+
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
     ];
 

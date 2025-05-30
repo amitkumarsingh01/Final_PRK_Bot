@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import axios from 'axios';
+import { QRCodeSVG } from 'qrcode.react';
 
 // Define types
+interface Property {
+  id: string;
+  name: string;
+  title: string;
+  description?: string;
+  logo_base64?: string;
+}
+
 interface Asset {
   id: string;
   created_at: string;
@@ -35,13 +44,26 @@ interface AssetFormData {
   property_id: string;
 }
 
+interface QRData {
+  type: 'asset';
+  id: string;
+  name: string;
+  category: string;
+  tagNumber: string;
+  location: string;
+  cost: number;
+  purchaseDate: string;
+  warrantyDate?: string;
+}
+
 const AssetManagement: React.FC = () => {
   // Constants
-  const DEFAULT_PROPERTY_ID = "waefasarioahwfar";
-  const BASE_URL = "https://prkindia.com";
-  const API_URL = `${BASE_URL}/api`;
+  const BASE_URL = "https://server.prktechindia.in";
+  const API_URL = `${BASE_URL}`;
 
   // State
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -53,6 +75,7 @@ const AssetManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [qrData, setQrData] = useState<QRData | null>(null);
 
   // Initial form state
   const initialFormState: AssetFormData = {
@@ -66,16 +89,32 @@ const AssetManagement: React.FC = () => {
     asset_cost: "",
     warranty_date: "",
     depreciation_value: "",
-    property_id: DEFAULT_PROPERTY_ID,
+    property_id: "",
   };
 
   const [formData, setFormData] = useState<AssetFormData>(initialFormState);
 
+  // Fetch properties
+  const fetchProperties = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/properties`);
+      setProperties(response.data);
+      if (response.data.length > 0) {
+        setSelectedPropertyId(response.data[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching properties:", err);
+      setError("Failed to load properties. Please try again.");
+    }
+  };
+
   // Fetch assets
   const fetchAssets = async () => {
+    if (!selectedPropertyId) return;
+    
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/assets/`);
+      const response = await axios.get(`${API_URL}/assets/?property_id=${selectedPropertyId}`);
       setAssets(response.data);
       setFilteredAssets(response.data);
 
@@ -95,8 +134,15 @@ const AssetManagement: React.FC = () => {
 
   // Initial data load
   useEffect(() => {
-    fetchAssets();
+    fetchProperties();
   }, []);
+
+  // Fetch assets when property changes
+  useEffect(() => {
+    if (selectedPropertyId) {
+      fetchAssets();
+    }
+  }, [selectedPropertyId]);
 
   // Handle search & filter
   useEffect(() => {
@@ -133,6 +179,11 @@ const AssetManagement: React.FC = () => {
   // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPropertyId) {
+      setError("Please select a property first");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -142,7 +193,7 @@ const AssetManagement: React.FC = () => {
         ...formData,
         asset_cost: parseFloat(formData.asset_cost),
         depreciation_value: parseFloat(formData.depreciation_value),
-        property_id: DEFAULT_PROPERTY_ID,
+        property_id: selectedPropertyId,
       };
 
       if (isEditing && selectedAsset) {
@@ -238,13 +289,47 @@ const AssetManagement: React.FC = () => {
     }
   }, [success, error]);
 
+  // Generate QR data for an asset
+  const generateQRData = (asset: Asset): QRData => {
+    return {
+      type: 'asset',
+      id: asset.id,
+      name: asset.asset_name,
+      category: asset.asset_category,
+      tagNumber: asset.tag_number,
+      location: asset.location,
+      cost: asset.asset_cost,
+      purchaseDate: asset.purchase_date,
+      warrantyDate: asset.warranty_date
+    };
+  };
+
+  // Handle QR code generation
+  const handleQRCode = (asset: Asset) => {
+    const data = generateQRData(asset);
+    setQrData(data);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-blue-900 text-white shadow-lg">
         <div className="container mx-auto p-4">
           <h1 className="text-3xl font-bold">Asset Management System</h1>
-          <p className="text-orange-300">Property ID: {DEFAULT_PROPERTY_ID}</p>
+          <div className="mt-2">
+            <select
+              value={selectedPropertyId}
+              onChange={(e) => setSelectedPropertyId(e.target.value)}
+              className="bg-white text-gray-800 px-4 py-2 rounded shadow"
+            >
+              <option value="">Select Property</option>
+              {properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name} - {property.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </header>
 
@@ -382,7 +467,7 @@ const AssetManagement: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="block text-gray-700 font-medium mb-1">Asset Cost ($)</label>
+                <label className="block text-gray-700 font-medium mb-1">Asset Cost (₹)</label>
                 <input
                   type="number"
                   name="asset_cost"
@@ -482,7 +567,7 @@ const AssetManagement: React.FC = () => {
                     <p className="text-gray-600">Tag Number: <span className="font-semibold">{selectedAsset.tag_number}</span></p>
                   </div>
                   <div className="mt-2 md:mt-0">
-                    <p className="text-gray-600">Cost: <span className="font-semibold">${selectedAsset.asset_cost.toFixed(2)}</span></p>
+                    <p className="text-gray-600">Cost: <span className="font-semibold">₹{selectedAsset.asset_cost.toFixed(2)}</span></p>
                     <p className="text-gray-600">Depreciation: <span className="font-semibold">{selectedAsset.depreciation_value}%</span></p>
                   </div>
                 </div>
@@ -515,25 +600,24 @@ const AssetManagement: React.FC = () => {
 
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <h3 className="font-semibold text-blue-900 mb-2">Asset QR Code</h3>
-                  {selectedAsset.qr_code_url ? (
-                    <div className="flex flex-col items-center">
-                      <img 
-                        src={selectedAsset.qr_code_url} 
-                        alt="Asset QR Code" 
-                        className="h-40 w-40 object-contain mb-2"
+                  <div className="flex flex-col items-center">
+                    <div className="bg-white p-4 rounded-lg shadow mb-4">
+                      <QRCodeSVG 
+                        value={JSON.stringify(generateQRData(selectedAsset))}
+                        size={180}
+                        level="H"
+                        includeMargin={true}
                       />
-                      <a 
-                        href={`${BASE_URL}/assets/pdf/${selectedAsset.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        View Asset PDF
-                      </a>
                     </div>
-                  ) : (
-                    <p className="text-gray-500 italic">QR code not yet generated</p>
-                  )}
+                    <a 
+                      href={`${BASE_URL}/assets/pdf/${selectedAsset.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline text-sm"
+                    >
+                      View Asset PDF
+                    </a>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 mt-6">
@@ -553,6 +637,57 @@ const AssetManagement: React.FC = () => {
                     Edit
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* QR Code Modal */}
+        {qrData && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-blue-900">Asset QR Code</h3>
+                <button 
+                  onClick={() => setQrData(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center mb-6">
+                <div className="bg-white p-4 rounded-lg shadow mb-4">
+                  <QRCodeSVG 
+                    value={JSON.stringify(qrData)}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                
+                <div className="text-center">
+                  <h4 className="font-semibold text-lg mb-2">{qrData.name}</h4>
+                  <p className="text-gray-600">Tag: {qrData.tagNumber}</p>
+                  <p className="text-gray-600">Category: {qrData.category}</p>
+                  <p className="text-gray-600">Location: {qrData.location}</p>
+                  <p className="text-gray-600">Cost: ₹{qrData.cost.toFixed(2)}</p>
+                  <p className="text-gray-600">Purchase Date: {format(new Date(qrData.purchaseDate), 'MMM dd, yyyy')}</p>
+                  {qrData.warrantyDate && (
+                    <p className="text-gray-600">Warranty Until: {format(new Date(qrData.warrantyDate), 'MMM dd, yyyy')}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setQrData(null)}
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
@@ -590,7 +725,7 @@ const AssetManagement: React.FC = () => {
                     <td className="py-3 px-4">{asset.tag_number}</td>
                     <td className="py-3 px-4">{asset.location}</td>
                     <td className="py-3 px-4">{formatDate(asset.purchase_date)}</td>
-                    <td className="py-3 px-4">${asset.asset_cost.toFixed(2)}</td>
+                    <td className="py-3 px-4">₹{asset.asset_cost.toFixed(2)}</td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
                         <button
@@ -653,22 +788,6 @@ const AssetManagement: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-blue-900 text-white p-6 mt-12">
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-bold">Asset Management System</h3>
-              <p className="text-orange-300">Property ID: {DEFAULT_PROPERTY_ID}</p>
-            </div>
-            <div className="text-sm text-gray-300">
-              <p>© 2025 PRK India. All rights reserved.</p>
-              <p>Base URL: {BASE_URL}</p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

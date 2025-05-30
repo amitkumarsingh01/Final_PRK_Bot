@@ -126,6 +126,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 
 import axios from 'axios';
 
@@ -146,6 +147,7 @@ interface UserProfileType {
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
+  const { setProfile } = useProfile();
   const [profileData, setProfileData] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -161,6 +163,7 @@ const Profile: React.FC = () => {
         const matchedUser = res.data.find((u: UserProfileType) => u.user_id === user?.userId);
         if (matchedUser) {
           setProfileData(matchedUser);
+          setProfile(matchedUser); // Set the profile in the context
         }
       } catch (error) {
         console.error('Failed to fetch profile:', error);
@@ -172,7 +175,7 @@ const Profile: React.FC = () => {
     if (user?.userId) {
       fetchProfile();
     }
-  }, [user?.userId]);
+  }, [user?.userId, setProfile]);
 
   if (loading) return <div className="p-4 text-white">Loading...</div>;
   if (!profileData) return <div className="p-4 text-white">Profile not found.</div>;

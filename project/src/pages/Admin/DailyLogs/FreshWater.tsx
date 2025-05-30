@@ -369,8 +369,10 @@ export default function FreshWater() {
     const formData = {
       ...readingForm,
       property_id: propertyId,
-      reading_date: new Date(readingForm.reading_date).toISOString()
+      reading_date: new Date(readingForm.reading_date).toISOString().split('T')[0]
     };
+    
+    console.log('Submitting water reading form data:', formData);
     
     try {
       const response = await fetch(`${API_BASE_URL}/water-readings/`, {
@@ -402,7 +404,11 @@ export default function FreshWater() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Error creating water reading. Please try again.');
-      console.error(err);
+      console.error('Error creating water reading:', err);
+      // Log additional details if available
+      if (err instanceof Error) {
+        console.error('Error message:', err.message);
+      }
     }
   };
   
@@ -912,6 +918,11 @@ export default function FreshWater() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setIsAddingReading(true);
+                              setReadingForm({
+                                ...readingForm,
+                                water_source_id: source.id,
+                                property_id: propertyId,
+                              });
                             }}
                             className="flex items-center text-xs bg-[#F88024] hover:bg-[#DD6A1A] text-white px-2 py-1 rounded transition"
                           >

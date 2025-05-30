@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProfileProvider } from './context/ProfileContext';
 import Verification from './pages/Verify';
 import UserProfile from './pages/Admin/UserProfile';
 import PropertiesProfiles from './pages/Admin/PropertiesProfiles';
@@ -15,6 +16,12 @@ import FreshWater from './pages/Admin/DailyLogs/FreshWater';
 import Profile from './pages/Profile';
 import DieselGeneratorManager from './pages/Admin/DailyLogs/Generator';
 import StpWtp from './pages/Admin/DailyLogs/StpWtp';
+import AssetManagement from './pages/Admin/Products/AssetsManagement';
+import InventoryManagement from './pages/Admin/Products/InventoryManagement';
+import STPDashboard from './pages/Admin/DailyLogs/STPDashboard';
+import WTPDashboard from './pages/Admin/DailyLogs/WTPDashboard';
+import SwimmingPoolManager from './pages/Admin/DailyLogs/SwimmingPool';
+import DieselGeneratorDashboard from './pages/Admin/DailyLogs/DieselGenerator';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -27,21 +34,21 @@ const AppRoutes = () => {
         !isAuthenticated ? (
           <Login />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/dashboard" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
         )
       } />
       <Route path="/signup" element={
         !isAuthenticated ? (
           <Signup />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/dashboard" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
         )
       } />
       <Route path="/verify" element={
         isAuthenticated && user?.status !== 'active' ? (
           <Verification />
         ) : (
-          <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
+          <Navigate to={isAuthenticated ? "/users" : "/login"} replace />
         )
       } />
 
@@ -53,9 +60,9 @@ const AppRoutes = () => {
           <Navigate to={isAuthenticated ? "/verify" : "/login"} replace />
         )
       }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/users" replace />} />
         {/* <Route path="dashboard" element={<Dashboard />} /> */}
-        <Route path="dashboard" element={<div className="p-4">Dashboard</div>} />
+        <Route path="dashboard" element={<Dashboard />} />
         {/* <Route path="users" element={<div className="p-4">User Management Page</div>} /> */}
         <Route path="users" element={<UserProfile />} />
         {/* <Route path="properties" element={<div className="p-4">Properties Management Page</div>} /> */}
@@ -71,21 +78,28 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/daily-logs/fresh-water" replace />} />
           <Route path="fresh-water" element={<FreshWater />} />
           <Route path="generator" element={<DieselGeneratorManager />} />
-          <Route path="stp-wtp" element={<StpWtp />} />
+          {/* <Route path="stp-wtp" element={<StpWtp />} /> */}
+          <Route path="stp" element={<STPDashboard />} />
+          <Route path="wtp" element={<WTPDashboard />} />
+          <Route path="swimming-pool" element={<SwimmingPoolManager />} />
+          <Route path="diesel-generator" element={<DieselGeneratorDashboard/>} />
         </Route>
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
         <Route path="notifications" element={<div className="p-4">Notifications Page</div>} />
         <Route path="settings" element={<div className="p-4">Settings Page</div>} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/users" replace />} />
+        <Route path="assets-management" element={<AssetManagement />} />
+        <Route path="inventory-management" element={<InventoryManagement />} />
+        
       </Route>
 
       {/* Catch all unmatched routes */}
       <Route path="*" element={
         <Navigate to={
           !isAuthenticated ? "/login" : 
-          user?.status === 'active' ? "/dashboard" : "/verify"
+          user?.status === 'active' ? "/users" : "/verify"
         } replace />
       } />
     </Routes>
@@ -96,7 +110,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <ProfileProvider>
+          <AppRoutes />
+        </ProfileProvider>
       </AuthProvider>
     </BrowserRouter>
   );
