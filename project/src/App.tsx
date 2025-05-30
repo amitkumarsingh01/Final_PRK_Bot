@@ -22,6 +22,18 @@ import STPDashboard from './pages/Admin/DailyLogs/STPDashboard';
 import WTPDashboard from './pages/Admin/DailyLogs/WTPDashboard';
 import SwimmingPoolManager from './pages/Admin/DailyLogs/SwimmingPool';
 import DieselGeneratorDashboard from './pages/Admin/DailyLogs/DieselGenerator';
+import CadminSTPDashboard from './pages/Cadmin/DailyLogs/CadminSTPDashboard';
+import CadminWTPDashboard from './pages/Cadmin/DailyLogs/CadminWTPDashboard';
+import CadminSwimmingPoolManager from './pages/Cadmin/DailyLogs/CadminSwimmingPool';
+import CadminDieselGeneratorDashboard from './pages/Cadmin/DailyLogs/CadminDieselGenerator';
+import CadminFreshWater from './pages/Cadmin/DailyLogs/CadminFreshWater';
+import CadminAssetManagement from './pages/Cadmin/Products/CadminAssetsManagement';
+import CadminInventoryManagement from './pages/Cadmin/Products/CadminInventoryManagement';
+import CadminStaff from './pages/Cadmin/CadminStaff';
+import CadminPropertyUsers from './pages/Cadmin/CadminPropertyUsers';
+import CadminTasks from './pages/Cadmin/CadminTasks';
+import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
+import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
@@ -92,6 +104,31 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/users" replace />} />
         <Route path="assets-management" element={<AssetManagement />} />
         <Route path="inventory-management" element={<InventoryManagement />} />
+
+
+        <Route path="cadmin/users" element={<CadminUserProfile />} />
+        <Route path="cadmin/tasks" element={<CadminTasks />} />
+        <Route path="cadmin/staff-categories" element={<CadminStaff />} />
+        <Route path="cadmin/properties" element={<CadminPropertiesProfiles />} />
+        <Route path="cadmin/properties/:propertyId/users" element={<CadminPropertyUsers />} />
+        <Route path="cadmin/daily-logs">
+          <Route index element={<Navigate to="/cadmin/daily-logs/fresh-water" replace />} />
+          <Route path="cadmin/fresh-water" element={<CadminFreshWater />} />
+          <Route path="cadmin/generator" element={<CadminDieselGeneratorDashboard />} />
+          <Route path="cadmin/stp" element={<CadminSTPDashboard />} />
+          <Route path="cadmin/wtp" element={<CadminWTPDashboard />} />
+          <Route path="cadmin/swimming-pool" element={<CadminSwimmingPoolManager />} />
+          <Route path="cadmin/diesel-generator" element={<CadminDieselGeneratorDashboard/>} />
+        </Route>
+        <Route path="cadmin/profile" element={<Profile />} />
+        <Route path="cadmin/activity" element={<div className="p-4">Activity Log Page</div>} />
+        <Route path="cadmin/reports" element={<div className="p-4">Reports Page</div>} />
+        <Route path="cadmin/notifications" element={<div className="p-4">Notifications Page</div>} />
+        <Route path="cadmin/settings" element={<div className="p-4">Settings Page</div>} />
+        <Route path="*" element={<Navigate to="/cadmin/users" replace />} />
+        <Route path="cadmin/assets-management" element={<CadminAssetManagement />} />
+        <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
+        
         
       </Route>
 

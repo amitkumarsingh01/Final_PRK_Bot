@@ -165,8 +165,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     ];
 
     const cadminItems: NavItem[] = [
-      { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-      { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
+      { path: '/cadmin/users', icon: <Users size={20} />, label: 'Users' },
+      { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
+      { 
+        path: '/cadmin/daily-logs', 
+        icon: <CheckSquare size={20} />, 
+        label: 'Daily Logs',
+        hasSubmenu: true,
+        submenuItems: [ 
+          { path: '/cadmin/daily-logs/fresh-water', label: 'Fresh Water' },
+          { path: '/cadmin/daily-logs/generator', label: 'Generator' },
+          // { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
+          { path: '/cadmin/daily-logs/stp', label: 'STP' },
+          { path: '/cadmin/daily-logs/wtp', label: 'WTP' },
+          { path: '/cadmin/daily-logs/swimming-pool', label: 'Swimming Pool' },
+          { path: '/cadmin/daily-logs/diesel-generator', label: 'Diesel Generator' },
+        ]
+      },
+      { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/cadmin/assets-management', icon: <Users size={20} />, label: 'Assets Management' },
+      { path: '/cadmin/inventory-management', icon: <Users size={20} />, label: 'Inventory Management' },
+
+      { path: '/cadmin/profile', icon: <User size={20} />, label: 'Profile' },
     ];
 
     const commonItems: NavItem[] = [
@@ -190,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       case 'admin':
         return [...adminItems];
       case 'cadmin':
-        return [...baseItems, ...cadminItems, ...commonItems];
+        return [...cadminItems];
       case 'user':
         return [...baseItems, ...commonItems];
       default:
