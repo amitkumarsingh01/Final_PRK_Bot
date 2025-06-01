@@ -34,7 +34,10 @@ import CadminPropertyUsers from './pages/Cadmin/CadminPropertyUsers';
 import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
-import UserTasks from './pages/Users/usertasks';
+import UserTasks from './pages/Users/UserTasks';
+// import UserTasks from './pages/Users/usertasks';
+
+
 // Creating problems
 
 // Create a wrapper component to use useAuth hook
