@@ -37,7 +37,7 @@ const Login: React.FC = () => {
 
       // Redirect based on status
       if (data.status === 'active') {
-        navigate('/users');
+        navigate('/profile');
       } else {
         navigate('/verify');
       }

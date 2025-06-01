@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, Check, Edit, Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, Droplets, Calendar, Building } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useProfile } from '../../../context/ProfileContext';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -63,15 +64,13 @@ interface Property {
 const API_BASE_URL = 'https://server.prktechindia.in';
 
 export default function CadminFreshWater() {
-  // Get user and property_id from AuthContext
-
-  
-  // State for water sources and readings
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [waterSources, setWaterSources] = useState<WaterSource[]>([]);
   const [waterReadings, setWaterReadings] = useState<WaterReading[]>([]);
   const [selectedSource, setSelectedSource] = useState<WaterSource | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(profile?.property_id || "");
   
   // Form states
   const [sourceForm, setSourceForm] = useState<WaterSourceForm>({
@@ -112,11 +111,14 @@ export default function CadminFreshWater() {
   // Source types for dropdown
   const sourceTypes = ['BWSSB', 'Tanker', 'Borewell'];
   const readingTypes = ['intake', 'yield', 'supply'];
-  const { user } = useAuth();
   const [propertyId, setPropertyId] = useState<string>('');
 
   const fetchProperties = async () => {
     try {
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
       const response = await fetch(`${API_BASE_URL}/properties`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
@@ -124,52 +126,34 @@ export default function CadminFreshWater() {
       if (!response.ok) throw new Error('Failed to fetch properties');
       
       const data = await response.json();
-      setProperties(data);
+      console.log('Properties response:', data);
+      
+      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedPropertyId(userProperty.id);
+        setPropertyId(userProperty.id);
+      } else {
+        setError("No property found for this user");
+      }
     } catch (err) {
       console.error('Error fetching properties:', err);
       setError('Failed to fetch properties. Please try again.');
     }
   };
 
-  
-  // Fetch user's property ID from profile
+  // Initial data load
   useEffect(() => {
-    // Fetch properties on component mount
-    fetchProperties();
-    
-    // Also fetch user's default property if needed
-    const fetchPropertyId = async () => {
-      if (!user?.token || !user?.userId) return;
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/profile`, {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        
-        const data = await response.json();
-        const matchedUser = data.find((u: any) => u.user_id === user.userId);
-        
-        if (matchedUser && matchedUser.property_id) {
-          setPropertyId(matchedUser.property_id);
-          setSelectedPropertyId(matchedUser.property_id);
-          
-          // Update forms with the property_id
-          setSourceForm(prev => ({ ...prev, property_id: matchedUser.property_id }));
-          setReadingForm(prev => ({ ...prev, property_id: matchedUser.property_id }));
-        }
-      } catch (err) {
-        console.error('Error fetching property ID:', err);
-        setError('Failed to fetch property information. Please try again.');
-      }
-    };
-    
-    fetchPropertyId();
-  }, [user]);
-  
+    console.log('Initial load - Profile:', profile);
+    if (profile?.property_id) {
+      fetchProperties();
+    } else {
+      console.log('No property ID in profile');
+      setError("User profile not loaded properly");
+    }
+  }, [profile]);
   
   // Fetch water sources when needed
   useEffect(() => {
@@ -517,6 +501,14 @@ export default function CadminFreshWater() {
           <div className="flex items-center">
             <Droplets className="h-8 w-8 text-[#F88024] mr-2" />
             <h1 className="text-2xl font-bold">Fresh Water</h1>
+            {properties.length > 0 && (
+              <div className="ml-4 flex items-center">
+                <Building className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-600">
+                  {properties[0].name} - {properties[0].title}
+                </span>
+              </div>
+            )}
           </div>
           <button 
             onClick={() => fetchWaterSources()}
@@ -702,27 +694,6 @@ export default function CadminFreshWater() {
           >
             <Plus className="w-4 h-4 mr-1" /> Add Water Source
           </button>
-        </div>
-
-        {/* Property Selection */}
-        <div className="mb-4">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={(e) => setSelectedPropertyId(e.target.value)}
-            className="flex-1 max-w-md border border-gray-300 rounded-md p-2 focus:ring-[#F88024] focus:border-[#F88024]"
-            >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-                </option>
-            ))}
-            </select>
-        </div>
         </div>
 
         {/* Water Source Form (Add/Edit) */}

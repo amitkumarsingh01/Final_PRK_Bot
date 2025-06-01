@@ -44,7 +44,7 @@ const api = {
   // Task CRUD
   getTasks: (): Promise<Task[]> => fetch(`${API_BASE_URL}/tasks`).then(res => res.json()),
   getTask: (id: string): Promise<Task> => fetch(`${API_BASE_URL}/tasks/${id}`).then(res => res.json()),
-  getActivityTasks: (activityId: string): Promise<Task[]> => fetch(`${API_BASE_URL}/activities/${activityId}/tasks`).then(res => res.json()),
+  getActivityTasks: (activityId: string, propertyId: string): Promise<Task[]> => fetch(`${API_BASE_URL}/activities/${activityId}/tasks?property_id=${propertyId}`).then(res => res.json()),
   createTask: (data: any): Promise<Task> => fetch(`${API_BASE_URL}/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -79,6 +79,7 @@ interface Task {
   created_at?: string;
   updated_at?: string;
   activity_id: string;
+  property_id: string;
 }
 
 interface Activity {
@@ -94,6 +95,7 @@ interface Activity {
   active_tasks: number;
   default_tasks: number;
   completed_tasks: number;
+  property_id: string;
 }
 
 const Tasks: React.FC = () => {
@@ -111,6 +113,7 @@ const Tasks: React.FC = () => {
   // Add property states
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [selectedPropertyName, setSelectedPropertyName] = useState<string>('');
 
   // Activity form state
   const [activityForm, setActivityForm] = useState<{
@@ -118,11 +121,13 @@ const Tasks: React.FC = () => {
     description: string;
     user_role: string;
     user_type: string;
+    property_id: string;
   }>({
     name: '',
     description: '',
     user_role: '',
-    user_type: ''
+    user_type: '',
+    property_id: ''
   });
 
   // Task form state
@@ -135,6 +140,7 @@ const Tasks: React.FC = () => {
     closing_time: string;
     comment: string;
     activity_id: string;
+    property_id: string;
   }>({
     name: '',
     description: '',
@@ -143,7 +149,8 @@ const Tasks: React.FC = () => {
     opening_time: '',
     closing_time: '',
     comment: '',
-    activity_id: ''
+    activity_id: '',
+    property_id: ''
   });
 
   // Add property fetching
@@ -160,8 +167,25 @@ const Tasks: React.FC = () => {
     fetchProperties();
   }, [user?.token]);
 
+  // Reset all states when property changes
+  const handlePropertyChange = (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    setExpandedActivities(new Set());
+    setActivities([]);
+    setTasks([]);
+    setSelectedActivity(null);
+    setEditingActivity(null);
+    setEditingTask(null);
+    
+    // Set property name for display
+    const selectedProperty = properties.find(p => p.id === propertyId);
+    setSelectedPropertyName(selectedProperty ? `${selectedProperty.name} - ${selectedProperty.title}` : '');
+  };
+
   // Modify loadActivities to use propertyId
   const loadActivities = async () => {
+    if (!selectedPropertyId) return;
+    
     setLoading(true);
     try {
       const data: Activity[] = await api.getActivities(selectedPropertyId, user?.token || undefined);
@@ -181,8 +205,10 @@ const Tasks: React.FC = () => {
   }, [selectedPropertyId, user?.token]);
 
   const loadActivityTasks = async (activityId: string): Promise<Task[]> => {
+    if (!selectedPropertyId) return [];
+    
     try {
-      const data: Task[] = await api.getActivityTasks(activityId);
+      const data: Task[] = await api.getActivityTasks(activityId, selectedPropertyId);
       return data;
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -192,16 +218,32 @@ const Tasks: React.FC = () => {
 
   const handleActivitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPropertyId) {
+      alert('Please select a property first');
+      return;
+    }
+    
     setLoading(true);
     try {
+      const activityData = {
+        ...activityForm,
+        property_id: selectedPropertyId
+      };
+      
       if (editingActivity) {
-        await api.updateActivity(editingActivity.id, activityForm);
+        await api.updateActivity(editingActivity.id, activityData);
       } else {
-        await api.createActivity(activityForm);
+        await api.createActivity(activityData);
       }
       setShowActivityForm(false);
       setEditingActivity(null);
-      setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+      setActivityForm({ 
+        name: '', 
+        description: '', 
+        user_role: '', 
+        user_type: '',
+        property_id: '' 
+      });
       loadActivities();
     } catch (error) {
       console.error('Error saving activity:', error);
@@ -212,13 +254,20 @@ const Tasks: React.FC = () => {
 
   const handleTaskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPropertyId) {
+      alert('Please select a property first');
+      return;
+    }
+    
     setLoading(true);
     try {
       const taskData = {
         ...taskForm,
         total: parseInt(taskForm.total) || 0,
         reset_after: taskForm.reset_after ? parseInt(taskForm.reset_after) : null,
+        property_id: selectedPropertyId
       };
+      
       if (editingTask) {
         await api.updateTask(editingTask.id, taskData);
       } else {
@@ -234,7 +283,8 @@ const Tasks: React.FC = () => {
         opening_time: '',
         closing_time: '',
         comment: '',
-        activity_id: ''
+        activity_id: '',
+        property_id: ''
       });
       loadActivities();
     } catch (error) {
@@ -331,7 +381,8 @@ const Tasks: React.FC = () => {
       name: activity.name,
       description: activity.description || '',
       user_role: activity.user_role || '',
-      user_type: activity.user_type || ''
+      user_type: activity.user_type || '',
+      property_id: activity.property_id
     });
     setShowActivityForm(true);
   };
@@ -346,12 +397,18 @@ const Tasks: React.FC = () => {
       opening_time: task.opening_time ? task.opening_time.slice(0, 16) : '',
       closing_time: task.closing_time ? task.closing_time.slice(0, 16) : '',
       comment: task.comment || '',
-      activity_id: task.activity_id
+      activity_id: task.activity_id,
+      property_id: task.property_id
     });
     setShowTaskForm(true);
   };
 
   const openCreateTask = (activityId: string) => {
+    if (!selectedPropertyId) {
+      alert('Please select a property first');
+      return;
+    }
+    
     setEditingTask(null);
     setTaskForm({
       name: '',
@@ -361,7 +418,8 @@ const Tasks: React.FC = () => {
       opening_time: '',
       closing_time: '',
       comment: '',
-      activity_id: activityId
+      activity_id: activityId,
+      property_id: selectedPropertyId
     });
     setShowTaskForm(true);
   };
@@ -422,11 +480,24 @@ const Tasks: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold" style={{ color: '#060C18' }}>
-            Task Management
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#060C18' }}>
+              Task Management
+            </h1>
+            {selectedPropertyName && (
+              <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+                Current Property: {selectedPropertyName}
+              </p>
+            )}
+          </div>
           <button
-            onClick={() => setShowActivityForm(true)}
+            onClick={() => {
+              if (!selectedPropertyId) {
+                alert('Please select a property first');
+                return;
+              }
+              setShowActivityForm(true);
+            }}
             className="flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#DD6A1A' }}
           >
@@ -445,7 +516,7 @@ const Tasks: React.FC = () => {
             <select
               id="propertySelect"
               value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
+              onChange={(e) => handlePropertyChange(e.target.value)}
               className="flex-1 max-w-md p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
             >
               <option value="">Select a property...</option>
@@ -464,6 +535,12 @@ const Tasks: React.FC = () => {
             <Building size={48} style={{ color: '#6B7280' }} className="mx-auto mb-4" />
             <p className="text-lg" style={{ color: '#6B7280' }}>
               Please select a property to view tasks
+            </p>
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-lg" style={{ color: '#6B7280' }}>
+              No activities found for this property. Create your first activity!
             </p>
           </div>
         ) : (
@@ -688,7 +765,7 @@ const Tasks: React.FC = () => {
                   onClick={() => {
                     setShowActivityForm(false);
                     setEditingActivity(null);
-                    setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+                    setActivityForm({ name: '', description: '', user_role: '', user_type: '', property_id: '' });
                   }}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -757,7 +834,7 @@ const Tasks: React.FC = () => {
                     onClick={() => {
                       setShowActivityForm(false);
                       setEditingActivity(null);
-                      setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+                      setActivityForm({ name: '', description: '', user_role: '', user_type: '', property_id: '' });
                     }}
                     className="flex-1 py-3 px-4 rounded-lg font-semibold transition-colors"
                     style={{ 
@@ -793,7 +870,8 @@ const Tasks: React.FC = () => {
                       opening_time: '',
                       closing_time: '',
                       comment: '',
-                      activity_id: ''
+                      activity_id: '',
+                      property_id: ''
                     });
                   }}
                   className="text-gray-500 hover:text-gray-700"
@@ -904,7 +982,8 @@ const Tasks: React.FC = () => {
                         opening_time: '',
                         closing_time: '',
                         comment: '',
-                        activity_id: ''
+                        activity_id: '',
+                        property_id: ''
                       });
                     }}
                     className="flex-1 py-3 px-4 rounded-lg font-semibold transition-colors"

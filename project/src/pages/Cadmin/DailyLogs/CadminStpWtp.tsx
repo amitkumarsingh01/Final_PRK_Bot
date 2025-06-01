@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Plus, Edit, Trash2, Save, X, Eye } from 'lucide-react';
+import { ChevronDown, Plus, Edit, Trash2, Save, X, Eye, Building } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
+import { useProfile } from '../../../context/ProfileContext';
 
 interface Property {
   id: string;
@@ -63,6 +65,8 @@ const COLORS = {
 };
 
 export default function CadminStpWtp() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [activeTab, setActiveTab] = useState<'WTP' | 'STP'>('WTP');
@@ -72,6 +76,7 @@ export default function CadminStpWtp() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [editingItem, setEditingItem] = useState<WTP | STP | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize form data
   const initWtpForm: WTP = {
@@ -88,8 +93,14 @@ export default function CadminStpWtp() {
   const [stpForm, setStpForm] = useState<STP>(initStpForm);
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    console.log('Initial load - Profile:', profile);
+    if (profile?.property_id) {
+      fetchProperties();
+    } else {
+      console.log('No property ID in profile');
+      setError("User profile not loaded properly");
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (selectedProperty) {
@@ -100,11 +111,31 @@ export default function CadminStpWtp() {
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch('https://server.prktechindia.in/properties');
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await fetch('https://server.prktechindia.in/properties', {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch properties');
+      
       const data = await response.json();
-      setProperties(data);
+      console.log('Properties response:', data);
+      
+      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedProperty(userProperty);
+      } else {
+        setError("No property found for this user");
+      }
     } catch (error) {
       console.error('Error fetching properties:', error);
+      setError('Failed to fetch properties. Please try again.');
     }
   };
 
@@ -240,56 +271,17 @@ export default function CadminStpWtp() {
     <div className="min-h-screen bg-white p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <h1 className="text-3xl font-bold mb-8" style={{ color: COLORS.darkBlue }}>
-          WTP & STP Management
-        </h1>
-
-        {/* Property Selection */}
-        <div className="relative mb-8">
-          <label className="block text-sm font-medium mb-2" style={{ color: COLORS.darkBlue }}>
-            Select Property
-          </label>
-          <div className="relative">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-full md:w-80 px-4 py-3 text-left border-2 rounded-lg flex items-center justify-between focus:outline-none focus:ring-2"
-              style={{ 
-                borderColor: selectedProperty ? COLORS.orange : COLORS.gray,
-                backgroundColor: selectedProperty ? COLORS.lightOrange : COLORS.white,
-                color: COLORS.darkBlue
-              }}
-            >
-              <span>
-                {selectedProperty 
-                  ? `${selectedProperty.name} - ${selectedProperty.title}`
-                  : 'Select a property...'}
-              </span>
-              <ChevronDown 
-                className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-                size={20}
-              />
-            </button>
-            
-            {dropdownOpen && (
-              <div className="absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                   style={{ backgroundColor: COLORS.white, borderColor: COLORS.orange }}>
-                {properties.map((property) => (
-                  <button
-                    key={property.id}
-                    onClick={() => {
-                      setSelectedProperty(property);
-                      setDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-opacity-50 focus:outline-none"
-                    style={{ 
-                      backgroundColor: selectedProperty?.id === property.id ? COLORS.lightOrange : 'transparent',
-                      color: COLORS.darkBlue
-                    }}
-                  >
-                    <div className="font-medium">{property.name}</div>
-                    <div className="text-sm opacity-75">{property.title}</div>
-                  </button>
-                ))}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: COLORS.darkBlue }}>
+              WTP & STP Management
+            </h1>
+            {selectedProperty && (
+              <div className="mt-2 flex items-center">
+                <Building className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-600">
+                  {selectedProperty.name} - {selectedProperty.title}
+                </span>
               </div>
             )}
           </div>

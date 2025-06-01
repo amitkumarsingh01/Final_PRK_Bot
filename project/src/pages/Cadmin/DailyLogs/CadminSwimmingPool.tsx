@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, RefreshCw, Activity, Edit } from "lucide-react";
+import { PlusCircle, Trash2, RefreshCw, Activity, Edit, Building } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useProfile } from '../../../context/ProfileContext';
+import { useAuth } from '../../../context/AuthContext';
 
 // Define types
 type Property = {
@@ -31,6 +33,8 @@ type PoolFormData = {
 const BASE_URL = "https://server.prktechindia.in";
 
 export default function CadminSwimmingPoolManager() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [pools, setPools] = useState<SwimmingPool[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
@@ -55,18 +59,34 @@ export default function CadminSwimmingPoolManager() {
   // Fetch properties
   const fetchProperties = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/properties`);
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await fetch(`${BASE_URL}/properties`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      
       if (!response.ok) {
         throw new Error("Failed to fetch properties");
       }
+      
       const data = await response.json();
-      setProperties(data);
-      if (data.length > 0) {
-        setSelectedPropertyId(data[0].id);
-        setFormData(prev => ({ ...prev, property_id: data[0].id }));
+      console.log('Properties response:', data);
+      
+      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedPropertyId(userProperty.id);
+        setFormData(prev => ({ ...prev, property_id: userProperty.id }));
+      } else {
+        setError("No property found for this user");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch properties");
+      console.error('Error fetching properties:', err);
+      setError('Failed to fetch properties. Please try again.');
     }
   };
 
@@ -134,11 +154,6 @@ export default function CadminSwimmingPoolManager() {
       setFormData(prev => ({ ...prev, property_id: selectedPropertyId }));
     }
   }, [selectedPropertyId]);
-
-  // Handle property selection change
-  const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedPropertyId(e.target.value);
-  };
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,9 +270,19 @@ export default function CadminSwimmingPoolManager() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className={`flex justify-between items-center p-6 ${BG_DARK_BLUE} text-white rounded-lg mb-6`}>
-          <h1 className="text-2xl font-bold flex items-center">
-            <Activity className="mr-2" /> Swimming Pool Management
-          </h1>
+          <div className="mb-4 md:mb-0">
+            <h1 className="text-2xl font-bold flex items-center">
+              <Activity className="mr-2" /> Swimming Pool Management
+            </h1>
+            {selectedPropertyId && properties.length > 0 && (
+              <div className="mt-2 flex items-center">
+                <Building className="h-5 w-5 text-white/80 mr-2" />
+                <span className="text-white/80">
+                  {properties.find(p => p.id === selectedPropertyId)?.name} - {properties.find(p => p.id === selectedPropertyId)?.title}
+                </span>
+              </div>
+            )}
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -282,30 +307,6 @@ export default function CadminSwimmingPoolManager() {
               Refresh
             </button>
           </div>
-        </div>
-
-        {/* Property Selector */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg shadow">
-          <label htmlFor="property" className="block text-gray-700 font-medium mb-2">
-            Select Property:
-          </label>
-          <select
-            id="property"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={selectedPropertyId}
-            onChange={handlePropertyChange}
-            disabled={loading || properties.length === 0}
-          >
-            {properties.length === 0 ? (
-              <option value="">No properties available</option>
-            ) : (
-              properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))
-            )}
-          </select>
         </div>
 
         {/* Error message */}

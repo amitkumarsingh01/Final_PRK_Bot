@@ -15,7 +15,7 @@ from reportlab.lib.pagesizes import A4
 import shutil
 
 
-app = FastAPI(title="User Auth and Property API")
+app = FastAPI(title="PRK Tech India")
 
 # Enable CORS
 app.add_middleware(
@@ -105,6 +105,7 @@ class TaskModel(Base):
     reset_time = Column(DateTime)
     reset_after = Column(Integer)  # duration in hours
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
+    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     total = Column(Integer, default=0)
     active = Column(Boolean, default=True)
     completed = Column(Boolean, default=False)
@@ -335,6 +336,7 @@ class TaskBase(BaseModel):
     opening_time: Optional[datetime] = None
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
+    property_id: str  # Added property_id field
 
 class TaskCreate(TaskBase):
     activity_id: str
@@ -351,6 +353,7 @@ class TaskUpdate(BaseModel):
     opening_time: Optional[datetime] = None
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
+    property_id: Optional[str] = None  # Added property_id field
 
 class TaskResponse(TaskBase):
     id: str
@@ -1376,10 +1379,16 @@ def update_activity_task_counts(db: Session, activity_id: str):
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """Create a new task for an activity"""
     try:
+        # Check if property exists
+        property = db.query(Property).filter(Property.id == task.property_id).first()
+        if not property:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
         # Check if activity exists
         activity = db.query(ActivityModel).filter(ActivityModel.id == task.activity_id).first()
         if not activity:
             raise HTTPException(status_code=404, detail="Activity not found")
+        
         db_task = TaskModel(**task.dict())
         db.add(db_task)
         db.commit()
@@ -1393,13 +1402,16 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating task: {str(e)}")
 
 @app.get("/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks"""
-    try:
-        tasks = db.query(TaskModel).offset(skip).limit(limit).all()
-        return tasks
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching tasks: {str(e)}")
+def read_tasks(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(TaskModel)
+    if property_id:
+        query = query.filter(TaskModel.property_id == property_id)
+    return query.offset(skip).limit(limit).all()
 
 @app.get("/tasks/{task_id}", response_model=TaskResponse, tags=["Task"])
 def read_task(task_id: str, db: Session = Depends(get_db)):
@@ -1415,20 +1427,17 @@ def read_task(task_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching task: {str(e)}")
 
 @app.get("/activities/{activity_id}/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_activity_tasks(activity_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks for a specific activity"""
-    try:
-        # Check if activity exists
-        activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
-        if not activity:
-            raise HTTPException(status_code=404, detail="Activity not found")
-        
-        tasks = db.query(TaskModel).filter(TaskModel.activity_id == activity_id).offset(skip).limit(limit).all()
-        return tasks
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching activity tasks: {str(e)}")
+def read_activity_tasks(
+    activity_id: str, 
+    skip: int = 0, 
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(TaskModel).filter(TaskModel.activity_id == activity_id)
+    if property_id:
+        query = query.filter(TaskModel.property_id == property_id)
+    return query.offset(skip).limit(limit).all()
 
 @app.put("/tasks/{task_id}", response_model=TaskResponse, tags=["Task"])
 def update_task(task_id: str, task_update: TaskUpdate, db: Session = Depends(get_db)):

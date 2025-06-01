@@ -115,12 +115,12 @@ const AppRoutes = () => {
         <Route path="cadmin/properties/:propertyId/users" element={<CadminPropertyUsers />} />
         <Route path="cadmin/daily-logs">
           <Route index element={<Navigate to="/cadmin/daily-logs/fresh-water" replace />} />
-          <Route path="cadmin/fresh-water" element={<CadminFreshWater />} />
-          <Route path="cadmin/generator" element={<CadminDieselGeneratorDashboard />} />
-          <Route path="cadmin/stp" element={<CadminSTPDashboard />} />
-          <Route path="cadmin/wtp" element={<CadminWTPDashboard />} />
-          <Route path="cadmin/swimming-pool" element={<CadminSwimmingPoolManager />} />
-          <Route path="cadmin/diesel-generator" element={<CadminDieselGeneratorDashboard/>} />
+          <Route path="fresh-water" element={<CadminFreshWater />} />
+          <Route path="generator" element={<CadminDieselGeneratorDashboard />} />
+          <Route path="stp" element={<CadminSTPDashboard />} />
+          <Route path="wtp" element={<CadminWTPDashboard />} />
+          <Route path="swimming-pool" element={<CadminSwimmingPoolManager />} />
+          <Route path="diesel-generator" element={<CadminDieselGeneratorDashboard/>} />
         </Route>
         <Route path="cadmin/profile" element={<Profile />} />
         <Route path="cadmin/activity" element={<div className="p-4">Activity Log Page</div>} />
@@ -130,7 +130,6 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/cadmin/users" replace />} />
         <Route path="cadmin/assets-management" element={<CadminAssetManagement />} />
         <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
-        
         
       </Route>
 

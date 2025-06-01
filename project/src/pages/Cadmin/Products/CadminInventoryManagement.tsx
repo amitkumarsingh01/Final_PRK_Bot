@@ -3,6 +3,8 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { FaPlus, FaEdit, FaTrash, FaQrcode, FaFilePdf, FaSpinner, FaSearch } from 'react-icons/fa';
 import { QRCodeSVG } from 'qrcode.react';
+import { useProfile } from '../../../context/ProfileContext';
+import { useAuth } from '../../../context/AuthContext';
 
 // Define the base URL for the API
 const API_URL = 'https://server.prktechindia.in';
@@ -69,11 +71,13 @@ interface QRData {
 }
 
 const CadminInventoryManagement: React.FC = () => {
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(profile?.property_id || "");
   const [inventories, setInventories] = useState<Inventory[]>([]);
   const [formData, setFormData] = useState<InventoryFormData>({
-    property_id: "",
+    property_id: profile?.property_id || "",
     stock_name: '',
     department: '',
     stock_id: '',
@@ -101,10 +105,26 @@ const CadminInventoryManagement: React.FC = () => {
   // Fetch properties
   const fetchProperties = async () => {
     try {
-      const response = await axios.get(`${API_URL}/properties`);
-      setProperties(response.data);
-      if (response.data.length > 0) {
-        setSelectedPropertyId(response.data[0].id);
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await axios.get(`${API_URL}/properties`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      });
+      
+      console.log('Properties response:', response.data);
+      
+      const userProperty = response.data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedPropertyId(userProperty.id);
+      } else {
+        setError("No property found for this user");
       }
     } catch (err) {
       console.error("Error fetching properties:", err);
@@ -114,11 +134,18 @@ const CadminInventoryManagement: React.FC = () => {
 
   // Fetch all inventory items on component mount
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    console.log('Initial load - Profile:', profile);
+    if (profile?.property_id) {
+      fetchProperties();
+    } else {
+      console.log('No property ID in profile');
+      setError("User profile not loaded properly");
+    }
+  }, [profile]);
 
   // Fetch inventories when property changes
   useEffect(() => {
+    console.log('Property changed to:', selectedPropertyId);
     if (selectedPropertyId) {
       fetchInventories();
     }
@@ -129,12 +156,20 @@ const CadminInventoryManagement: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/inventory/?property_id=${selectedPropertyId}`);
+      console.log('Fetching inventories for property:', selectedPropertyId);
+      const response = await axios.get(`${API_URL}/inventory/?property_id=${selectedPropertyId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      });
+      
+      console.log('Inventories response:', response.data);
+      
       setInventories(response.data);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch inventory items. Please try again later.');
       console.error('Error fetching inventory items:', err);
+      setError('Failed to fetch inventory items. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -340,18 +375,12 @@ const CadminInventoryManagement: React.FC = () => {
         <div className="container mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold">Inventory Management System</h1>
           <div className="mt-2">
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
-              className="bg-white text-gray-800 px-4 py-2 rounded shadow"
-            >
-              <option value="">Select Property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+            {properties.length > 0 && (
+              <div className="text-white">
+                <span className="font-semibold">Property: </span>
+                {properties[0].name} - {properties[0].title}
+              </div>
+            )}
           </div>
         </div>
       </header>
