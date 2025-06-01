@@ -35,6 +35,8 @@ import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 
+// Creating problems
+
 // Create a wrapper component to use useAuth hook
 const AppRoutes = () => {
   const { isAuthenticated, user } = useAuth();
