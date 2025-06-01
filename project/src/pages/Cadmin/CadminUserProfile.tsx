@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
+import { UserRole } from '../../types';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -35,7 +36,7 @@ const CadminUserProfile: React.FC = () => {
     name: '',
     email: '',
     phone_no: '',
-    user_role: '',
+    user_role: 'user',
     user_type: '',
     property_id: ''
   });
@@ -161,13 +162,13 @@ const CadminUserProfile: React.FC = () => {
       name: '',
       email: '',
       phone_no: '',
-      user_role: '',
+      user_role: 'user',
       user_type: '',
       property_id: currentUserProfile?.property_id || ''
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -187,7 +188,7 @@ const CadminUserProfile: React.FC = () => {
       name: profile.name || '',
       email: profile.email || '',
       phone_no: profile.phone_no || '',
-      user_role: profile.user_role || '',
+      user_role: profile.user_role || 'user',
       user_type: profile.user_type || '',
       property_id: profile.property_id || currentUserProfile?.property_id || ''
     });
@@ -304,33 +305,43 @@ const CadminUserProfile: React.FC = () => {
                   />
                 </div>
                 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
                     User Role
                   </label>
                   <input
                     type="text"
                     name="user_role"
-                    value={formData.user_role}
-                    onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+                    value="user"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent bg-gray-50"
+                    readOnly
                   />
-                </div>
+                  <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                    User role is fixed as 'user'
+                  </p>
+                </div> */}
                 
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
                     User Type
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="user_type"
                     value={formData.user_type}
                     onChange={handleInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-                  />
+                    required
+                  >
+                    <option value="">Select User Type</option>
+                    {Object.values(UserRole).map((role) => (
+                      <option key={role} value={role}>
+                        {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
                     Property ID
                   </label>
@@ -345,7 +356,7 @@ const CadminUserProfile: React.FC = () => {
                   <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
                     Property ID is fixed for this dashboard
                   </p>
-                </div>
+                </div> */}
                 
                 <div className="flex space-x-3 pt-4">
                   <button

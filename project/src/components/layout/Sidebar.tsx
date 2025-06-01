@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import logo from '../../../assets/logo.png';
 
 interface NavItemProps {
   to: string;
@@ -99,6 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [propertyLogo, setPropertyLogo] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -117,14 +119,40 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           console.log('Found user profile:', currentUserProfile);
           if (currentUserProfile) {
             setUserProfile(currentUserProfile);
+            // Fetch property logo for cadmin/user
+            if (currentUserProfile.user_type !== 'admin' && currentUserProfile.property_id) {
+              try {
+                const propRes = await fetch(`https://server.prktechindia.in/properties/${currentUserProfile.property_id}`);
+                if (propRes.ok) {
+                  const propData = await propRes.json();
+                  if (propData.logo_base64) {
+                    setPropertyLogo(propData.logo_base64);
+                  } else {
+                    setPropertyLogo(null);
+                  }
+                } else {
+                  setPropertyLogo(null);
+                }
+              } catch {
+                setPropertyLogo(null);
+              }
+            } else {
+              setPropertyLogo(null);
+            }
           } else {
             console.log('No matching profile found for user ID:', user.userId);
+            setUserProfile(null);
+            setPropertyLogo(null);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setUserProfile(null);
+          setPropertyLogo(null);
         }
       } else {
         console.log('No user ID available');
+        setUserProfile(null);
+        setPropertyLogo(null);
       }
     };
 
@@ -166,7 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
     const cadminItems: NavItem[] = [
       { path: '/cadmin/users', icon: <Users size={20} />, label: 'Users' },
-      { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
+      // { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
       { 
         path: '/cadmin/daily-logs', 
         icon: <CheckSquare size={20} />, 
@@ -187,6 +215,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: '/cadmin/inventory-management', icon: <Users size={20} />, label: 'Inventory Management' },
 
       { path: '/cadmin/profile', icon: <User size={20} />, label: 'Profile' },
+    ];
+
+    const userItems: NavItem[] = [  
+
+      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
+      { path: '/user/tasks', icon: <Search size={20} />, label: 'Tasks' },
     ];
 
     const commonItems: NavItem[] = [
@@ -212,7 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       case 'cadmin':
         return [...cadminItems];
       case 'user':
-        return [...baseItems, ...commonItems];
+        return [...userItems];
       default:
         return baseItems;
     }
@@ -241,13 +275,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       <div className={`px-6 py-6 mb-2 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed && (
           <Link to="/dashboard" className="flex items-center text-xl font-bold">
-            <span className="text-[#000435]">PRKTECH</span>
-            <span className="text-[#E06002]">INDIA</span>
+            {userProfile?.user_type === 'admin' ? (
+              <img src={logo} alt="Logo" className="h-10 w-10 mr-2" />
+            ) : propertyLogo ? (
+              <img src={propertyLogo} alt="Property Logo" className="h-10 w-10 mr-2 rounded-full object-cover border" />
+            ) : (
+              <span className="h-10 w-10 mr-2 flex items-center justify-center bg-gray-200 rounded-full"><User size={24} /></span>
+            )}
+            <span className="text-[#000435]">PRK</span>
+            <span className="text-[#E06002]">TECH</span>
           </Link>
         )}
         {isCollapsed && (
           <Link to="/dashboard" className="flex items-center text-xl font-bold">
-            <span className="text-[#E06002]">T</span>
+            {userProfile?.user_type === 'admin' ? (
+              <img src={logo} alt="Logo" className="h-10 w-10" />
+            ) : propertyLogo ? (
+              <img src={propertyLogo} alt="Property Logo" className="h-10 w-10 rounded-full object-cover border" />
+            ) : (
+              <span className="h-10 w-10 flex items-center justify-center bg-gray-200 rounded-full"><User size={24} /></span>
+            )}
           </Link>
         )}
         <div className="flex items-center">

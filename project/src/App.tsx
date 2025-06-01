@@ -34,7 +34,7 @@ import CadminPropertyUsers from './pages/Cadmin/CadminPropertyUsers';
 import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
-
+import UserTasks from './pages/Users/usertasks';
 // Creating problems
 
 // Create a wrapper component to use useAuth hook
@@ -130,6 +130,8 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/cadmin/users" replace />} />
         <Route path="cadmin/assets-management" element={<CadminAssetManagement />} />
         <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
+
+        <Route path="user/tasks" element={<UserTasks />} />
         
       </Route>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Edit, Trash2, Plus, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../../types';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -17,9 +18,9 @@ interface PropertyUser {
   name?: string;
   email?: string;
   phone_no?: string;
-  user_role?: string;
-  user_type?: string;
-  property_id?: string;
+  user_role: string;
+  user_type: string;
+  property_id: string;
   status?: string;
 }
 
@@ -43,6 +44,9 @@ const CadminPropertiesProfiles: React.FC = () => {
     description: '',
     logo_base64: ''
   });
+
+  // Add new state for user type
+  const [selectedUserType, setSelectedUserType] = useState<string>('');
 
   // Fetch all properties
   const fetchProperties = async () => {
@@ -171,6 +175,30 @@ const CadminPropertiesProfiles: React.FC = () => {
 
   const handleViewUsers = (propertyId: string) => {
     navigate(`/properties/${propertyId}/users`);
+  };
+
+  // Add function to handle user type change
+  const handleUserTypeChange = async (propertyId: string, userType: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_role: 'user',
+          user_type: userType,
+          property_id: propertyId,
+          status: 'active'
+        })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create user profile');
+      }
+      // Refresh properties or show success message
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user profile');
+    }
   };
 
   useEffect(() => {
@@ -364,6 +392,23 @@ const CadminPropertiesProfiles: React.FC = () => {
                 <p className="text-sm" style={{ color: '#6B7280' }}>
                   {property.description || 'No description provided'}
                 </p>
+                
+                {/* User Type Dropdown */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+                    User Type
+                  </label>
+                  <select
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+                  >
+                    <option value="">Select user type...</option>
+                    {Object.values(UserRole).map((role) => (
+                      <option key={role} value={role}>
+                        {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div className="flex space-x-2">

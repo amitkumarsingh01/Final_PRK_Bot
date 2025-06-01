@@ -90,6 +90,7 @@ class ActivityModel(Base):
     active_tasks = Column(Integer, default=0)
     default_tasks = Column(Integer, default=0)
     completed_tasks = Column(Integer, default=0)
+    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     
     # Relationship with tasks
     tasks = relationship("TaskModel", back_populates="activity", cascade="all, delete-orphan")
@@ -373,6 +374,7 @@ class ActivityBase(BaseModel):
     active_tasks: Optional[int] = 0
     default_tasks: Optional[int] = 0
     completed_tasks: Optional[int] = 0
+    property_id: str  # Added property_id field
 
 class ActivityCreate(ActivityBase):
     pass
@@ -382,6 +384,7 @@ class ActivityUpdate(BaseModel):
     description: Optional[str] = None
     user_role: Optional[str] = None
     user_type: Optional[str] = None
+    property_id: Optional[str] = None  # Added property_id field
 
 class ActivityResponse(ActivityBase):
     id: str
@@ -1290,6 +1293,11 @@ def delete_staff_category(id: str, db: Session = Depends(get_db)):
 def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
     """Create a new activity"""
     try:
+        # Check if property exists
+        property = db.query(Property).filter(Property.id == activity.property_id).first()
+        if not property:
+            raise HTTPException(status_code=404, detail="Property not found")
+            
         db_activity = ActivityModel(**activity.dict())
         db.add(db_activity)
         db.commit()
@@ -1300,10 +1308,18 @@ def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating activity: {str(e)}")
 
 @app.get("/activities", response_model=List[ActivityResponse], tags=["Activity"])
-def read_activities(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_activities(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
     """Get all activities with their tasks"""
     try:
-        activities = db.query(ActivityModel).offset(skip).limit(limit).all()
+        query = db.query(ActivityModel)
+        if property_id:
+            query = query.filter(ActivityModel.property_id == property_id)
+        activities = query.offset(skip).limit(limit).all()
         return activities
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching activities: {str(e)}")
@@ -1328,6 +1344,12 @@ def update_activity(activity_id: str, activity_update: ActivityUpdate, db: Sessi
         activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
         if activity is None:
             raise HTTPException(status_code=404, detail="Activity not found")
+        
+        # If property_id is being updated, verify it exists
+        if activity_update.property_id:
+            property = db.query(Property).filter(Property.id == activity_update.property_id).first()
+            if not property:
+                raise HTTPException(status_code=404, detail="Property not found")
         
         update_data = activity_update.dict(exclude_unset=True)
         for field, value in update_data.items():
