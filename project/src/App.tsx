@@ -48,21 +48,21 @@ const AppRoutes = () => {
         !isAuthenticated ? (
           <Login />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/profile" : "/verify"} replace />
         )
       } />
       <Route path="/signup" element={
         !isAuthenticated ? (
           <Signup />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/profile" : "/verify"} replace />
         )
       } />
       <Route path="/verify" element={
         isAuthenticated && user?.status !== 'active' ? (
           <Verification />
         ) : (
-          <Navigate to={isAuthenticated ? "/users" : "/login"} replace />
+          <Navigate to={isAuthenticated ? "/profile" : "/login"} replace />
         )
       } />
 
@@ -74,7 +74,7 @@ const AppRoutes = () => {
           <Navigate to={isAuthenticated ? "/verify" : "/login"} replace />
         )
       }>
-        <Route index element={<Navigate to="/users" replace />} />
+        <Route index element={<Navigate to="/profile" replace />} />
         {/* <Route path="dashboard" element={<Dashboard />} /> */}
         <Route path="dashboard" element={<Dashboard />} />
         {/* <Route path="users" element={<div className="p-4">User Management Page</div>} /> */}
@@ -103,7 +103,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
         <Route path="notifications" element={<div className="p-4">Notifications Page</div>} />
         <Route path="settings" element={<div className="p-4">Settings Page</div>} />
-        <Route path="*" element={<Navigate to="/users" replace />} />
+        <Route path="*" element={<Navigate to="/profile" replace />} />
         <Route path="assets-management" element={<AssetManagement />} />
         <Route path="inventory-management" element={<InventoryManagement />} />
 
@@ -138,7 +138,7 @@ const AppRoutes = () => {
       <Route path="*" element={
         <Navigate to={
           !isAuthenticated ? "/login" : 
-          user?.status === 'active' ? "/users" : "/verify"
+          user?.status === 'active' ? "/profile" : "/verify"
         } replace />
       } />
     </Routes>
