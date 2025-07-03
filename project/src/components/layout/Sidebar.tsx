@@ -526,6 +526,291 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           },
         ]
       },
+      // 09. Transition Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Transition Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Site Pre-Transition' },
+          { path: '#', label: 'Post-Transition' },
+        ]
+      },
+      // 10. Gate Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Gate Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Visitor Management' },
+          { path: '#', label: 'Inward – Non-Returnable' },
+          { path: '#', label: 'Inward – Returnable' },
+          { path: '#', label: 'Outward – Non-Returnable' },
+          { path: '#', label: 'Outward – Returnable' },
+          { path: '#', label: 'Move-In' },
+          { path: '#', label: 'Move-Out' },
+          { path: '#', label: 'Interior Work Tracking' },
+          { path: '#', label: 'Work Permit Issuance' },
+          { path: '#', label: 'Gate Pass Management' },
+          { path: '#', label: 'Blocklist Management' },
+          { path: '#', label: 'Daily Entry Details' },
+          { path: '#', label: 'Water Tanker Management' },
+          { path: '#', label: 'Vendor Entry Management' },
+          { path: '#', label: 'Sta Entry Management' },
+          { path: '#', label: 'Emergency Contact Details' },
+        ]
+      },
+      // 11. Helpdesk and Front Desk
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Helpdesk and Front Desk',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Tickets Management' },
+          { path: '#', label: 'Ticket Assignment' },
+          { path: '#', label: 'Notice Management' },
+          { path: '#', label: 'Parking Sticker Management' },
+          { path: '#', label: 'Communication & Announcements' },
+          { path: '#', label: 'Move-In Coordination' },
+          { path: '#', label: 'Move-Out Coordination' },
+          { path: '#', label: 'Interior Work Approvals' },
+          { path: '#', label: 'Work Permit Tracking' },
+        ]
+      },
+      // 12. Inventory Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Inventory Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Inventory Tracking' },
+          { path: '#', label: 'Stock Entry & Issue' },
+          { path: '#', label: 'Minimum & Maximum Level Monitoring' },
+          { path: '#', label: 'Consumption Reports' },
+          { path: '#', label: 'Expiry & Damage Log' },
+        ]
+      },
+      // 13. Asset Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Asset Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Asset Tagging & Management' },
+          { path: '#', label: 'Asset Movement Log' },
+          { path: '#', label: 'AMC & Warranty Tracker' },
+          { path: '#', label: 'Maintenance Schedule' },
+          { path: '#', label: 'Asset Audit' },
+          { path: '#', label: 'Depreciation & Replacement' },
+        ]
+      },
+      // 14. Project Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Project Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'All Project Management Dashboard' },
+          { path: '#', label: 'Project Initiation' },
+          { path: '#', label: 'Project Planning' },
+          { path: '#', label: 'Team Resource Allocation' },
+          { path: '#', label: 'Execution and Implementation' },
+          { path: '#', label: 'Monitoring and Control' },
+          { path: '#', label: 'Documentation and Reporting' },
+          { path: '#', label: 'Project Closure' },
+        ]
+      },
+      // 15. Quality and Process Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Quality and Process Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Quality Planning' },
+          { path: '#', label: 'Process Management Setup' },
+          { path: '#', label: 'Quality Assurance' },
+          { path: '#', label: 'Quality Control' },
+          { path: '#', label: 'Performance Monitoring' },
+          { path: '#', label: 'Documentation and Reporting' },
+        ]
+      },
+      // 16. CCTV Department
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'CCTV Department',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Site Assessment' },
+          { path: '#', label: 'System Design & Planning' },
+          { path: '#', label: 'Installation Checklist' },
+          { path: '#', label: 'Conguration and Testing' },
+          { path: '#', label: 'Daily Operations & Monitoring' },
+          { path: '#', label: 'Maintenance Schedule' },
+          { path: '#', label: 'Documentation' },
+          { path: '#', label: 'AMC and Compliance' },
+        ]
+      },
+      // 17. Fire and Safety
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Fire and Safety',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Site Assessment and Planning' },
+          { path: '#', label: 'Installation and Equipment Setup' },
+          { path: '#', label: 'Fire Safety Documents' },
+          { path: '#', label: 'Compliance Reports' },
+          { path: '#', label: 'Fire and Safety Training' },
+          { path: '#', label: 'Daily Checklist' },
+          { path: '#', label: 'Weekly Checklist' },
+          { path: '#', label: 'Monthly Checklist' },
+          { path: '#', label: 'Quarterly Checklist' },
+          { path: '#', label: 'Emergency Preparedness Plan' },
+          { path: '#', label: 'Record Keeping' },
+        ]
+      },
+      // 18. Procurement Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Procurement Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Procurement Planning' },
+          { path: '#', label: 'Vendor Management' },
+          { path: '#', label: 'Purchase Requisition to Order' },
+          { path: '#', label: 'Goods Receipt and Inspection' },
+          { path: '#', label: 'Inventory and Stock Management' },
+          { path: '#', label: 'Payment Tracking' },
+          { path: '#', label: 'Procurement Documentation' },
+          { path: '#', label: 'Compliance and Policy' },
+          { path: '#', label: 'Reporting and Analysis' },
+          { path: '#', label: 'Procurement Categories' },
+        ]
+      },
+      // 19. Vendor Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Vendor Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Vendor Master Management' },
+          { path: '#', label: 'Vendor Classication' },
+          { path: '#', label: 'Vendor Evaluation' },
+          { path: '#', label: 'Integration with Purchase Process' },
+          { path: '#', label: 'Payment Tracking' },
+          { path: '#', label: 'Vendor Relationship Management' },
+          { path: '#', label: 'Compliance and Legal Check' },
+          { path: '#', label: 'Vendor Documentation' },
+          { path: '#', label: 'Reporting and Analysis' },
+        ]
+      },
+      // 20. Service Level Agreement (SLA)
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Service Level Agreement (SLA)',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'SLA Planning and Denition' },
+          { path: '#', label: 'Key SLA Components' },
+          { path: '#', label: 'SLA Implementation' },
+          { path: '#', label: 'SLA Monitoring' },
+          { path: '#', label: 'SLA Evaluation' },
+          { path: '#', label: 'SLA Renewal and Exit Process' },
+        ]
+      },
+      // 21. Key Performance Indicators (KPI)
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Key Performance Indicators (KPI)',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Facility Department KPI' },
+          { path: '#', label: 'Security Department KPI' },
+          { path: '#', label: 'Procurement KPI' },
+          { path: '#', label: 'Admin Department KPI' },
+          { path: '#', label: 'Finance Department KPI' },
+          { path: '#', label: 'Vendor Management KPI' },
+          { path: '#', label: 'Training & Development KPI' },
+          { path: '#', label: 'Company-Wide KPI' },
+          { path: '#', label: 'Individual Sta KPI' },
+        ]
+      },
+      // 22. Raise Complaints and Solutions
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Raise Complaints and Solutions',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Client Complaint Management' },
+          { path: '#', label: 'Sta Complaint Management' },
+          { path: '#', label: 'Client Complaint Resolution' },
+          { path: '#', label: 'Sta Complaint Resolution' },
+          { path: '#', label: 'Escalation Tracking' },
+          { path: '#', label: 'Root Cause & Corrective Action' },
+        ]
+      },
+      // 23. Back-End Office Management
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Back-End Office Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Site Visit Reports' },
+          { path: '#', label: 'Training Reports' },
+          { path: '#', label: 'Night Patrolling Reports' },
+          { path: '#', label: 'Minutes of Meetings' },
+          { path: '#', label: 'Escalation Matrix' },
+          { path: '#', label: 'Background Verication Reports' },
+          { path: '#', label: 'Loss Prevention & Investigation Reports' },
+          { path: '#', label: 'Emergency Response Team (ERT) Details' },
+          { path: '#', label: 'Site Sta Details' },
+          { path: '#', label: 'Back-Oce Task Management' },
+          { path: '#', label: 'Field Sta Daily Reports' },
+          { path: '#', label: 'Oce Sta Daily Reports' },
+          { path: '#', label: 'Field Sta Monthly Reports' },
+          { path: '#', label: 'Oce Sta Monthly Reports' },
+        ]
+      },
+      // 24. Work Permit
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'Work Permit',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'All Work Permit' },
+        ]
+      },
+      // 25. All Reports
+      {
+        path: '#',
+        icon: <ClipboardList size={20} />,
+        label: 'All Reports',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'All Department-Wise Reports' },
+          { path: '#', label: 'Daily/Weekly/Monthly Summary Reports' },
+          { path: '#', label: 'Audit & Checklist Reports' },
+          { path: '#', label: 'Attendance & KPI Reports' },
+          { path: '#', label: 'Custom Report Generator' },
+          { path: '#', label: 'Exportable Reports (PDF/Excel)' },
+        ]
+      },
     ];
 
     const cadminItems: NavItem[] = [
