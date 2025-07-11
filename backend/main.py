@@ -166,7 +166,6 @@ class ActivityModel(Base):
     default_tasks = Column(Integer, default=0)
     completed_tasks = Column(Integer, default=0)
     property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
-    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     
     # Relationship with tasks
     tasks = relationship("TaskModel", back_populates="activity", cascade="all, delete-orphan")
@@ -182,7 +181,6 @@ class TaskModel(Base):
     reset_time = Column(DateTime)
     reset_after = Column(Integer)  # duration in hours
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
-    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     total = Column(Integer, default=0)
     active = Column(Boolean, default=True)
@@ -428,7 +426,6 @@ class TaskBase(BaseModel):
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
     property_id: str  # Added property_id field
-    property_id: str  # Added property_id field
 
 class TaskCreate(TaskBase):
     activity_id: str
@@ -445,7 +442,6 @@ class TaskUpdate(BaseModel):
     opening_time: Optional[datetime] = None
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
-    property_id: Optional[str] = None  # Added property_id field
     property_id: Optional[str] = None  # Added property_id field
 
 class TaskResponse(TaskBase):
@@ -467,7 +463,6 @@ class ActivityBase(BaseModel):
     default_tasks: Optional[int] = 0
     completed_tasks: Optional[int] = 0
     property_id: str  # Added property_id field
-    property_id: str  # Added property_id field
 
 class ActivityCreate(ActivityBase):
     pass
@@ -477,7 +472,6 @@ class ActivityUpdate(BaseModel):
     description: Optional[str] = None
     user_role: Optional[str] = None
     user_type: Optional[str] = None
-    property_id: Optional[str] = None  # Added property_id field
     property_id: Optional[str] = None  # Added property_id field
 
 class ActivityResponse(ActivityBase):
@@ -1392,11 +1386,6 @@ def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
         if not property:
             raise HTTPException(status_code=404, detail="Property not found")
             
-        # Check if property exists
-        property = db.query(Property).filter(Property.id == activity.property_id).first()
-        if not property:
-            raise HTTPException(status_code=404, detail="Property not found")
-            
         db_activity = ActivityModel(**activity.dict())
         db.add(db_activity)
         db.commit()
@@ -1413,18 +1402,8 @@ def read_activities(
     property_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-def read_activities(
-    skip: int = 0, 
-    limit: int = 100, 
-    property_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
     """Get all activities with their tasks"""
     try:
-        query = db.query(ActivityModel)
-        if property_id:
-            query = query.filter(ActivityModel.property_id == property_id)
-        activities = query.offset(skip).limit(limit).all()
         query = db.query(ActivityModel)
         if property_id:
             query = query.filter(ActivityModel.property_id == property_id)
@@ -1453,12 +1432,6 @@ def update_activity(activity_id: str, activity_update: ActivityUpdate, db: Sessi
         activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
         if activity is None:
             raise HTTPException(status_code=404, detail="Activity not found")
-        
-        # If property_id is being updated, verify it exists
-        if activity_update.property_id:
-            property = db.query(Property).filter(Property.id == activity_update.property_id).first()
-            if not property:
-                raise HTTPException(status_code=404, detail="Property not found")
         
         # If property_id is being updated, verify it exists
         if activity_update.property_id:
@@ -1521,16 +1494,10 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         if not property:
             raise HTTPException(status_code=404, detail="Property not found")
         
-        # Check if property exists
-        property = db.query(Property).filter(Property.id == task.property_id).first()
-        if not property:
-            raise HTTPException(status_code=404, detail="Property not found")
-        
         # Check if activity exists
         activity = db.query(ActivityModel).filter(ActivityModel.id == task.activity_id).first()
         if not activity:
             raise HTTPException(status_code=404, detail="Activity not found")
-        
         
         db_task = TaskModel(**task.dict())
         db.add(db_task)
@@ -1545,16 +1512,6 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating task: {str(e)}")
 
 @app.get("/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_tasks(
-    skip: int = 0, 
-    limit: int = 100, 
-    property_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    query = db.query(TaskModel)
-    if property_id:
-        query = query.filter(TaskModel.property_id == property_id)
-    return query.offset(skip).limit(limit).all()
 def read_tasks(
     skip: int = 0, 
     limit: int = 100, 
@@ -1580,17 +1537,6 @@ def read_task(task_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching task: {str(e)}")
 
 @app.get("/activities/{activity_id}/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_activity_tasks(
-    activity_id: str, 
-    skip: int = 0, 
-    limit: int = 100,
-    property_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    query = db.query(TaskModel).filter(TaskModel.activity_id == activity_id)
-    if property_id:
-        query = query.filter(TaskModel.property_id == property_id)
-    return query.offset(skip).limit(limit).all()
 def read_activity_tasks(
     activity_id: str, 
     skip: int = 0, 
