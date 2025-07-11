@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, Query, status, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Query, status, BackgroundTasks, Body
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+from typing import Optional, List, Literal, Dict, Any
 from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean, Text, ForeignKey, Float
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from datetime import datetime
@@ -13,14 +14,25 @@ from sqlalchemy.sql import func
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 import shutil
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
+from sqlalchemy.types import JSON as SAJSON
 
 
-app = FastAPI(title="User Auth and Property API")
+app = FastAPI(title="PRK Tech India")
+
+# Base URL for the application
+BASE_URL = "https://server.prktechindia.in"
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "*",  # Allow all origins for development
+        "http://localhost:3000",
+        "http://localhost:5173", 
+        "http://localhost:8080",
+        "https://server.prktechindia.in"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +59,69 @@ class User(Base):
     user_type = Column(String)
     property_id = Column(String)
     status = Column(String, default="pending")
+
+
+# Pydantic schemas for DailyTaskChecklist
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
+
+class DailyTaskChecklistBase(BaseModel):
+    sl_no: int
+    check_point: str
+    action_required: str
+    standard: str
+    frequency: Literal['Daily', 'Monthly', 'Hourly', 'Weekly', '2 Times in a week']
+    user_required: bool
+    property_id: str
+
+class DailyTaskChecklistCreate(DailyTaskChecklistBase):
+    pass
+
+class DailyTaskChecklistUpdate(BaseModel):
+    sl_no: Optional[int] = None
+    check_point: Optional[str] = None
+    action_required: Optional[str] = None
+    standard: Optional[str] = None
+    frequency: Optional[Literal['Daily', 'Monthly', 'Hourly', 'Weekly', '2 Times in a week']] = None
+    user_required: Optional[bool] = None
+    property_id: Optional[str] = None
+
+class DailyTaskChecklistResponse(DailyTaskChecklistBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class DailyTaskChecklistBase(BaseModel):
+    sl_no: int
+    check_point: str
+    action_required: str
+    standard: str
+    frequency: Literal['Daily', 'Monthly', 'Hourly', 'Weekly', '2 Times in a week']
+    user_required: bool
+    property_id: str
+
+class DailyTaskChecklistCreate(DailyTaskChecklistBase):
+    pass
+
+class DailyTaskChecklistUpdate(BaseModel):
+    sl_no: Optional[int] = None
+    check_point: Optional[str] = None
+    action_required: Optional[str] = None
+    standard: Optional[str] = None
+    frequency: Optional[Literal['Daily', 'Monthly', 'Hourly', 'Weekly', '2 Times in a week']] = None
+    user_required: Optional[bool] = None
+    property_id: Optional[str] = None
+
+class DailyTaskChecklistResponse(DailyTaskChecklistBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        from_attributes = True
 
 class Property(Base):
     __tablename__ = "properties"
@@ -90,6 +165,7 @@ class ActivityModel(Base):
     active_tasks = Column(Integer, default=0)
     default_tasks = Column(Integer, default=0)
     completed_tasks = Column(Integer, default=0)
+    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     
     # Relationship with tasks
     tasks = relationship("TaskModel", back_populates="activity", cascade="all, delete-orphan")
@@ -105,6 +181,7 @@ class TaskModel(Base):
     reset_time = Column(DateTime)
     reset_after = Column(Integer)  # duration in hours
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
+    property_id = Column(String, ForeignKey("properties.id"), nullable=False)  # Added property_id field
     total = Column(Integer, default=0)
     active = Column(Boolean, default=True)
     completed = Column(Boolean, default=False)
@@ -115,6 +192,19 @@ class TaskModel(Base):
     
     # Relationship with activity
     activity = relationship("ActivityModel", back_populates="tasks")
+
+class DailyTaskChecklist(Base):
+    __tablename__ = "daily_task_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    sl_no = Column(Integer)
+    check_point = Column(String)
+    action_required = Column(String)
+    standard = Column(String)
+    frequency = Column(String)
+    user_required = Column(Boolean, default=False)
+    property_id = Column(String, ForeignKey("properties.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -335,6 +425,7 @@ class TaskBase(BaseModel):
     opening_time: Optional[datetime] = None
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
+    property_id: str  # Added property_id field
 
 class TaskCreate(TaskBase):
     activity_id: str
@@ -351,6 +442,7 @@ class TaskUpdate(BaseModel):
     opening_time: Optional[datetime] = None
     closing_time: Optional[datetime] = None
     comment: Optional[str] = None
+    property_id: Optional[str] = None  # Added property_id field
 
 class TaskResponse(TaskBase):
     id: str
@@ -370,6 +462,7 @@ class ActivityBase(BaseModel):
     active_tasks: Optional[int] = 0
     default_tasks: Optional[int] = 0
     completed_tasks: Optional[int] = 0
+    property_id: str  # Added property_id field
 
 class ActivityCreate(ActivityBase):
     pass
@@ -379,6 +472,7 @@ class ActivityUpdate(BaseModel):
     description: Optional[str] = None
     user_role: Optional[str] = None
     user_type: Optional[str] = None
+    property_id: Optional[str] = None  # Added property_id field
 
 class ActivityResponse(ActivityBase):
     id: str
@@ -1287,6 +1381,11 @@ def delete_staff_category(id: str, db: Session = Depends(get_db)):
 def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
     """Create a new activity"""
     try:
+        # Check if property exists
+        property = db.query(Property).filter(Property.id == activity.property_id).first()
+        if not property:
+            raise HTTPException(status_code=404, detail="Property not found")
+            
         db_activity = ActivityModel(**activity.dict())
         db.add(db_activity)
         db.commit()
@@ -1297,10 +1396,18 @@ def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating activity: {str(e)}")
 
 @app.get("/activities", response_model=List[ActivityResponse], tags=["Activity"])
-def read_activities(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_activities(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
     """Get all activities with their tasks"""
     try:
-        activities = db.query(ActivityModel).offset(skip).limit(limit).all()
+        query = db.query(ActivityModel)
+        if property_id:
+            query = query.filter(ActivityModel.property_id == property_id)
+        activities = query.offset(skip).limit(limit).all()
         return activities
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching activities: {str(e)}")
@@ -1325,6 +1432,12 @@ def update_activity(activity_id: str, activity_update: ActivityUpdate, db: Sessi
         activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
         if activity is None:
             raise HTTPException(status_code=404, detail="Activity not found")
+        
+        # If property_id is being updated, verify it exists
+        if activity_update.property_id:
+            property = db.query(Property).filter(Property.id == activity_update.property_id).first()
+            if not property:
+                raise HTTPException(status_code=404, detail="Property not found")
         
         update_data = activity_update.dict(exclude_unset=True)
         for field, value in update_data.items():
@@ -1376,10 +1489,16 @@ def update_activity_task_counts(db: Session, activity_id: str):
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """Create a new task for an activity"""
     try:
+        # Check if property exists
+        property = db.query(Property).filter(Property.id == task.property_id).first()
+        if not property:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
         # Check if activity exists
         activity = db.query(ActivityModel).filter(ActivityModel.id == task.activity_id).first()
         if not activity:
             raise HTTPException(status_code=404, detail="Activity not found")
+        
         db_task = TaskModel(**task.dict())
         db.add(db_task)
         db.commit()
@@ -1393,13 +1512,16 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating task: {str(e)}")
 
 @app.get("/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks"""
-    try:
-        tasks = db.query(TaskModel).offset(skip).limit(limit).all()
-        return tasks
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching tasks: {str(e)}")
+def read_tasks(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(TaskModel)
+    if property_id:
+        query = query.filter(TaskModel.property_id == property_id)
+    return query.offset(skip).limit(limit).all()
 
 @app.get("/tasks/{task_id}", response_model=TaskResponse, tags=["Task"])
 def read_task(task_id: str, db: Session = Depends(get_db)):
@@ -1415,20 +1537,17 @@ def read_task(task_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching task: {str(e)}")
 
 @app.get("/activities/{activity_id}/tasks", response_model=List[TaskResponse], tags=["Task"])
-def read_activity_tasks(activity_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks for a specific activity"""
-    try:
-        # Check if activity exists
-        activity = db.query(ActivityModel).filter(ActivityModel.id == activity_id).first()
-        if not activity:
-            raise HTTPException(status_code=404, detail="Activity not found")
-        
-        tasks = db.query(TaskModel).filter(TaskModel.activity_id == activity_id).offset(skip).limit(limit).all()
-        return tasks
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching activity tasks: {str(e)}")
+def read_activity_tasks(
+    activity_id: str, 
+    skip: int = 0, 
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(TaskModel).filter(TaskModel.activity_id == activity_id)
+    if property_id:
+        query = query.filter(TaskModel.property_id == property_id)
+    return query.offset(skip).limit(limit).all()
 
 @app.put("/tasks/{task_id}", response_model=TaskResponse, tags=["Task"])
 def update_task(task_id: str, task_update: TaskUpdate, db: Session = Depends(get_db)):
@@ -2938,3 +3057,1331 @@ def health_check():
             },
             "version": "1.0.0"
         }
+
+# --- Daily Task Checklist CRUD Endpoints ---
+
+@app.post("/daily-task-checklists/", response_model=DailyTaskChecklistResponse, tags=["Daily Task Checklist"])
+def create_checklist(item: DailyTaskChecklistCreate, db: Session = Depends(get_db)):
+    db_item = DailyTaskChecklist(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/daily-task-checklists/", response_model=List[DailyTaskChecklistResponse], tags=["Daily Task Checklist"])
+def get_checklists(property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(DailyTaskChecklist)
+    if property_id:
+        query = query.filter(DailyTaskChecklist.property_id == property_id)
+    return query.all()
+
+@app.put("/daily-task-checklists/{id}", response_model=DailyTaskChecklistResponse, tags=["Daily Task Checklist"])
+def update_checklist(id: str, item: DailyTaskChecklistUpdate, db: Session = Depends(get_db)):
+    db_item = db.query(DailyTaskChecklist).filter(DailyTaskChecklist.id == id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+    for key, value in item.dict(exclude_unset=True).items():
+        setattr(db_item, key, value)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/daily-task-checklists/{id}", tags=["Daily Task Checklist"])
+def delete_checklist(id: str, db: Session = Depends(get_db)):
+    db_item = db.query(DailyTaskChecklist).filter(DailyTaskChecklist.id == id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Deleted"}
+
+# ... existing code ...
+class DailyTaskChecklistStatus(Base):
+    __tablename__ = "daily_task_checklist_status"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    checklist_id = Column(String, ForeignKey("daily_task_checklists.id"))
+    period = Column(String)  # e.g., '2024-06-09' for daily, '2024-06' for monthly, '2024-W23' for weekly, '2024-06-09T14' for hourly
+    status = Column(String)  # 'Yes', 'No', 'Pending'
+    updated_by = Column(String)  # user_id or name
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    checklist = relationship("DailyTaskChecklist", backref="statuses")
+
+# ... existing code ...
+class DailyTaskChecklistStatusBase(BaseModel):
+    checklist_id: str
+    period: str
+    status: Literal['Yes', 'No', 'Pending']
+    updated_by: str
+
+class DailyTaskChecklistStatusCreate(DailyTaskChecklistStatusBase):
+    pass
+
+class DailyTaskChecklistStatusResponse(DailyTaskChecklistStatusBase):
+    id: str
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+# ... existing code ...
+@app.post("/daily-task-checklist-status/", response_model=DailyTaskChecklistStatusResponse, tags=["Daily Task Checklist Status"])
+def create_or_update_status(item: DailyTaskChecklistStatusCreate, db: Session = Depends(get_db)):
+    status_obj = db.query(DailyTaskChecklistStatus).filter(
+        DailyTaskChecklistStatus.checklist_id == item.checklist_id,
+        DailyTaskChecklistStatus.period == item.period
+    ).first()
+    if status_obj:
+        status_obj.status = item.status
+        status_obj.updated_by = item.updated_by
+        status_obj.updated_at = datetime.utcnow()
+    else:
+        status_obj = DailyTaskChecklistStatus(**item.dict())
+        db.add(status_obj)
+    db.commit()
+    db.refresh(status_obj)
+    return status_obj
+
+@app.get("/daily-task-checklist-status/{checklist_id}", response_model=List[DailyTaskChecklistStatusResponse], tags=["Daily Task Checklist Status"])
+def get_statuses(checklist_id: str, db: Session = Depends(get_db)):
+    return db.query(DailyTaskChecklistStatus).filter(DailyTaskChecklistStatus.checklist_id == checklist_id).all()
+
+@app.get("/test-status-table", tags=["Test"])
+def test_status_table(db: Session = Depends(get_db)):
+    """Test endpoint to check if DailyTaskChecklistStatus table exists"""
+    try:
+        # Try to query the table to see if it exists
+        result = db.query(DailyTaskChecklistStatus).limit(1).all()
+        return {
+            "status": "success",
+            "message": "DailyTaskChecklistStatus table exists",
+            "count": len(result)
+        }
+    except Exception as e:
+        # If table doesn't exist, create it
+        try:
+            DailyTaskChecklistStatus.__table__.create(bind=engine, checkfirst=True)
+            return {
+                "status": "success", 
+                "message": "DailyTaskChecklistStatus table created successfully"
+            }
+        except Exception as create_error:
+            return {
+                "status": "error",
+                "message": f"Failed to create table: {str(create_error)}"
+            }
+
+# --- Daily Summary Report Model, Schemas, and Endpoints ---
+
+class DailySummaryReport(Base):
+    __tablename__ = "daily_summary_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    date = Column(String, nullable=False)
+    site_name = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    shift = Column(String, nullable=False)
+    departments = Column(SAJSON().with_variant(SQLiteJSON, 'sqlite'), nullable=False)
+    summary = Column(SAJSON().with_variant(SQLiteJSON, 'sqlite'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the table if not exists
+DailySummaryReport.__table__.create(bind=engine, checkfirst=True)
+
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+
+class DepartmentTaskSchema(BaseModel):
+    time: str
+    description: str
+    person_responsible: str
+    status: str
+
+class DepartmentSchema(BaseModel):
+    name: str
+    tasks: List[DepartmentTaskSchema]
+
+class SummarySchema(BaseModel):
+    department: str
+    tasks_planned: int
+    completed: int
+    pending: int
+    remarks: str
+
+class DailySummaryReportBase(BaseModel):
+    property_id: str
+    date: str
+    site_name: str
+    prepared_by: str
+    shift: str
+    departments: List[DepartmentSchema]
+    summary: List[SummarySchema]
+
+class DailySummaryReportCreate(DailySummaryReportBase):
+    pass
+
+class DailySummaryReportUpdate(BaseModel):
+    property_id: str = None
+    date: str = None
+    site_name: str = None
+    prepared_by: str = None
+    shift: str = None
+    departments: List[DepartmentSchema] = None
+    summary: List[SummarySchema] = None
+
+class DailySummaryReportResponse(DailySummaryReportBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        orm_mode = True
+
+from fastapi import Body
+
+@app.post("/daily-summary/", response_model=DailySummaryReportResponse, tags=["Daily Summary"])
+def create_daily_summary(item: DailySummaryReportCreate, db: Session = Depends(get_db)):
+    db_item = DailySummaryReport(
+        property_id=item.property_id,
+        date=item.date,
+        site_name=item.site_name,
+        prepared_by=item.prepared_by,
+        shift=item.shift,
+        departments=[d.dict() for d in item.departments],
+        summary=[s.dict() for s in item.summary]
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/daily-summary/", response_model=List[DailySummaryReportResponse], tags=["Daily Summary"])
+def get_all_daily_summaries(db: Session = Depends(get_db)):
+    return db.query(DailySummaryReport).all()
+
+@app.get("/daily-summary/{id}", response_model=DailySummaryReportResponse, tags=["Daily Summary"])
+def get_daily_summary(id: str, db: Session = Depends(get_db)):
+    db_item = db.query(DailySummaryReport).filter(DailySummaryReport.id == id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Daily summary report not found")
+    return db_item
+
+@app.put("/daily-summary/{id}", response_model=DailySummaryReportResponse, tags=["Daily Summary"])
+def update_daily_summary(id: str, item: DailySummaryReportUpdate, db: Session = Depends(get_db)):
+    db_item = db.query(DailySummaryReport).filter(DailySummaryReport.id == id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Daily summary report not found")
+    update_data = item.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        if key in ["departments", "summary"] and value is not None:
+            value = [v.dict() for v in value]
+        setattr(db_item, key, value)
+    db_item.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.delete("/daily-summary/{id}", tags=["Daily Summary"])
+def delete_daily_summary(id: str, db: Session = Depends(get_db)):
+    db_item = db.query(DailySummaryReport).filter(DailySummaryReport.id == id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Daily summary report not found")
+    db.delete(db_item)
+    db.commit()
+    return {"message": "Daily summary report deleted"}
+
+# --- Additional Daily Summary APIs by property_id ---
+
+@app.get("/daily-summary/property/{property_id}", response_model=List[DailySummaryReportResponse], tags=["Daily Summary"])
+def get_daily_summaries_by_property(property_id: str, db: Session = Depends(get_db)):
+    return db.query(DailySummaryReport).filter(DailySummaryReport.property_id == property_id).all()
+
+@app.delete("/daily-summary/property/{property_id}", tags=["Daily Summary"])
+def delete_daily_summaries_by_property(property_id: str, db: Session = Depends(get_db)):
+    items = db.query(DailySummaryReport).filter(DailySummaryReport.property_id == property_id).all()
+    count = 0
+    for item in items:
+        db.delete(item)
+        count += 1
+    db.commit()
+    return {"message": f"Deleted {count} daily summary reports for property {property_id}"}
+
+@app.get("/daily-summary/property/{property_id}/date/{date}", response_model=List[DailySummaryReportResponse], tags=["Daily Summary"])
+def get_daily_summaries_by_property_and_date(property_id: str, date: str, db: Session = Depends(get_db)):
+    return db.query(DailySummaryReport).filter(DailySummaryReport.property_id == property_id, DailySummaryReport.date == date).all()
+
+# --- Utility Panel Models, Schemas, and Endpoints ---
+
+class UtilityPanelCheckPoint(Base):
+    __tablename__ = "utility_panel_checkpoints"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    utility_panel_id = Column(String, ForeignKey("utility_panels.id"), nullable=False)
+    sl_no = Column(Integer, nullable=False)
+    item = Column(String, nullable=False)
+    action_required = Column(String, nullable=False)
+    standard = Column(String, nullable=False)
+    frequency = Column(String, nullable=False)
+    daily_status = Column(SAJSON().with_variant(SQLiteJSON, 'sqlite'), nullable=False)  # JSON object for daily status
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class UtilityPanel(Base):
+    __tablename__ = "utility_panels"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    panel_name = Column(String, nullable=False)
+    building_name = Column(String, nullable=False)
+    month = Column(String, nullable=False)
+    site_name = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    reviewed_date = Column(String, nullable=False)
+    document_no = Column(String, nullable=False)
+    prepared_date = Column(String, nullable=False)
+    implemented_date = Column(String, nullable=False)
+    version_no = Column(String, nullable=False)
+    reviewed_by = Column(String, nullable=False)
+    responsible_spoc = Column(String, nullable=False)
+    incharge_signature = Column(String, nullable=True)
+    shift_staff_signature = Column(String, nullable=True)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with checkpoints
+    checkpoints = relationship("UtilityPanelCheckPoint", backref="utility_panel", cascade="all, delete-orphan")
+
+# Create the tables if not exists
+UtilityPanel.__table__.create(bind=engine, checkfirst=True)
+UtilityPanelCheckPoint.__table__.create(bind=engine, checkfirst=True)
+
+# Pydantic schemas for Utility Panel
+class CheckPointSchema(BaseModel):
+    sl_no: int
+    item: str
+    action_required: str
+    standard: str
+    frequency: str
+    daily_status: Dict[str, str]  # Dictionary for daily status (01: "", 02: "", etc.)
+
+class CheckPointCreate(CheckPointSchema):
+    pass
+
+class CheckPointUpdate(BaseModel):
+    sl_no: Optional[int] = None
+    item: Optional[str] = None
+    action_required: Optional[str] = None
+    standard: Optional[str] = None
+    frequency: Optional[str] = None
+    daily_status: Optional[Dict[str, str]] = None
+
+class CheckPointResponse(CheckPointSchema):
+    id: str
+    utility_panel_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class UtilityPanelBase(BaseModel):
+    property_id: str
+    panel_name: str
+    building_name: str
+    month: str
+    site_name: str
+    prepared_by: str
+    reviewed_date: str
+    document_no: str
+    prepared_date: str
+    implemented_date: str
+    version_no: str
+    reviewed_by: str
+    responsible_spoc: str
+    incharge_signature: Optional[str] = None
+    shift_staff_signature: Optional[str] = None
+    comment: Optional[str] = None
+
+class UtilityPanelCreate(UtilityPanelBase):
+    checkpoints: List[CheckPointCreate]
+
+class UtilityPanelUpdate(BaseModel):
+    property_id: Optional[str] = None
+    panel_name: Optional[str] = None
+    building_name: Optional[str] = None
+    month: Optional[str] = None
+    site_name: Optional[str] = None
+    prepared_by: Optional[str] = None
+    reviewed_date: Optional[str] = None
+    document_no: Optional[str] = None
+    prepared_date: Optional[str] = None
+    implemented_date: Optional[str] = None
+    version_no: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    responsible_spoc: Optional[str] = None
+    incharge_signature: Optional[str] = None
+    shift_staff_signature: Optional[str] = None
+    comment: Optional[str] = None
+    checkpoints: Optional[List[CheckPointCreate]] = None
+
+class UtilityPanelResponse(UtilityPanelBase):
+    id: str
+    checkpoints: List[CheckPointResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Utility Panel API Endpoints
+
+@app.post("/utility-panels/", response_model=UtilityPanelResponse, status_code=status.HTTP_201_CREATED, tags=["Utility Panel"])
+def create_utility_panel(utility_panel: UtilityPanelCreate, db: Session = Depends(get_db)):
+    """Create a new utility panel with checkpoints"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == utility_panel.property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        # Create utility panel
+        db_utility_panel = UtilityPanel(
+            property_id=utility_panel.property_id,
+            panel_name=utility_panel.panel_name,
+            building_name=utility_panel.building_name,
+            month=utility_panel.month,
+            site_name=utility_panel.site_name,
+            prepared_by=utility_panel.prepared_by,
+            reviewed_date=utility_panel.reviewed_date,
+            document_no=utility_panel.document_no,
+            prepared_date=utility_panel.prepared_date,
+            implemented_date=utility_panel.implemented_date,
+            version_no=utility_panel.version_no,
+            reviewed_by=utility_panel.reviewed_by,
+            responsible_spoc=utility_panel.responsible_spoc,
+            incharge_signature=utility_panel.incharge_signature,
+            shift_staff_signature=utility_panel.shift_staff_signature,
+            comment=utility_panel.comment
+        )
+        
+        db.add(db_utility_panel)
+        db.flush()  # Get the ID without committing
+        
+        # Create checkpoints
+        for checkpoint_data in utility_panel.checkpoints:
+            db_checkpoint = UtilityPanelCheckPoint(
+                utility_panel_id=db_utility_panel.id,
+                sl_no=checkpoint_data.sl_no,
+                item=checkpoint_data.item,
+                action_required=checkpoint_data.action_required,
+                standard=checkpoint_data.standard,
+                frequency=checkpoint_data.frequency,
+                daily_status=checkpoint_data.daily_status
+            )
+            db.add(db_checkpoint)
+        
+        db.commit()
+        db.refresh(db_utility_panel)
+        return db_utility_panel
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating utility panel: {str(e)}")
+
+@app.get("/utility-panels/", response_model=List[UtilityPanelResponse], tags=["Utility Panel"])
+def get_all_utility_panels(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    month: Optional[str] = None,
+    building_name: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all utility panels with optional filtering"""
+    try:
+        query = db.query(UtilityPanel)
+        
+        if property_id:
+            query = query.filter(UtilityPanel.property_id == property_id)
+        
+        if month:
+            query = query.filter(UtilityPanel.month == month)
+        
+        if building_name:
+            query = query.filter(UtilityPanel.building_name == building_name)
+        
+        utility_panels = query.offset(skip).limit(limit).all()
+        return utility_panels
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching utility panels: {str(e)}")
+
+@app.get("/utility-panels/{utility_panel_id}", response_model=UtilityPanelResponse, tags=["Utility Panel"])
+def get_utility_panel_by_id(utility_panel_id: str, db: Session = Depends(get_db)):
+    """Get a specific utility panel by ID"""
+    try:
+        utility_panel = db.query(UtilityPanel).filter(UtilityPanel.id == utility_panel_id).first()
+        if not utility_panel:
+            raise HTTPException(status_code=404, detail="Utility panel not found")
+        return utility_panel
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching utility panel: {str(e)}")
+
+@app.put("/utility-panels/{utility_panel_id}", response_model=UtilityPanelResponse, tags=["Utility Panel"])
+def update_utility_panel(utility_panel_id: str, utility_panel_update: UtilityPanelUpdate, db: Session = Depends(get_db)):
+    """Update an existing utility panel"""
+    try:
+        utility_panel = db.query(UtilityPanel).filter(UtilityPanel.id == utility_panel_id).first()
+        if not utility_panel:
+            raise HTTPException(status_code=404, detail="Utility panel not found")
+        
+        # Update utility panel fields
+        update_data = utility_panel_update.dict(exclude_unset=True, exclude={"checkpoints"})
+        for key, value in update_data.items():
+            setattr(utility_panel, key, value)
+        
+        # Update checkpoints if provided
+        if utility_panel_update.checkpoints is not None:
+            # Delete existing checkpoints
+            db.query(UtilityPanelCheckPoint).filter(
+                UtilityPanelCheckPoint.utility_panel_id == utility_panel_id
+            ).delete()
+            
+            # Create new checkpoints
+            for checkpoint_data in utility_panel_update.checkpoints:
+                db_checkpoint = UtilityPanelCheckPoint(
+                    utility_panel_id=utility_panel_id,
+                    sl_no=checkpoint_data.sl_no,
+                    item=checkpoint_data.item,
+                    action_required=checkpoint_data.action_required,
+                    standard=checkpoint_data.standard,
+                    frequency=checkpoint_data.frequency,
+                    daily_status=checkpoint_data.daily_status
+                )
+                db.add(db_checkpoint)
+        
+        utility_panel.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(utility_panel)
+        return utility_panel
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating utility panel: {str(e)}")
+
+@app.delete("/utility-panels/{utility_panel_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Utility Panel"])
+def delete_utility_panel(utility_panel_id: str, db: Session = Depends(get_db)):
+    """Delete a utility panel and all its checkpoints"""
+    try:
+        utility_panel = db.query(UtilityPanel).filter(UtilityPanel.id == utility_panel_id).first()
+        if not utility_panel:
+            raise HTTPException(status_code=404, detail="Utility panel not found")
+        
+        db.delete(utility_panel)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting utility panel: {str(e)}")
+
+# Property-specific utility panel endpoints
+
+@app.get("/utility-panels/property/{property_id}", response_model=List[UtilityPanelResponse], tags=["Utility Panel"])
+def get_utility_panels_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    month: Optional[str] = None,
+    building_name: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all utility panels for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        query = db.query(UtilityPanel).filter(UtilityPanel.property_id == property_id)
+        
+        if month:
+            query = query.filter(UtilityPanel.month == month)
+        
+        if building_name:
+            query = query.filter(UtilityPanel.building_name == building_name)
+        
+        utility_panels = query.offset(skip).limit(limit).all()
+        return utility_panels
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching utility panels for property: {str(e)}")
+
+@app.delete("/utility-panels/property/{property_id}", tags=["Utility Panel"])
+def delete_utility_panels_by_property(property_id: str, db: Session = Depends(get_db)):
+    """Delete all utility panels for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        utility_panels = db.query(UtilityPanel).filter(UtilityPanel.property_id == property_id).all()
+        count = len(utility_panels)
+        
+        for utility_panel in utility_panels:
+            db.delete(utility_panel)
+        
+        db.commit()
+        return {"message": f"Deleted {count} utility panels for property {property_id}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting utility panels for property: {str(e)}")
+
+# Checkpoint-specific endpoints
+
+@app.post("/utility-panels/{utility_panel_id}/checkpoints/", response_model=CheckPointResponse, status_code=status.HTTP_201_CREATED, tags=["Utility Panel Checkpoints"])
+def create_checkpoint(utility_panel_id: str, checkpoint: CheckPointCreate, db: Session = Depends(get_db)):
+    """Add a new checkpoint to an existing utility panel"""
+    try:
+        # Check if utility panel exists
+        utility_panel = db.query(UtilityPanel).filter(UtilityPanel.id == utility_panel_id).first()
+        if not utility_panel:
+            raise HTTPException(status_code=404, detail="Utility panel not found")
+        
+        db_checkpoint = UtilityPanelCheckPoint(
+            utility_panel_id=utility_panel_id,
+            sl_no=checkpoint.sl_no,
+            item=checkpoint.item,
+            action_required=checkpoint.action_required,
+            standard=checkpoint.standard,
+            frequency=checkpoint.frequency,
+            daily_status=checkpoint.daily_status
+        )
+        
+        db.add(db_checkpoint)
+        db.commit()
+        db.refresh(db_checkpoint)
+        return db_checkpoint
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating checkpoint: {str(e)}")
+
+@app.get("/utility-panels/{utility_panel_id}/checkpoints/", response_model=List[CheckPointResponse], tags=["Utility Panel Checkpoints"])
+def get_checkpoints(utility_panel_id: str, db: Session = Depends(get_db)):
+    """Get all checkpoints for a specific utility panel"""
+    try:
+        # Check if utility panel exists
+        utility_panel = db.query(UtilityPanel).filter(UtilityPanel.id == utility_panel_id).first()
+        if not utility_panel:
+            raise HTTPException(status_code=404, detail="Utility panel not found")
+        
+        checkpoints = db.query(UtilityPanelCheckPoint).filter(
+            UtilityPanelCheckPoint.utility_panel_id == utility_panel_id
+        ).all()
+        return checkpoints
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching checkpoints: {str(e)}")
+
+@app.get("/utility-panels/{utility_panel_id}/checkpoints/{checkpoint_id}", response_model=CheckPointResponse, tags=["Utility Panel Checkpoints"])
+def get_checkpoint_by_id(utility_panel_id: str, checkpoint_id: str, db: Session = Depends(get_db)):
+    """Get a specific checkpoint by ID"""
+    try:
+        checkpoint = db.query(UtilityPanelCheckPoint).filter(
+            UtilityPanelCheckPoint.id == checkpoint_id,
+            UtilityPanelCheckPoint.utility_panel_id == utility_panel_id
+        ).first()
+        
+        if not checkpoint:
+            raise HTTPException(status_code=404, detail="Checkpoint not found")
+        
+        return checkpoint
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching checkpoint: {str(e)}")
+
+@app.put("/utility-panels/{utility_panel_id}/checkpoints/{checkpoint_id}", response_model=CheckPointResponse, tags=["Utility Panel Checkpoints"])
+def update_checkpoint(utility_panel_id: str, checkpoint_id: str, checkpoint_update: CheckPointUpdate, db: Session = Depends(get_db)):
+    """Update a specific checkpoint"""
+    try:
+        checkpoint = db.query(UtilityPanelCheckPoint).filter(
+            UtilityPanelCheckPoint.id == checkpoint_id,
+            UtilityPanelCheckPoint.utility_panel_id == utility_panel_id
+        ).first()
+        
+        if not checkpoint:
+            raise HTTPException(status_code=404, detail="Checkpoint not found")
+        
+        update_data = checkpoint_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(checkpoint, key, value)
+        
+        checkpoint.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(checkpoint)
+        return checkpoint
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating checkpoint: {str(e)}")
+
+@app.delete("/utility-panels/{utility_panel_id}/checkpoints/{checkpoint_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Utility Panel Checkpoints"])
+def delete_checkpoint(utility_panel_id: str, checkpoint_id: str, db: Session = Depends(get_db)):
+    """Delete a specific checkpoint"""
+    try:
+        checkpoint = db.query(UtilityPanelCheckPoint).filter(
+            UtilityPanelCheckPoint.id == checkpoint_id,
+            UtilityPanelCheckPoint.utility_panel_id == utility_panel_id
+        ).first()
+        
+        if not checkpoint:
+            raise HTTPException(status_code=404, detail="Checkpoint not found")
+        
+        db.delete(checkpoint)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting checkpoint: {str(e)}")
+
+# Additional utility endpoints
+
+@app.get("/utility-panels/property/{property_id}/month/{month}", response_model=List[UtilityPanelResponse], tags=["Utility Panel"])
+def get_utility_panels_by_property_and_month(property_id: str, month: str, db: Session = Depends(get_db)):
+    """Get utility panels for a specific property and month"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        utility_panels = db.query(UtilityPanel).filter(
+            UtilityPanel.property_id == property_id,
+            UtilityPanel.month == month
+        ).all()
+        
+        return utility_panels
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching utility panels: {str(e)}")
+
+@app.get("/utility-panels/property/{property_id}/building/{building_name}", response_model=List[UtilityPanelResponse], tags=["Utility Panel"])
+def get_utility_panels_by_property_and_building(property_id: str, building_name: str, db: Session = Depends(get_db)):
+    """Get utility panels for a specific property and building"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        utility_panels = db.query(UtilityPanel).filter(
+            UtilityPanel.property_id == property_id,
+            UtilityPanel.building_name == building_name
+        ).all()
+        
+        return utility_panels
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching utility panels: {str(e)}")
+
+# ... existing code ...
+
+# --- Work Schedule Models, Schemas, and Endpoints ---
+
+class WorkSchedule(Base):
+    __tablename__ = "work_schedules"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    company = Column(String, nullable=False)
+    schedule_year = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    facility_manager = Column(String, nullable=False)
+    afm = Column(String, nullable=False)
+    generated_on = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with work schedule items
+    work_schedule_items = relationship("WorkScheduleItem", backref="work_schedule", cascade="all, delete-orphan")
+
+class WorkScheduleItem(Base):
+    __tablename__ = "work_schedule_items"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    work_schedule_id = Column(String, ForeignKey("work_schedules.id"), nullable=False)
+    asset_name = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    schedule_type = Column(String, nullable=False)  # D, W, M, Q, H, Y (Daily, Weekly, Monthly, Quarterly, Half Yearly, Yearly)
+    weekwise_status = Column(SAJSON().with_variant(SQLiteJSON, 'sqlite'), nullable=False)  # JSON object for weekwise status
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the tables if not exists
+WorkSchedule.__table__.create(bind=engine, checkfirst=True)
+WorkScheduleItem.__table__.create(bind=engine, checkfirst=True)
+
+# Pydantic schemas for Work Schedule
+class WorkScheduleItemSchema(BaseModel):
+    asset_name: str
+    category: str
+    location: str
+    schedule_type: str  # D, W, M, Q, H, Y
+    weekwise_status: Dict[str, str]  # Dictionary for weekwise status
+
+class WorkScheduleItemCreate(WorkScheduleItemSchema):
+    pass
+
+class WorkScheduleItemUpdate(BaseModel):
+    asset_name: Optional[str] = None
+    category: Optional[str] = None
+    location: Optional[str] = None
+    schedule_type: Optional[str] = None
+    weekwise_status: Optional[Dict[str, str]] = None
+
+class WorkScheduleItemResponse(WorkScheduleItemSchema):
+    id: str
+    work_schedule_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class WorkScheduleBase(BaseModel):
+    property_id: str
+    company: str
+    schedule_year: str
+    location: str
+    facility_manager: str
+    afm: str
+    generated_on: str
+
+class WorkScheduleCreate(WorkScheduleBase):
+    work_schedule_items: List[WorkScheduleItemCreate]
+
+class WorkScheduleUpdate(BaseModel):
+    property_id: Optional[str] = None
+    company: Optional[str] = None
+    schedule_year: Optional[str] = None
+    location: Optional[str] = None
+    facility_manager: Optional[str] = None
+    afm: Optional[str] = None
+    generated_on: Optional[str] = None
+    work_schedule_items: Optional[List[WorkScheduleItemCreate]] = None
+
+class WorkScheduleResponse(WorkScheduleBase):
+    id: str
+    work_schedule_items: List[WorkScheduleItemResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Work Schedule API Endpoints
+
+@app.post("/work-schedules/", response_model=WorkScheduleResponse, status_code=status.HTTP_201_CREATED, tags=["Work Schedule"])
+def create_work_schedule(work_schedule: WorkScheduleCreate, db: Session = Depends(get_db)):
+    """Create a new work schedule with items"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == work_schedule.property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        # Create work schedule
+        db_work_schedule = WorkSchedule(
+            property_id=work_schedule.property_id,
+            company=work_schedule.company,
+            schedule_year=work_schedule.schedule_year,
+            location=work_schedule.location,
+            facility_manager=work_schedule.facility_manager,
+            afm=work_schedule.afm,
+            generated_on=work_schedule.generated_on
+        )
+        
+        db.add(db_work_schedule)
+        db.flush()  # Get the ID without committing
+        
+        # Create work schedule items
+        for item_data in work_schedule.work_schedule_items:
+            db_item = WorkScheduleItem(
+                work_schedule_id=db_work_schedule.id,
+                asset_name=item_data.asset_name,
+                category=item_data.category,
+                location=item_data.location,
+                schedule_type=item_data.schedule_type,
+                weekwise_status=item_data.weekwise_status
+            )
+            db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_work_schedule)
+        return db_work_schedule
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating work schedule: {str(e)}")
+
+@app.get("/work-schedules/", response_model=List[WorkScheduleResponse], tags=["Work Schedule"])
+def get_all_work_schedules(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    schedule_year: Optional[str] = None,
+    category: Optional[str] = None,
+    schedule_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all work schedules with optional filtering"""
+    try:
+        query = db.query(WorkSchedule)
+        
+        if property_id:
+            query = query.filter(WorkSchedule.property_id == property_id)
+        
+        if schedule_year:
+            query = query.filter(WorkSchedule.schedule_year == schedule_year)
+        
+        work_schedules = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters for items if needed
+        if category or schedule_type:
+            filtered_schedules = []
+            for schedule in work_schedules:
+                filtered_items = schedule.work_schedule_items
+                if category:
+                    filtered_items = [item for item in filtered_items if item.category == category]
+                if schedule_type:
+                    filtered_items = [item for item in filtered_items if item.schedule_type == schedule_type]
+                
+                if filtered_items:  # Only include schedules that have matching items
+                    schedule.work_schedule_items = filtered_items
+                    filtered_schedules.append(schedule)
+            return filtered_schedules
+        
+        return work_schedules
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedules: {str(e)}")
+
+@app.get("/work-schedules/{work_schedule_id}", response_model=WorkScheduleResponse, tags=["Work Schedule"])
+def get_work_schedule_by_id(work_schedule_id: str, db: Session = Depends(get_db)):
+    """Get a specific work schedule by ID"""
+    try:
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        return work_schedule
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedule: {str(e)}")
+
+@app.put("/work-schedules/{work_schedule_id}", response_model=WorkScheduleResponse, tags=["Work Schedule"])
+def update_work_schedule(work_schedule_id: str, work_schedule_update: WorkScheduleUpdate, db: Session = Depends(get_db)):
+    """Update an existing work schedule"""
+    try:
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        
+        # Update work schedule fields
+        update_data = work_schedule_update.dict(exclude_unset=True, exclude={"work_schedule_items"})
+        for key, value in update_data.items():
+            setattr(work_schedule, key, value)
+        
+        # Update work schedule items if provided
+        if work_schedule_update.work_schedule_items is not None:
+            # Delete existing items
+            db.query(WorkScheduleItem).filter(
+                WorkScheduleItem.work_schedule_id == work_schedule_id
+            ).delete()
+            
+            # Create new items
+            for item_data in work_schedule_update.work_schedule_items:
+                db_item = WorkScheduleItem(
+                    work_schedule_id=work_schedule_id,
+                    asset_name=item_data.asset_name,
+                    category=item_data.category,
+                    location=item_data.location,
+                    schedule_type=item_data.schedule_type,
+                    weekwise_status=item_data.weekwise_status
+                )
+                db.add(db_item)
+        
+        work_schedule.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(work_schedule)
+        return work_schedule
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating work schedule: {str(e)}")
+
+@app.delete("/work-schedules/{work_schedule_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Work Schedule"])
+def delete_work_schedule(work_schedule_id: str, db: Session = Depends(get_db)):
+    """Delete a work schedule and all its items"""
+    try:
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        
+        db.delete(work_schedule)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting work schedule: {str(e)}")
+
+# Property-specific work schedule endpoints
+
+@app.get("/work-schedules/property/{property_id}", response_model=List[WorkScheduleResponse], tags=["Work Schedule"])
+def get_work_schedules_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    schedule_year: Optional[str] = None,
+    category: Optional[str] = None,
+    schedule_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all work schedules for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        query = db.query(WorkSchedule).filter(WorkSchedule.property_id == property_id)
+        
+        if schedule_year:
+            query = query.filter(WorkSchedule.schedule_year == schedule_year)
+        
+        work_schedules = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters for items if needed
+        if category or schedule_type:
+            filtered_schedules = []
+            for schedule in work_schedules:
+                filtered_items = schedule.work_schedule_items
+                if category:
+                    filtered_items = [item for item in filtered_items if item.category == category]
+                if schedule_type:
+                    filtered_items = [item for item in filtered_items if item.schedule_type == schedule_type]
+                
+                if filtered_items:  # Only include schedules that have matching items
+                    schedule.work_schedule_items = filtered_items
+                    filtered_schedules.append(schedule)
+            return filtered_schedules
+        
+        return work_schedules
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedules for property: {str(e)}")
+
+@app.delete("/work-schedules/property/{property_id}", tags=["Work Schedule"])
+def delete_work_schedules_by_property(property_id: str, db: Session = Depends(get_db)):
+    """Delete all work schedules for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        work_schedules = db.query(WorkSchedule).filter(WorkSchedule.property_id == property_id).all()
+        count = len(work_schedules)
+        
+        for work_schedule in work_schedules:
+            db.delete(work_schedule)
+        
+        db.commit()
+        return {"message": f"Deleted {count} work schedules for property {property_id}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting work schedules for property: {str(e)}")
+
+# Work Schedule Item-specific endpoints
+
+@app.post("/work-schedules/{work_schedule_id}/items/", response_model=WorkScheduleItemResponse, status_code=status.HTTP_201_CREATED, tags=["Work Schedule Items"])
+def create_work_schedule_item(work_schedule_id: str, item: WorkScheduleItemCreate, db: Session = Depends(get_db)):
+    """Add a new item to an existing work schedule"""
+    try:
+        # Check if work schedule exists
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        
+        db_item = WorkScheduleItem(
+            work_schedule_id=work_schedule_id,
+            asset_name=item.asset_name,
+            category=item.category,
+            location=item.location,
+            schedule_type=item.schedule_type,
+            weekwise_status=item.weekwise_status
+        )
+        
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating work schedule item: {str(e)}")
+
+@app.get("/work-schedules/{work_schedule_id}/items/", response_model=List[WorkScheduleItemResponse], tags=["Work Schedule Items"])
+def get_work_schedule_items(
+    work_schedule_id: str,
+    category: Optional[str] = None,
+    schedule_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all items for a specific work schedule"""
+    try:
+        # Check if work schedule exists
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        
+        query = db.query(WorkScheduleItem).filter(WorkScheduleItem.work_schedule_id == work_schedule_id)
+        
+        if category:
+            query = query.filter(WorkScheduleItem.category == category)
+        
+        if schedule_type:
+            query = query.filter(WorkScheduleItem.schedule_type == schedule_type)
+        
+        items = query.all()
+        return items
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedule items: {str(e)}")
+
+@app.get("/work-schedules/{work_schedule_id}/items/{item_id}", response_model=WorkScheduleItemResponse, tags=["Work Schedule Items"])
+def get_work_schedule_item_by_id(work_schedule_id: str, item_id: str, db: Session = Depends(get_db)):
+    """Get a specific work schedule item by ID"""
+    try:
+        item = db.query(WorkScheduleItem).filter(
+            WorkScheduleItem.id == item_id,
+            WorkScheduleItem.work_schedule_id == work_schedule_id
+        ).first()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Work schedule item not found")
+        
+        return item
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedule item: {str(e)}")
+
+@app.put("/work-schedules/{work_schedule_id}/items/{item_id}", response_model=WorkScheduleItemResponse, tags=["Work Schedule Items"])
+def update_work_schedule_item(work_schedule_id: str, item_id: str, item_update: WorkScheduleItemUpdate, db: Session = Depends(get_db)):
+    """Update a specific work schedule item"""
+    try:
+        item = db.query(WorkScheduleItem).filter(
+            WorkScheduleItem.id == item_id,
+            WorkScheduleItem.work_schedule_id == work_schedule_id
+        ).first()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Work schedule item not found")
+        
+        update_data = item_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(item, key, value)
+        
+        item.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(item)
+        return item
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating work schedule item: {str(e)}")
+
+@app.delete("/work-schedules/{work_schedule_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Work Schedule Items"])
+def delete_work_schedule_item(work_schedule_id: str, item_id: str, db: Session = Depends(get_db)):
+    """Delete a specific work schedule item"""
+    try:
+        item = db.query(WorkScheduleItem).filter(
+            WorkScheduleItem.id == item_id,
+            WorkScheduleItem.work_schedule_id == work_schedule_id
+        ).first()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Work schedule item not found")
+        
+        db.delete(item)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting work schedule item: {str(e)}")
+
+# Additional work schedule endpoints
+
+@app.get("/work-schedules/property/{property_id}/year/{schedule_year}", response_model=List[WorkScheduleResponse], tags=["Work Schedule"])
+def get_work_schedules_by_property_and_year(property_id: str, schedule_year: str, db: Session = Depends(get_db)):
+    """Get work schedules for a specific property and year"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        work_schedules = db.query(WorkSchedule).filter(
+            WorkSchedule.property_id == property_id,
+            WorkSchedule.schedule_year == schedule_year
+        ).all()
+        
+        return work_schedules
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedules: {str(e)}")
+
+@app.get("/work-schedules/property/{property_id}/category/{category}", response_model=List[WorkScheduleResponse], tags=["Work Schedule"])
+def get_work_schedules_by_property_and_category(property_id: str, category: str, db: Session = Depends(get_db)):
+    """Get work schedules for a specific property and category"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        work_schedules = db.query(WorkSchedule).filter(WorkSchedule.property_id == property_id).all()
+        
+        # Filter by category
+        filtered_schedules = []
+        for schedule in work_schedules:
+            filtered_items = [item for item in schedule.work_schedule_items if item.category == category]
+            if filtered_items:
+                schedule.work_schedule_items = filtered_items
+                filtered_schedules.append(schedule)
+        
+        return filtered_schedules
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedules: {str(e)}")
+
+@app.get("/work-schedules/property/{property_id}/schedule-type/{schedule_type}", response_model=List[WorkScheduleResponse], tags=["Work Schedule"])
+def get_work_schedules_by_property_and_schedule_type(property_id: str, schedule_type: str, db: Session = Depends(get_db)):
+    """Get work schedules for a specific property and schedule type"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        work_schedules = db.query(WorkSchedule).filter(WorkSchedule.property_id == property_id).all()
+        
+        # Filter by schedule type
+        filtered_schedules = []
+        for schedule in work_schedules:
+            filtered_items = [item for item in schedule.work_schedule_items if item.schedule_type == schedule_type]
+            if filtered_items:
+                schedule.work_schedule_items = filtered_items
+                filtered_schedules.append(schedule)
+        
+        return filtered_schedules
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching work schedules: {str(e)}")
+
+# Bulk operations for work schedule items
+
+@app.post("/work-schedules/{work_schedule_id}/items/bulk", response_model=List[WorkScheduleItemResponse], status_code=status.HTTP_201_CREATED, tags=["Work Schedule Items"])
+def create_bulk_work_schedule_items(work_schedule_id: str, items: List[WorkScheduleItemCreate], db: Session = Depends(get_db)):
+    """Add multiple items to an existing work schedule"""
+    try:
+        # Check if work schedule exists
+        work_schedule = db.query(WorkSchedule).filter(WorkSchedule.id == work_schedule_id).first()
+        if not work_schedule:
+            raise HTTPException(status_code=404, detail="Work schedule not found")
+        
+        created_items = []
+        for item_data in items:
+            db_item = WorkScheduleItem(
+                work_schedule_id=work_schedule_id,
+                asset_name=item_data.asset_name,
+                category=item_data.category,
+                location=item_data.location,
+                schedule_type=item_data.schedule_type,
+                weekwise_status=item_data.weekwise_status
+            )
+            db.add(db_item)
+            created_items.append(db_item)
+        
+        db.commit()
+        
+        # Refresh all created items
+        for item in created_items:
+            db.refresh(item)
+        
+        return created_items
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating bulk work schedule items: {str(e)}")
+
+# ... existing code ...
