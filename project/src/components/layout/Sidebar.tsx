@@ -198,9 +198,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Daily Task Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Daily Task Management of all department' },
+          { path: '/daily-task-management-all-department', label: 'Daily Task Management of all department' },
           { path: '#', label: 'Daily logs of all department' },
-          { path: '#', label: 'Daily Management Report' },
+          { path: '/daily-management-report', label: 'Daily Management Report' },
           { path: '#', label: 'Daily Complete work Details ' },
         ]
       },
@@ -210,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Monthly Task Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Monthly Checklist' },
+          { path: '/monthly-task-management', label: 'Monthly Checklist' },
           { path: '#', label: 'Monthly Management Report' },
         ]
       },
@@ -220,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: '52 Week',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: '52 Week Work Calendar' },
+          { path: '/52-week-work-calendar', label: '52 Week Work Calendar' },
           { path: '#', label: '52 week training calendar format' },
         ]
       },

@@ -35,6 +35,10 @@ import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 import UserTasks from './pages/Users/UserTasks';
+import DailyTaskManagementAllDepartment from './components/DailyTaskManagement/DailyTaskManagementAllDepartment';
+import DailyManagementReport from './components/DailyTaskManagement/DailyManagementReport';
+import MonthlyTask from './components/MonthlyTaskManagement/MonthlyTask';
+import WeekCalendar from './components/52Week/52WeekCalender';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -101,6 +105,10 @@ const AppRoutes = () => {
           <Route path="swimming-pool" element={<SwimmingPoolManager />} />
           <Route path="diesel-generator" element={<DieselGeneratorDashboard/>} />
         </Route>
+        <Route path="daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
+        <Route path="monthly-task-management" element={<MonthlyTask />} />
+        <Route path="52-week-work-calendar" element={<WeekCalendar />} />
+        <Route path="daily-management-report" element={<DailyManagementReport />} />
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
