@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 // Update the title in the HTML
-document.title = 'TrackBot - Property Management System';
+document.title = 'PRK Tech India';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

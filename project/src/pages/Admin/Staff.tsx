@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaPlus, FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
+import { UserRole } from '../../types';
 
 // Define the base URL for API calls
 const BASE_URL = 'https://server.prktechindia.in';
@@ -8,7 +9,7 @@ const BASE_URL = 'https://server.prktechindia.in';
 // Interface for Staff Category
 interface StaffCategory {
   id: string;
-  title: string;
+  title: UserRole;
   user_ids: string[];
   property_id: string;
   created_at: string;
@@ -16,15 +17,21 @@ interface StaffCategory {
 
 // Interface for form data
 interface FormData {
-  title: string;
+  title: UserRole;
   user_ids: string[];
   property_id: string;
 }
 
-// Interface for users
+// Interface for users - updated to match API response
 interface User {
-  id: string;
+  user_id: string;
   name: string;
+  email: string;
+  phone_no: string;
+  user_role: string;
+  user_type: string;
+  property_id: string;
+  status: string;
 }
 
 // Colors
@@ -40,13 +47,14 @@ const Staff: React.FC = () => {
   // State management
   const [categories, setCategories] = useState<StaffCategory[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [properties, setProperties] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
-    title: '',
+    title: UserRole.SUPER_ADMIN,
     user_ids: [],
     property_id: '',
   });
@@ -78,10 +86,23 @@ const Staff: React.FC = () => {
     fetchData();
   }, []);
 
+  // Update filtered users when property_id changes
+  useEffect(() => {
+    if (formData.property_id) {
+      const filtered = users.filter(user => user.property_id === formData.property_id);
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers([]);
+    }
+  }, [formData.property_id, users]);
+
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (name === 'property_id') {
+      setFormData(prev => ({ ...prev, user_ids: [] }));
+    }
   };
 
   // Handle user selection changes (multi-select)
@@ -93,7 +114,7 @@ const Staff: React.FC = () => {
   // Reset form to default values
   const resetForm = () => {
     setFormData({
-      title: '',
+      title: UserRole.SUPER_ADMIN,
       user_ids: [],
       property_id: '',
     });
@@ -110,9 +131,20 @@ const Staff: React.FC = () => {
 
   // Set up form for editing
   const handleEdit = (category: StaffCategory) => {
+    // Convert user names back to user IDs for editing
+    const userIds = category.user_ids.map(userIdOrName => {
+      // Check if it's already a valid user ID
+      const userById = users.find(u => u.user_id === userIdOrName);
+      if (userById) return userIdOrName;
+      
+      // If not, try to find by name (for backward compatibility)
+      const userByName = users.find(u => userIdOrName.includes(u.name));
+      return userByName ? userByName.user_id : userIdOrName;
+    });
+
     setFormData({
       title: category.title,
-      user_ids: category.user_ids,
+      user_ids: userIds,
       property_id: category.property_id,
     });
     setEditingId(category.id);
@@ -126,12 +158,23 @@ const Staff: React.FC = () => {
     setLoading(true);
 
     try {
+      // Ensure we're sending user IDs only
+      const userIds = formData.user_ids.filter(id => {
+        // Verify the ID exists in our users list
+        return users.some(u => u.user_id === id);
+      });
+
+      const submitData = {
+        ...formData,
+        user_ids: userIds
+      };
+
       if (editingId) {
         // Update existing category
-        await axios.put(`${BASE_URL}/staff-categories/${editingId}`, formData);
+        await axios.put(`${BASE_URL}/staff-categories/${editingId}`, submitData);
       } else {
         // Create new category
-        await axios.post(`${BASE_URL}/staff-categories`, formData);
+        await axios.post(`${BASE_URL}/staff-categories`, submitData);
       }
 
       // Refresh categories list
@@ -182,12 +225,24 @@ const Staff: React.FC = () => {
     });
   };
 
-  // Get user names from IDs
+  // Get user names from IDs with role - updated to handle both IDs and names
   const getUserNames = (userIds: string[]) => {
     return userIds
-      .map(id => {
-        const user = users.find(u => u.id === id);
-        return user ? user.name : null;
+      .map(userIdOrName => {
+        // First try to find by user_id
+        const userById = users.find(u => u.user_id === userIdOrName);
+        if (userById) {
+          return `${userById.name}${userById.user_role ? ` (${userById.user_role.replace(/_/g, ' ').toUpperCase()})` : ''}`;
+        }
+        
+        // If not found by ID, try to find by name (for backward compatibility)
+        const userByName = users.find(u => userIdOrName.includes(u.name));
+        if (userByName) {
+          return `${userByName.name}${userByName.user_role ? ` (${userByName.user_role.replace(/_/g, ' ').toUpperCase()})` : ''}`;
+        }
+        
+        // If neither found, return the original value
+        return userIdOrName;
       })
       .filter(Boolean)
       .join(', ');
@@ -239,16 +294,20 @@ const Staff: React.FC = () => {
                 <label className="block text-gray-700 mb-2" htmlFor="title">
                   Title
                 </label>
-                <input
-                  type="text"
+                <select
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border rounded"
-                  placeholder="Enter category title"
                   required
-                />
+                >
+                  {Object.values(UserRole).map(role => (
+                    <option key={role} value={role}>
+                      {role.replace(/_/g, ' ').toUpperCase()}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="mb-4">
@@ -284,14 +343,19 @@ const Staff: React.FC = () => {
                   onChange={handleUserSelection}
                   className="w-full px-3 py-2 border rounded"
                   size={5}
+                  disabled={!formData.property_id}
                 >
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
+                  {filteredUsers.map(user => (
+                    <option key={user.user_id} value={user.user_id}>
+                      {user.name} ({user.user_role})
                     </option>
                   ))}
                 </select>
-                <p className="text-sm text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple staff members</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {!formData.property_id 
+                    ? 'Please select a property first' 
+                    : 'Hold Ctrl/Cmd to select multiple staff members'}
+                </p>
               </div>
             </div>
 
@@ -311,65 +375,124 @@ const Staff: React.FC = () => {
       )}
 
       {/* Staff Categories List */}
-      <div className="overflow-x-auto">
+      <div>
         {loading && !categories.length ? (
           <div className="flex justify-center items-center h-32">
             <FaSpinner className="animate-spin text-3xl" style={{ color: colors.secondary }} />
           </div>
         ) : (
-          <table className="min-w-full bg-white rounded-lg overflow-hidden shadow">
-            <thead className="text-white" style={{ backgroundColor: colors.primary }}>
-              <tr>
-                <th className="px-4 py-3 text-left">Title</th>
-                <th className="px-4 py-3 text-left">Property</th>
-                <th className="px-4 py-3 text-left">Staff Members</th>
-                <th className="px-4 py-3 text-left">Created</th>
-                <th className="px-4 py-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg overflow-hidden shadow">
+                <thead className="text-white" style={{ backgroundColor: colors.primary }}>
+                  <tr>
+                    <th className="px-4 py-3 text-left">Title</th>
+                    <th className="px-4 py-3 text-left">Property</th>
+                    <th className="px-4 py-3 text-left">Staff Members</th>
+                    <th className="px-4 py-3 text-left">Created</th>
+                    <th className="px-4 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                        No staff categories found. Create your first one!
+                      </td>
+                    </tr>
+                  ) : (
+                    categories.map(category => (
+                      <tr key={category.id} className="border-b hover:bg-gray-50">
+                        <td className="px-4 py-3">{category.title.replace(/_/g, ' ').toUpperCase()}</td>
+                        <td className="px-4 py-3">{getPropertyName(category.property_id)}</td>
+                        <td className="px-4 py-3 max-w-md">
+                          <div className="whitespace-normal">
+                            {category.user_ids && category.user_ids.length > 0
+                              ? getUserNames(category.user_ids)
+                              : 'No staff assigned'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{formatDate(category.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center space-x-2">
+                            <button
+                              onClick={() => handleEdit(category)}
+                              className="p-1 rounded"
+                              style={{ color: colors.accent2 }}
+                              title="Edit"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(category.id)}
+                              className="p-1 rounded"
+                              style={{ color: colors.primary }}
+                              title="Delete"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card Layout */}
+            <div className="md:hidden flex flex-col gap-4">
               {categories.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                    No staff categories found. Create your first one!
-                  </td>
-                </tr>
+                <div className="text-center text-gray-500 bg-white p-4 rounded shadow">
+                  No staff categories found. Create your first one!
+                </div>
               ) : (
                 categories.map(category => (
-                  <tr key={category.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">{category.title}</td>
-                    <td className="px-4 py-3">{getPropertyName(category.property_id)}</td>
-                    <td className="px-4 py-3">
-                      {category.user_ids && category.user_ids.length > 0
-                        ? getUserNames(category.user_ids)
-                        : 'No staff assigned'}
-                    </td>
-                    <td className="px-4 py-3">{formatDate(category.created_at)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(category)}
-                          className="p-1 rounded"
-                          style={{ color: colors.accent2 }}
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(category.id)}
-                          className="p-1 rounded"
-                          style={{ color: colors.primary }}
-                          title="Delete"
-                        >
-                          <FaTrash />
-                        </button>
+                  <div key={category.id} className="bg-white rounded shadow p-4 flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Title:</span>
+                      <span>{category.title.replace(/_/g, ' ').toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Property:</span>
+                      <span>{getPropertyName(category.property_id)}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold">Staff Members:</span>
+                      <div className="whitespace-normal mt-1">
+                        {category.user_ids && category.user_ids.length > 0
+                          ? getUserNames(category.user_ids)
+                          : 'No staff assigned'}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Created:</span>
+                      <span>{formatDate(category.created_at)}</span>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-2">
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className="p-1 rounded"
+                        style={{ color: colors.accent2 }}
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className="p-1 rounded"
+                        style={{ color: colors.primary }}
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>

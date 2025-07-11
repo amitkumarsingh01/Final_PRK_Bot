@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, RefreshCw, BarChart3, Battery, Clock, Cloud, Droplet, Gauge } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, BarChart3, Battery, Clock, Cloud, Droplet, Gauge, Building } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area } from 'recharts';
+import { useProfile } from '../../../context/ProfileContext';
+import { useAuth } from '../../../context/AuthContext';
 
 // Define types based on the provided model
 interface Property {
@@ -70,6 +72,8 @@ interface UpdateGeneratorData {
 const API_BASE_URL = "https://server.prktechindia.in";
 
 export default function CadminDieselGeneratorDashboard() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [generators, setGenerators] = useState<DieselGenerator[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
@@ -96,18 +100,33 @@ export default function CadminDieselGeneratorDashboard() {
   // Fetch properties
   const fetchProperties = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/properties`);
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await fetch(`${API_BASE_URL}/properties`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      
       if (!response.ok) {
         throw new Error("Failed to fetch properties");
       }
+      
       const data = await response.json();
-      setProperties(data);
-      if (data.length > 0) {
-        setSelectedPropertyId(data[0].id);
+      console.log('Properties response:', data);
+      
+      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedPropertyId(userProperty.id);
+      } else {
+        setError("No property found for this user");
       }
     } catch (err) {
-      setError("Failed to load properties. Please try again later.");
-      console.error(err);
+      console.error('Error fetching properties:', err);
+      setError('Failed to fetch properties. Please try again.');
     }
   };
 
@@ -336,9 +355,14 @@ export default function CadminDieselGeneratorDashboard() {
             <h1 className="text-2xl md:text-3xl font-bold flex items-center">
               <BarChart3 className="mr-2" /> Diesel Generator Management
             </h1>
-            <p className="text-white/80 mt-1">
-              Monitor and manage diesel generators for your properties
-            </p>
+            {selectedPropertyId && properties.length > 0 && (
+              <div className="mt-2 flex items-center">
+                <Building className="h-5 w-5 text-white/80 mr-2" />
+                <span className="text-white/80">
+                  {properties.find(p => p.id === selectedPropertyId)?.name} - {properties.find(p => p.id === selectedPropertyId)?.title}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <button
@@ -360,30 +384,6 @@ export default function CadminDieselGeneratorDashboard() {
               <RefreshCw className="mr-1" size={18} /> Refresh
             </button>
           </div>
-        </div>
-
-        {/* Property Selector */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg shadow">
-          <label htmlFor="property" className="block text-gray-700 font-medium mb-2">
-            Select Property:
-          </label>
-          <select
-            id="property"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={selectedPropertyId}
-            onChange={handlePropertyChange}
-            disabled={loading || properties.length === 0}
-          >
-            {properties.length === 0 ? (
-              <option value="">No properties available</option>
-            ) : (
-              properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))
-            )}
-          </select>
         </div>
 
         {/* Error message */}

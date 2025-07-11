@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
+import { useProfile } from '../../../context/ProfileContext';
+import { useAuth } from '../../../context/AuthContext';
 
 // Define types
 interface Property {
@@ -62,8 +64,10 @@ const CadminAssetManagement: React.FC = () => {
   const API_URL = `${BASE_URL}`;
 
   // State
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(profile?.property_id || "");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -97,10 +101,26 @@ const CadminAssetManagement: React.FC = () => {
   // Fetch properties
   const fetchProperties = async () => {
     try {
-      const response = await axios.get(`${API_URL}/properties`);
-      setProperties(response.data);
-      if (response.data.length > 0) {
-        setSelectedPropertyId(response.data[0].id);
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await axios.get(`${API_URL}/properties`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      });
+      
+      console.log('Properties response:', response.data);
+      
+      const userProperty = response.data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedPropertyId(userProperty.id);
+      } else {
+        setError("No property found for this user");
       }
     } catch (err) {
       console.error("Error fetching properties:", err);
@@ -110,11 +130,22 @@ const CadminAssetManagement: React.FC = () => {
 
   // Fetch assets
   const fetchAssets = async () => {
-    if (!selectedPropertyId) return;
+    if (!selectedPropertyId) {
+      console.log('No property ID selected, skipping asset fetch');
+      return;
+    }
     
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/assets/?property_id=${selectedPropertyId}`);
+      console.log('Fetching assets for property:', selectedPropertyId);
+      const response = await axios.get(`${API_URL}/assets/?property_id=${selectedPropertyId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      });
+      
+      console.log('Assets response:', response.data);
+      
       setAssets(response.data);
       setFilteredAssets(response.data);
 
@@ -134,11 +165,18 @@ const CadminAssetManagement: React.FC = () => {
 
   // Initial data load
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    console.log('Initial load - Profile:', profile);
+    if (profile?.property_id) {
+      fetchProperties();
+    } else {
+      console.log('No property ID in profile');
+      setError("User profile not loaded properly");
+    }
+  }, [profile]);
 
   // Fetch assets when property changes
   useEffect(() => {
+    console.log('Property changed to:', selectedPropertyId);
     if (selectedPropertyId) {
       fetchAssets();
     }
@@ -317,18 +355,12 @@ const CadminAssetManagement: React.FC = () => {
         <div className="container mx-auto p-4">
           <h1 className="text-3xl font-bold">Asset Management System</h1>
           <div className="mt-2">
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
-              className="bg-white text-gray-800 px-4 py-2 rounded shadow"
-            >
-              <option value="">Select Property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+            {properties.length > 0 && (
+              <div className="text-white">
+                <span className="font-semibold">Property: </span>
+                {properties[0].name} - {properties[0].title}
+              </div>
+            )}
           </div>
         </div>
       </header>

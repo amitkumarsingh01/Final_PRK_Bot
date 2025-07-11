@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { PlusCircle, Trash2, Pencil, RotateCcw, Battery, Zap, Gauge, Thermometer, DropletIcon } from "lucide-react";
+import { PlusCircle, Trash2, Pencil, RotateCcw, Battery, Zap, Gauge, Thermometer, DropletIcon, Building } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useAuth } from '../../../context/AuthContext';
+import { useProfile } from '../../../context/ProfileContext';
 
 // Types based on your API
 type Property = {
@@ -68,9 +70,10 @@ const initialFormValues: GeneratorFormValues = {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function CadminDieselGeneratorManager() {
-  // State management
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [selectedProperty, setSelectedProperty] = useState<string>(profile?.property_id || "");
   const [generators, setGenerators] = useState<DieselGenerator[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,8 +89,14 @@ export default function CadminDieselGeneratorManager() {
 
   // Fetch properties on component mount
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    console.log('Initial load - Profile:', profile);
+    if (profile?.property_id) {
+      fetchProperties();
+    } else {
+      console.log('No property ID in profile');
+      setError("User profile not loaded properly");
+    }
+  }, [profile]);
 
   // Fetch generators when a property is selected
   useEffect(() => {
@@ -141,15 +150,33 @@ export default function CadminDieselGeneratorManager() {
   const fetchProperties = async () => {
     setLoading(true);
     try {
-      const response = await fetch("https://server.prktechindia.in/properties");
+      console.log('Fetching properties...');
+      console.log('User profile:', profile);
+      console.log('User token:', user?.token);
+
+      const response = await fetch("https://server.prktechindia.in/properties", {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      
       if (!response.ok) {
         throw new Error("Failed to fetch properties");
       }
+      
       const data = await response.json();
-      setProperties(data);
-      setLoading(false);
+      console.log('Properties response:', data);
+      
+      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+      console.log('Found user property:', userProperty);
+      
+      if (userProperty) {
+        setProperties([userProperty]);
+        setSelectedProperty(userProperty.id);
+      } else {
+        setError("No property found for this user");
+      }
     } catch (err) {
       setError("Error fetching properties: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
       setLoading(false);
     }
   };
@@ -249,11 +276,6 @@ export default function CadminDieselGeneratorManager() {
   };
 
   // Event handlers
-  const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedProperty(e.target.value);
-    resetForm();
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
@@ -311,6 +333,14 @@ export default function CadminDieselGeneratorManager() {
             <div className="mb-4 md:mb-0">
               <h1 className="text-2xl font-bold">Diesel Generator Management</h1>
               <p className="text-white/80 mt-1">Monitor and manage your diesel generators</p>
+              {properties.length > 0 && (
+                <div className="mt-2 flex items-center">
+                  <Building className="h-5 w-5 text-white/80 mr-2" />
+                  <span className="text-white/80">
+                    {properties[0].name} - {properties[0].title}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <button 
@@ -330,29 +360,6 @@ export default function CadminDieselGeneratorManager() {
                 <RotateCcw size={18} className="mr-1" /> Refresh
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Property Selector */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <label htmlFor="property" className="block text-gray-700 font-medium mb-2">
-            Select Property:
-          </label>
-          <div className="flex gap-2">
-            <select
-              id="property"
-              value={selectedProperty}
-              onChange={handlePropertyChange}
-              className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
-            >
-              <option value="">Select a property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 

@@ -34,6 +34,9 @@ import CadminPropertyUsers from './pages/Cadmin/CadminPropertyUsers';
 import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
+import UserTasks from './pages/Users/UserTasks';
+// import UserTasks from './pages/Users/usertasks';
+
 
 // Creating problems
 
@@ -48,21 +51,21 @@ const AppRoutes = () => {
         !isAuthenticated ? (
           <Login />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/profile" : "/verify"} replace />
         )
       } />
       <Route path="/signup" element={
         !isAuthenticated ? (
           <Signup />
         ) : (
-          <Navigate to={user?.status === 'active' ? "/users" : "/verify"} replace />
+          <Navigate to={user?.status === 'active' ? "/profile" : "/verify"} replace />
         )
       } />
       <Route path="/verify" element={
         isAuthenticated && user?.status !== 'active' ? (
           <Verification />
         ) : (
-          <Navigate to={isAuthenticated ? "/users" : "/login"} replace />
+          <Navigate to={isAuthenticated ? "/profile" : "/login"} replace />
         )
       } />
 
@@ -74,7 +77,7 @@ const AppRoutes = () => {
           <Navigate to={isAuthenticated ? "/verify" : "/login"} replace />
         )
       }>
-        <Route index element={<Navigate to="/users" replace />} />
+        <Route index element={<Navigate to="/profile" replace />} />
         {/* <Route path="dashboard" element={<Dashboard />} /> */}
         <Route path="dashboard" element={<Dashboard />} />
         {/* <Route path="users" element={<div className="p-4">User Management Page</div>} /> */}
@@ -103,7 +106,7 @@ const AppRoutes = () => {
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
         <Route path="notifications" element={<div className="p-4">Notifications Page</div>} />
         <Route path="settings" element={<div className="p-4">Settings Page</div>} />
-        <Route path="*" element={<Navigate to="/users" replace />} />
+        <Route path="*" element={<Navigate to="/profile" replace />} />
         <Route path="assets-management" element={<AssetManagement />} />
         <Route path="inventory-management" element={<InventoryManagement />} />
 
@@ -115,12 +118,12 @@ const AppRoutes = () => {
         <Route path="cadmin/properties/:propertyId/users" element={<CadminPropertyUsers />} />
         <Route path="cadmin/daily-logs">
           <Route index element={<Navigate to="/cadmin/daily-logs/fresh-water" replace />} />
-          <Route path="cadmin/fresh-water" element={<CadminFreshWater />} />
-          <Route path="cadmin/generator" element={<CadminDieselGeneratorDashboard />} />
-          <Route path="cadmin/stp" element={<CadminSTPDashboard />} />
-          <Route path="cadmin/wtp" element={<CadminWTPDashboard />} />
-          <Route path="cadmin/swimming-pool" element={<CadminSwimmingPoolManager />} />
-          <Route path="cadmin/diesel-generator" element={<CadminDieselGeneratorDashboard/>} />
+          <Route path="fresh-water" element={<CadminFreshWater />} />
+          <Route path="generator" element={<CadminDieselGeneratorDashboard />} />
+          <Route path="stp" element={<CadminSTPDashboard />} />
+          <Route path="wtp" element={<CadminWTPDashboard />} />
+          <Route path="swimming-pool" element={<CadminSwimmingPoolManager />} />
+          <Route path="diesel-generator" element={<CadminDieselGeneratorDashboard/>} />
         </Route>
         <Route path="cadmin/profile" element={<Profile />} />
         <Route path="cadmin/activity" element={<div className="p-4">Activity Log Page</div>} />
@@ -130,7 +133,8 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/cadmin/users" replace />} />
         <Route path="cadmin/assets-management" element={<CadminAssetManagement />} />
         <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
-        
+
+        <Route path="user/tasks" element={<UserTasks />} />
         
       </Route>
 
@@ -138,7 +142,7 @@ const AppRoutes = () => {
       <Route path="*" element={
         <Navigate to={
           !isAuthenticated ? "/login" : 
-          user?.status === 'active' ? "/users" : "/verify"
+          user?.status === 'active' ? "/profile" : "/verify"
         } replace />
       } />
     </Routes>

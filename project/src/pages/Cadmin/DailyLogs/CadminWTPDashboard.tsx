@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useProfile } from '../../../context/ProfileContext';
 import { useAuth } from '../../../context/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { Droplet, TrendingUp, Activity, Filter, AlertCircle } from 'lucide-react';
+import { Droplet, TrendingUp, Activity, Filter, AlertCircle, Building } from 'lucide-react';
 
 // Define Property interface
 interface Property {
@@ -202,29 +202,38 @@ const CadminWTPDashboard = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await fetch('https://server.prktechindia.in/properties');
+        console.log('Fetching properties...');
+        console.log('User profile:', profile);
+        console.log('User token:', user?.token);
+
+        const response = await fetch('https://server.prktechindia.in/properties', {
+          headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+        });
+        
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
-        const data = await response.json();
-        setProperties(data);
         
-        if (data.length > 0) {
-          // If we have a property from profile, use it, otherwise use first property
-          if (defaultPropertyId && data.some(p => p.id === defaultPropertyId)) {
-            setSelectedPropertyId(defaultPropertyId);
-          } else {
-            setSelectedPropertyId(data[0].id);
-          }
+        const data = await response.json();
+        console.log('Properties response:', data);
+        
+        const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+        console.log('Found user property:', userProperty);
+        
+        if (userProperty) {
+          setProperties([userProperty]);
+          setSelectedPropertyId(userProperty.id);
+        } else {
+          setError("No property found for this user");
         }
       } catch (err) {
         console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
+        setError('Failed to fetch properties. Please try again.');
       }
     };
     
     fetchProperties();
-  }, [defaultPropertyId]);
+  }, [defaultPropertyId, user?.token, profile]);
 
   // Fetch WTP data when property changes
   useEffect(() => {
@@ -260,11 +269,6 @@ const CadminWTPDashboard = () => {
 
     fetchWTPData();
   }, [isAuthenticated, user, selectedPropertyId]);
-
-  // Handle property selection change
-  const handlePropertyChange = (e) => {
-    setSelectedPropertyId(e.target.value);
-  };
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -408,36 +412,27 @@ const CadminWTPDashboard = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-0 flex items-center">
-            <Droplet className="mr-2 text-orange-500" /> Water Treatment Plant Dashboard
-          </h1>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            {/* Property Selector */}
-            <div className="bg-white p-3 rounded-lg shadow flex flex-col sm:flex-row items-center">
-              <span className="text-gray-500 mr-2 mb-2 sm:mb-0">Property:</span>
-              <select
-                value={selectedPropertyId}
-                onChange={handlePropertyChange}
-                className="form-select border rounded-md p-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Select a property</option>
-                {properties.map(property => (
-                  <option key={property.id} value={property.id}>
-                    {property.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Add New WTP Entry Button */}
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors flex items-center"
-            >
-              <Filter className="mr-2" size={18} /> Add New WTP Entry
-            </button>
+          <div className="mb-4 md:mb-0">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-0 flex items-center">
+              <Droplet className="mr-2 text-orange-500" /> Water Treatment Plant Dashboard
+            </h1>
+            {selectedPropertyId && properties.length > 0 && (
+              <div className="mt-2 flex items-center">
+                <Building className="h-5 w-5 text-gray-600 mr-2" />
+                <span className="text-gray-600">
+                  {properties.find(p => p.id === selectedPropertyId)?.name} - {properties.find(p => p.id === selectedPropertyId)?.title}
+                </span>
+              </div>
+            )}
           </div>
+          
+          {/* Add New WTP Entry Button */}
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors flex items-center"
+          >
+            <Filter className="mr-2" size={18} /> Add New WTP Entry
+          </button>
         </div>
 
         {/* Error message */}

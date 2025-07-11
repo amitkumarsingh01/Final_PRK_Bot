@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { useProfile } from '../../../context/ProfileContext';
 import { useAuth } from '../../../context/AuthContext';
-import { Droplet, TrendingUp, Filter, AlertCircle, BarChart2, Activity } from 'lucide-react';
+import { Droplet, TrendingUp, Filter, AlertCircle, BarChart2, Activity, Building } from 'lucide-react';
 
 // Define interfaces
 interface Property {
@@ -110,6 +110,10 @@ const CadminSTPDashboard = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
+        console.log('Fetching properties...');
+        console.log('User profile:', profile);
+        console.log('User token:', user?.token);
+
         const response = await fetch('https://server.prktechindia.in/properties', {
           headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
         });
@@ -119,24 +123,25 @@ const CadminSTPDashboard = () => {
         }
         
         const data = await response.json();
-        setProperties(data);
+        console.log('Properties response:', data);
         
-        if (data.length > 0) {
-          // If we have a property from profile, use it, otherwise use first property
-          if (defaultPropertyId && data.some((p: Property) => p.id === defaultPropertyId)) {
-            setSelectedPropertyId(defaultPropertyId);
-          } else {
-            setSelectedPropertyId(data[0].id);
-          }
+        const userProperty = data.find((p: Property) => p.id === profile?.property_id);
+        console.log('Found user property:', userProperty);
+        
+        if (userProperty) {
+          setProperties([userProperty]);
+          setSelectedPropertyId(userProperty.id);
+        } else {
+          setError("No property found for this user");
         }
       } catch (err) {
         console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
+        setError('Failed to fetch properties. Please try again.');
       }
     };
     
     fetchProperties();
-  }, [defaultPropertyId, user?.token]);
+  }, [defaultPropertyId, user?.token, profile]);
 
   // Fetch STP data when property changes
   useEffect(() => {
@@ -372,7 +377,14 @@ const CadminSTPDashboard = () => {
             <h1 className="text-2xl md:text-3xl font-bold flex items-center">
               <Droplet className="mr-2" /> STP Dashboard
             </h1>
-            <p className="text-white/80 mt-1">Monitor and manage sewage treatment plants</p>
+            {selectedPropertyId && properties.length > 0 && (
+              <div className="mt-2 flex items-center">
+                <Building className="h-5 w-5 text-white/80 mr-2" />
+                <span className="text-white/80">
+                  {properties.find(p => p.id === selectedPropertyId)?.name} - {properties.find(p => p.id === selectedPropertyId)?.title}
+                </span>
+              </div>
+            )}
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -380,27 +392,6 @@ const CadminSTPDashboard = () => {
           >
             <Filter className="mr-2" size={18} /> Add New STP Entry
           </button>
-        </div>
-
-        {/* Property Selector */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <label htmlFor="property" className="block text-gray-700 font-medium mb-2">
-            Select Property:
-          </label>
-          <select
-            id="property"
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#F88024] focus:border-transparent"
-            value={selectedPropertyId}
-            onChange={handlePropertyChange}
-            disabled={loading || properties.length === 0}
-          >
-            <option value="">Select a property</option>
-            {properties.map((property) => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Error message */}

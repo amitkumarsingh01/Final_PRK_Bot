@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
+import { UserRole } from '../../types';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -14,6 +15,12 @@ interface Profile {
   status?: string;
 }
 
+interface Property {
+  id: string;
+  name: string;
+  title: string;
+}
+
 interface ProfileFormData {
   name: string;
   email: string;
@@ -25,6 +32,7 @@ interface ProfileFormData {
 
 const UserProfile: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -37,6 +45,20 @@ const UserProfile: React.FC = () => {
     user_type: '',
     property_id: ''
   });
+
+  // Fetch all properties
+  const fetchProperties = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/properties`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
+      }
+      const data = await response.json();
+      setProperties(data);
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+    }
+  };
 
   // Fetch all profiles
   const fetchProfiles = async () => {
@@ -151,7 +173,7 @@ const UserProfile: React.FC = () => {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -180,6 +202,7 @@ const UserProfile: React.FC = () => {
 
   useEffect(() => {
     fetchProfiles();
+    fetchProperties();
   }, []);
 
   if (loading) {
@@ -285,41 +308,59 @@ const UserProfile: React.FC = () => {
                 
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    User Role
+                    User Role *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="user_role"
                     value={formData.user_role}
                     onChange={handleInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-                  />
+                    required
+                  >
+                    <option value="">Select a role...</option>
+                    <option value="cadmin">CompanyAdmin</option>
+                    <option value="user">User</option>
+                  </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    User Type
+                    User Type *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="user_type"
                     value={formData.user_type}
                     onChange={handleInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-                  />
+                    required
+                  >
+                    <option value="">Select a type...</option>
+                    {Object.values(UserRole).map((role) => (
+                      <option key={role} value={role}>
+                        {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    Property ID
+                    Property *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="property_id"
                     value={formData.property_id}
                     onChange={handleInputChange}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-                  />
+                    required
+                  >
+                    <option value="">Select a property...</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name} - {property.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="flex space-x-3 pt-4">
