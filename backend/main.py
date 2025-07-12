@@ -4385,3 +4385,2546 @@ def create_bulk_work_schedule_items(work_schedule_id: str, items: List[WorkSched
         raise HTTPException(status_code=500, detail=f"Error creating bulk work schedule items: {str(e)}")
 
 # ... existing code ...
+
+# --- Incident Report Models, Schemas, and Endpoints ---
+
+class IncidentReport(Base):
+    __tablename__ = "incident_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    organization = Column(String, nullable=False)
+    date_of_report = Column(String, nullable=False)
+    incident_id = Column(String, nullable=False, unique=True)
+    incident_description = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    site_details = relationship("IncidentSiteDetails", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    personnel_involved = relationship("IncidentPersonnel", backref="incident_report", cascade="all, delete-orphan")
+    evidence_attachments = relationship("IncidentEvidence", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    root_cause_analysis = relationship("IncidentRootCause", backref="incident_report", cascade="all, delete-orphan")
+    immediate_actions = relationship("IncidentImmediateAction", backref="incident_report", cascade="all, delete-orphan")
+    corrective_actions = relationship("IncidentCorrectiveAction", backref="incident_report", cascade="all, delete-orphan")
+    incident_classification = relationship("IncidentClassification", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    client_communication = relationship("IncidentClientCommunication", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    approvals_signatures = relationship("IncidentApproval", backref="incident_report", cascade="all, delete-orphan")
+
+class IncidentSiteDetails(Base):
+    __tablename__ = "incident_site_details"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    site_name = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    date_time_of_incident = Column(String, nullable=False)
+    reported_by = Column(String, nullable=False)
+    reported_to = Column(String, nullable=False)
+    department_involved = Column(String, nullable=False)
+    incident_type = Column(String, nullable=False)
+
+class IncidentPersonnel(Base):
+    __tablename__ = "incident_personnel"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    name = Column(String, nullable=False)
+    designation = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+    role_in_incident = Column(String, nullable=False)
+
+class IncidentEvidence(Base):
+    __tablename__ = "incident_evidence"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    cctv_footage = Column(String, nullable=True)
+    visitor_entry_logs = Column(String, nullable=True)
+    photographs = Column(String, nullable=True)
+    site_map = Column(String, nullable=True)
+
+class IncidentRootCause(Base):
+    __tablename__ = "incident_root_causes"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    cause_description = Column(Text, nullable=False)
+
+class IncidentImmediateAction(Base):
+    __tablename__ = "incident_immediate_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    by_whom = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+
+class IncidentCorrectiveAction(Base):
+    __tablename__ = "incident_corrective_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    responsible = Column(String, nullable=False)
+    deadline = Column(String, nullable=False)
+    status = Column(String, nullable=False)  # In progress, Completed, Scheduled, Pending
+
+class IncidentClassification(Base):
+    __tablename__ = "incident_classifications"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    risk_level = Column(String, nullable=False)  # Low, Medium, High, Critical
+    report_severity = Column(String, nullable=False)  # Minor, Major, Critical
+
+class IncidentClientCommunication(Base):
+    __tablename__ = "incident_client_communications"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    client_contacted = Column(String, nullable=False)
+    mode = Column(String, nullable=False)  # Phone, Email, In Person
+    date_time = Column(String, nullable=False)
+    response_summary = Column(Text, nullable=False)
+
+class IncidentApproval(Base):
+    __tablename__ = "incident_approvals"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    approval_type = Column(String, nullable=False)  # prepared_by, reviewed_by_ops, client_acknowledgment
+    name = Column(String, nullable=False)
+    signature = Column(String, nullable=True)
+    date = Column(String, nullable=False)
+
+# Create the tables if not exists
+IncidentReport.__table__.create(bind=engine, checkfirst=True)
+IncidentSiteDetails.__table__.create(bind=engine, checkfirst=True)
+IncidentPersonnel.__table__.create(bind=engine, checkfirst=True)
+IncidentEvidence.__table__.create(bind=engine, checkfirst=True)
+IncidentRootCause.__table__.create(bind=engine, checkfirst=True)
+IncidentImmediateAction.__table__.create(bind=engine, checkfirst=True)
+IncidentCorrectiveAction.__table__.create(bind=engine, checkfirst=True)
+IncidentClassification.__table__.create(bind=engine, checkfirst=True)
+IncidentClientCommunication.__table__.create(bind=engine, checkfirst=True)
+IncidentApproval.__table__.create(bind=engine, checkfirst=True)
+
+# Pydantic schemas for Incident Report
+class SiteDetailsSchema(BaseModel):
+    site_name: str
+    location: str
+    date_time_of_incident: str
+    reported_by: str
+    reported_to: str
+    department_involved: str
+    incident_type: str
+
+class PersonnelSchema(BaseModel):
+    name: str
+    designation: str
+    department: str
+    role_in_incident: str
+
+class EvidenceSchema(BaseModel):
+    cctv_footage: Optional[str] = None
+    visitor_entry_logs: Optional[str] = None
+    photographs: Optional[str] = None
+    site_map: Optional[str] = None
+
+class RootCauseSchema(BaseModel):
+    cause_description: str
+
+class ImmediateActionSchema(BaseModel):
+    action: str
+    by_whom: str
+    time: str
+
+class CorrectiveActionSchema(BaseModel):
+    action: str
+    responsible: str
+    deadline: str
+    status: str
+
+class ClassificationSchema(BaseModel):
+    risk_level: str
+    report_severity: str
+
+class ClientCommunicationSchema(BaseModel):
+    client_contacted: str
+    mode: str
+    date_time: str
+    response_summary: str
+
+class ApprovalSchema(BaseModel):
+    approval_type: str  # prepared_by, reviewed_by_ops, client_acknowledgment
+    name: str
+    signature: Optional[str] = None
+    date: str
+
+# Create schemas
+class IncidentReportCreate(BaseModel):
+    property_id: str
+    prepared_by: str
+    organization: str
+    date_of_report: str
+    incident_id: str
+    incident_description: str
+    site_details: SiteDetailsSchema
+    personnel_involved: List[PersonnelSchema]
+    evidence_attachments: EvidenceSchema
+    root_cause_analysis: List[RootCauseSchema]
+    immediate_actions: List[ImmediateActionSchema]
+    corrective_preventive_actions: List[CorrectiveActionSchema]
+    incident_classification: ClassificationSchema
+    client_communication: ClientCommunicationSchema
+    approvals_signatures: List[ApprovalSchema]
+
+class IncidentReportUpdate(BaseModel):
+    prepared_by: Optional[str] = None
+    organization: Optional[str] = None
+    date_of_report: Optional[str] = None
+    incident_description: Optional[str] = None
+    site_details: Optional[SiteDetailsSchema] = None
+    personnel_involved: Optional[List[PersonnelSchema]] = None
+    evidence_attachments: Optional[EvidenceSchema] = None
+    root_cause_analysis: Optional[List[RootCauseSchema]] = None
+    immediate_actions: Optional[List[ImmediateActionSchema]] = None
+    corrective_preventive_actions: Optional[List[CorrectiveActionSchema]] = None
+    incident_classification: Optional[ClassificationSchema] = None
+    client_communication: Optional[ClientCommunicationSchema] = None
+    approvals_signatures: Optional[List[ApprovalSchema]] = None
+
+# Response schemas
+class SiteDetailsResponse(SiteDetailsSchema):
+    id: str
+    incident_report_id: str
+
+class PersonnelResponse(PersonnelSchema):
+    id: str
+    incident_report_id: str
+
+class EvidenceResponse(EvidenceSchema):
+    id: str
+    incident_report_id: str
+
+class RootCauseResponse(RootCauseSchema):
+    id: str
+    incident_report_id: str
+
+class ImmediateActionResponse(ImmediateActionSchema):
+    id: str
+    incident_report_id: str
+
+class CorrectiveActionResponse(CorrectiveActionSchema):
+    id: str
+    incident_report_id: str
+
+class ClassificationResponse(ClassificationSchema):
+    id: str
+    incident_report_id: str
+
+class ClientCommunicationResponse(ClientCommunicationSchema):
+    id: str
+    incident_report_id: str
+
+class ApprovalResponse(ApprovalSchema):
+    id: str
+    incident_report_id: str
+
+class IncidentReportResponse(BaseModel):
+    id: str
+    property_id: str
+    prepared_by: str
+    organization: str
+    date_of_report: str
+    incident_id: str
+    incident_description: str
+    site_details: Optional[SiteDetailsResponse] = None
+    personnel_involved: List[PersonnelResponse] = []
+    evidence_attachments: Optional[EvidenceResponse] = None
+    root_cause_analysis: List[RootCauseResponse] = []
+    immediate_actions: List[ImmediateActionResponse] = []
+    corrective_preventive_actions: List[CorrectiveActionResponse] = []
+    incident_classification: Optional[ClassificationResponse] = None
+    client_communication: Optional[ClientCommunicationResponse] = None
+    approvals_signatures: List[ApprovalResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Incident Report API Endpoints
+
+@app.post("/incident-reports/", response_model=IncidentReportResponse, status_code=status.HTTP_201_CREATED, tags=["Incident Report"])
+def create_incident_report(incident_report: IncidentReportCreate, db: Session = Depends(get_db)):
+    """Create a new incident report with all related data"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == incident_report.property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        # Check if incident_id already exists
+        existing_incident = db.query(IncidentReport).filter(IncidentReport.incident_id == incident_report.incident_id).first()
+        if existing_incident:
+            raise HTTPException(status_code=400, detail="Incident ID already exists")
+        
+        # Create incident report
+        db_incident_report = IncidentReport(
+            property_id=incident_report.property_id,
+            prepared_by=incident_report.prepared_by,
+            organization=incident_report.organization,
+            date_of_report=incident_report.date_of_report,
+            incident_id=incident_report.incident_id,
+            incident_description=incident_report.incident_description
+        )
+        
+        db.add(db_incident_report)
+        db.flush()  # Get the ID without committing
+        
+        # Create site details
+        db_site_details = IncidentSiteDetails(
+            incident_report_id=db_incident_report.id,
+            site_name=incident_report.site_details.site_name,
+            location=incident_report.site_details.location,
+            date_time_of_incident=incident_report.site_details.date_time_of_incident,
+            reported_by=incident_report.site_details.reported_by,
+            reported_to=incident_report.site_details.reported_to,
+            department_involved=incident_report.site_details.department_involved,
+            incident_type=incident_report.site_details.incident_type
+        )
+        db.add(db_site_details)
+        
+        # Create personnel involved
+        for personnel_data in incident_report.personnel_involved:
+            db_personnel = IncidentPersonnel(
+                incident_report_id=db_incident_report.id,
+                name=personnel_data.name,
+                designation=personnel_data.designation,
+                department=personnel_data.department,
+                role_in_incident=personnel_data.role_in_incident
+            )
+            db.add(db_personnel)
+        
+        # Create evidence attachments
+        db_evidence = IncidentEvidence(
+            incident_report_id=db_incident_report.id,
+            cctv_footage=incident_report.evidence_attachments.cctv_footage,
+            visitor_entry_logs=incident_report.evidence_attachments.visitor_entry_logs,
+            photographs=incident_report.evidence_attachments.photographs,
+            site_map=incident_report.evidence_attachments.site_map
+        )
+        db.add(db_evidence)
+        
+        # Create root cause analysis
+        for root_cause_data in incident_report.root_cause_analysis:
+            db_root_cause = IncidentRootCause(
+                incident_report_id=db_incident_report.id,
+                cause_description=root_cause_data.cause_description
+            )
+            db.add(db_root_cause)
+        
+        # Create immediate actions
+        for action_data in incident_report.immediate_actions:
+            db_action = IncidentImmediateAction(
+                incident_report_id=db_incident_report.id,
+                action=action_data.action,
+                by_whom=action_data.by_whom,
+                time=action_data.time
+            )
+            db.add(db_action)
+        
+        # Create corrective actions
+        for corrective_data in incident_report.corrective_preventive_actions:
+            db_corrective = IncidentCorrectiveAction(
+                incident_report_id=db_incident_report.id,
+                action=corrective_data.action,
+                responsible=corrective_data.responsible,
+                deadline=corrective_data.deadline,
+                status=corrective_data.status
+            )
+            db.add(db_corrective)
+        
+        # Create incident classification
+        db_classification = IncidentClassification(
+            incident_report_id=db_incident_report.id,
+            risk_level=incident_report.incident_classification.risk_level,
+            report_severity=incident_report.incident_classification.report_severity
+        )
+        db.add(db_classification)
+        
+        # Create client communication
+        db_client_comm = IncidentClientCommunication(
+            incident_report_id=db_incident_report.id,
+            client_contacted=incident_report.client_communication.client_contacted,
+            mode=incident_report.client_communication.mode,
+            date_time=incident_report.client_communication.date_time,
+            response_summary=incident_report.client_communication.response_summary
+        )
+        db.add(db_client_comm)
+        
+        # Create approvals signatures
+        for approval_data in incident_report.approvals_signatures:
+            db_approval = IncidentApproval(
+                incident_report_id=db_incident_report.id,
+                approval_type=approval_data.approval_type,
+                name=approval_data.name,
+                signature=approval_data.signature,
+                date=approval_data.date
+            )
+            db.add(db_approval)
+        
+        db.commit()
+        db.refresh(db_incident_report)
+        return db_incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating incident report: {str(e)}")
+
+@app.get("/incident-reports/", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_all_incident_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    incident_type: Optional[str] = None,
+    risk_level: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all incident reports with optional filtering"""
+    try:
+        query = db.query(IncidentReport)
+        
+        if property_id:
+            query = query.filter(IncidentReport.property_id == property_id)
+        
+        if date_from:
+            query = query.filter(IncidentReport.date_of_report >= date_from)
+        
+        if date_to:
+            query = query.filter(IncidentReport.date_of_report <= date_to)
+        
+        incident_reports = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters if needed
+        if incident_type or risk_level:
+            filtered_reports = []
+            for report in incident_reports:
+                include_report = True
+                
+                if incident_type and hasattr(report, 'site_details') and report.site_details and report.site_details.incident_type != incident_type:
+                    include_report = False
+                
+                if risk_level and hasattr(report, 'incident_classification') and report.incident_classification and report.incident_classification.risk_level != risk_level:
+                    include_report = False
+                
+                if include_report:
+                    filtered_reports.append(report)
+            
+            return filtered_reports
+        
+        return incident_reports
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/{incident_report_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def get_incident_report_by_id(incident_report_id: str, db: Session = Depends(get_db)):
+    """Get a specific incident report by ID"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Ensure all relationships are loaded
+        if incident_report.site_details is None:
+            incident_report.site_details = db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.personnel_involved:
+            incident_report.personnel_involved = db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report_id
+            ).all()
+        
+        if incident_report.evidence_attachments is None:
+            incident_report.evidence_attachments = db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.root_cause_analysis:
+            incident_report.root_cause_analysis = db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report_id
+            ).all()
+        
+        if not incident_report.immediate_actions:
+            incident_report.immediate_actions = db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report_id
+            ).all()
+        
+        if not incident_report.corrective_actions:
+            incident_report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report_id
+            ).all()
+        
+        if incident_report.incident_classification is None:
+            incident_report.incident_classification = db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report_id
+            ).first()
+        
+        if incident_report.client_communication is None:
+            incident_report.client_communication = db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.approvals_signatures:
+            incident_report.approvals_signatures = db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report_id
+            ).all()
+        
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report: {str(e)}")
+
+@app.get("/incident-reports/incident-id/{incident_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def get_incident_report_by_incident_id(incident_id: str, db: Session = Depends(get_db)):
+    """Get a specific incident report by incident ID"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.incident_id == incident_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Ensure all relationships are loaded
+        if incident_report.site_details is None:
+            incident_report.site_details = db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.personnel_involved:
+            incident_report.personnel_involved = db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report.id
+            ).all()
+        
+        if incident_report.evidence_attachments is None:
+            incident_report.evidence_attachments = db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.root_cause_analysis:
+            incident_report.root_cause_analysis = db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report.id
+            ).all()
+        
+        if not incident_report.immediate_actions:
+            incident_report.immediate_actions = db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report.id
+            ).all()
+        
+        if not incident_report.corrective_actions:
+            incident_report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report.id
+            ).all()
+        
+        if incident_report.incident_classification is None:
+            incident_report.incident_classification = db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report.id
+            ).first()
+        
+        if incident_report.client_communication is None:
+            incident_report.client_communication = db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.approvals_signatures:
+            incident_report.approvals_signatures = db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report.id
+            ).all()
+        
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report: {str(e)}")
+
+@app.put("/incident-reports/{incident_report_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def update_incident_report(incident_report_id: str, incident_report_update: IncidentReportUpdate, db: Session = Depends(get_db)):
+    """Update an existing incident report"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Update main incident report fields
+        update_data = incident_report_update.dict(exclude_unset=True, exclude={
+            "site_details", "personnel_involved", "evidence_attachments", "root_cause_analysis",
+            "immediate_actions", "corrective_preventive_actions", "incident_classification",
+            "client_communication", "approvals_signatures"
+        })
+        
+        for key, value in update_data.items():
+            setattr(incident_report, key, value)
+        
+        # Update related data if provided
+        if incident_report_update.site_details:
+            # Delete existing site details
+            db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new site details
+            db_site_details = IncidentSiteDetails(
+                incident_report_id=incident_report_id,
+                **incident_report_update.site_details.dict()
+            )
+            db.add(db_site_details)
+        
+        if incident_report_update.personnel_involved is not None:
+            # Delete existing personnel
+            db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new personnel
+            for personnel_data in incident_report_update.personnel_involved:
+                db_personnel = IncidentPersonnel(
+                    incident_report_id=incident_report_id,
+                    **personnel_data.dict()
+                )
+                db.add(db_personnel)
+        
+        if incident_report_update.evidence_attachments:
+            # Delete existing evidence
+            db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new evidence
+            db_evidence = IncidentEvidence(
+                incident_report_id=incident_report_id,
+                **incident_report_update.evidence_attachments.dict()
+            )
+            db.add(db_evidence)
+        
+        if incident_report_update.root_cause_analysis is not None:
+            # Delete existing root causes
+            db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new root causes
+            for root_cause_data in incident_report_update.root_cause_analysis:
+                db_root_cause = IncidentRootCause(
+                    incident_report_id=incident_report_id,
+                    **root_cause_data.dict()
+                )
+                db.add(db_root_cause)
+        
+        if incident_report_update.immediate_actions is not None:
+            # Delete existing immediate actions
+            db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new immediate actions
+            for action_data in incident_report_update.immediate_actions:
+                db_action = IncidentImmediateAction(
+                    incident_report_id=incident_report_id,
+                    **action_data.dict()
+                )
+                db.add(db_action)
+        
+        if incident_report_update.corrective_preventive_actions is not None:
+            # Delete existing corrective actions
+            db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new corrective actions
+            for corrective_data in incident_report_update.corrective_preventive_actions:
+                db_corrective = IncidentCorrectiveAction(
+                    incident_report_id=incident_report_id,
+                    **corrective_data.dict()
+                )
+                db.add(db_corrective)
+        
+        if incident_report_update.incident_classification:
+            # Delete existing classification
+            db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new classification
+            db_classification = IncidentClassification(
+                incident_report_id=incident_report_id,
+                **incident_report_update.incident_classification.dict()
+            )
+            db.add(db_classification)
+        
+        if incident_report_update.client_communication:
+            # Delete existing client communication
+            db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new client communication
+            db_client_comm = IncidentClientCommunication(
+                incident_report_id=incident_report_id,
+                **incident_report_update.client_communication.dict()
+            )
+            db.add(db_client_comm)
+        
+        if incident_report_update.approvals_signatures is not None:
+            # Delete existing approvals
+            db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new approvals
+            for approval_data in incident_report_update.approvals_signatures:
+                db_approval = IncidentApproval(
+                    incident_report_id=incident_report_id,
+                    **approval_data.dict()
+                )
+                db.add(db_approval)
+        
+        incident_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(incident_report)
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating incident report: {str(e)}")
+
+@app.delete("/incident-reports/{incident_report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Incident Report"])
+def delete_incident_report(incident_report_id: str, db: Session = Depends(get_db)):
+    """Delete an incident report and all its related data"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        db.delete(incident_report)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting incident report: {str(e)}")
+
+# Property-specific incident report endpoints
+
+@app.get("/incident-reports/property/{property_id}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    incident_type: Optional[str] = None,
+    risk_level: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all incident reports for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        query = db.query(IncidentReport).filter(IncidentReport.property_id == property_id)
+        
+        if date_from:
+            query = query.filter(IncidentReport.date_of_report >= date_from)
+        
+        if date_to:
+            query = query.filter(IncidentReport.date_of_report <= date_to)
+        
+        incident_reports = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters if needed
+        if incident_type or risk_level:
+            filtered_reports = []
+            for report in incident_reports:
+                include_report = True
+                
+                # Load site details if needed
+                if incident_type and (report.site_details is None or not hasattr(report, 'site_details')):
+                    report.site_details = db.query(IncidentSiteDetails).filter(
+                        IncidentSiteDetails.incident_report_id == report.id
+                    ).first()
+                
+                if incident_type and report.site_details and report.site_details.incident_type != incident_type:
+                    include_report = False
+                
+                # Load classification if needed
+                if risk_level and (report.incident_classification is None or not hasattr(report, 'incident_classification')):
+                    report.incident_classification = db.query(IncidentClassification).filter(
+                        IncidentClassification.incident_report_id == report.id
+                    ).first()
+                
+                if risk_level and report.incident_classification and report.incident_classification.risk_level != risk_level:
+                    include_report = False
+                
+                if include_report:
+                    filtered_reports.append(report)
+            
+            return filtered_reports
+        
+        return incident_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports for property: {str(e)}")
+
+@app.delete("/incident-reports/property/{property_id}", tags=["Incident Report"])
+def delete_incident_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    """Delete all incident reports for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        count = len(incident_reports)
+        
+        for incident_report in incident_reports:
+            db.delete(incident_report)
+        
+        db.commit()
+        return {"message": f"Deleted {count} incident reports for property {property_id}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting incident reports for property: {str(e)}")
+
+# Additional filtering endpoints
+
+@app.get("/incident-reports/property/{property_id}/incident-type/{incident_type}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_type(property_id: str, incident_type: str, db: Session = Depends(get_db)):
+    """Get incident reports for a specific property and incident type"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Filter by incident type
+        filtered_reports = []
+        for report in incident_reports:
+            # Load site details if needed
+            if report.site_details is None:
+                report.site_details = db.query(IncidentSiteDetails).filter(
+                    IncidentSiteDetails.incident_report_id == report.id
+                ).first()
+            
+            if report.site_details and report.site_details.incident_type == incident_type:
+                filtered_reports.append(report)
+        
+        return filtered_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/property/{property_id}/risk-level/{risk_level}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_risk_level(property_id: str, risk_level: str, db: Session = Depends(get_db)):
+    """Get incident reports for a specific property and risk level"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Filter by risk level
+        filtered_reports = []
+        for report in incident_reports:
+            # Load classification if needed
+            if report.incident_classification is None:
+                report.incident_classification = db.query(IncidentClassification).filter(
+                    IncidentClassification.incident_report_id == report.id
+                ).first()
+            
+            if report.incident_classification and report.incident_classification.risk_level == risk_level:
+                filtered_reports.append(report)
+        
+        return filtered_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/property/{property_id}/date-range", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    """Get incident reports for a specific property within a date range"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(
+            IncidentReport.property_id == property_id,
+            IncidentReport.date_of_report >= date_from,
+            IncidentReport.date_of_report <= date_to
+        ).all()
+        
+        return incident_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+# Statistics endpoints
+
+@app.get("/incident-reports/property/{property_id}/statistics", tags=["Incident Report"])
+def get_incident_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    """Get statistics for incident reports of a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Calculate statistics
+        total_incidents = len(incident_reports)
+        
+        # Count by incident type
+        incident_types = {}
+        for report in incident_reports:
+            # Load site details if needed
+            if report.site_details is None:
+                report.site_details = db.query(IncidentSiteDetails).filter(
+                    IncidentSiteDetails.incident_report_id == report.id
+                ).first()
+            
+            if report.site_details:
+                incident_type = report.site_details.incident_type
+                incident_types[incident_type] = incident_types.get(incident_type, 0) + 1
+        
+        # Count by risk level
+        risk_levels = {}
+        for report in incident_reports:
+            # Load classification if needed
+            if report.incident_classification is None:
+                report.incident_classification = db.query(IncidentClassification).filter(
+                    IncidentClassification.incident_report_id == report.id
+                ).first()
+            
+            if report.incident_classification:
+                risk_level = report.incident_classification.risk_level
+                risk_levels[risk_level] = risk_levels.get(risk_level, 0) + 1
+        
+        # Count by severity
+        severities = {}
+        for report in incident_reports:
+            if report.incident_classification:
+                severity = report.incident_classification.report_severity
+                severities[severity] = severities.get(severity, 0) + 1
+        
+        # Count by status (corrective actions)
+        action_statuses = {}
+        for report in incident_reports:
+            # Load corrective actions if needed
+            if not report.corrective_actions:
+                report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                    IncidentCorrectiveAction.incident_report_id == report.id
+                ).all()
+            
+            for action in report.corrective_actions:
+                status = action.status
+                action_statuses[status] = action_statuses.get(status, 0) + 1
+        
+        return {
+            "property_id": property_id,
+            "total_incidents": total_incidents,
+            "incident_types": incident_types,
+            "risk_levels": risk_levels,
+            "severities": severities,
+            "corrective_action_statuses": action_statuses
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report statistics: {str(e)}")
+
+
+# Security Patrolling Report Models
+class SecurityPatrollingReport(Base):
+    __tablename__ = "security_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    site_info = relationship("SecuritySiteInfo", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    patrolling_schedule_summary = relationship("SecurityPatrollingScheduleSummary", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    area_wise_patrolling_logs = relationship("SecurityAreaWisePatrollingLog", backref="security_patrolling_report", cascade="all, delete-orphan")
+    key_observations_violations = relationship("SecurityKeyObservationViolation", backref="security_patrolling_report", cascade="all, delete-orphan")
+    immediate_actions_taken = relationship("SecurityImmediateAction", backref="security_patrolling_report", cascade="all, delete-orphan")
+    supervisor_comments = relationship("SecuritySupervisorComment", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    photo_evidence = relationship("SecurityPhotoEvidence", backref="security_patrolling_report", cascade="all, delete-orphan")
+    sign_off = relationship("SecuritySignOff", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+
+class SecuritySiteInfo(Base):
+    __tablename__ = "security_site_info"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    site_name = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    date = Column(String, nullable=False)
+    shift = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    report_id = Column(String, nullable=False)
+
+class SecurityPatrollingScheduleSummary(Base):
+    __tablename__ = "security_patrolling_schedule_summaries"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    total_rounds_planned = Column(Integer, nullable=False)
+    completed = Column(Integer, nullable=False)
+    missed = Column(Integer, nullable=False)
+    reason_for_missed_rounds = Column(String, nullable=True)
+
+class SecurityAreaWisePatrollingLog(Base):
+    __tablename__ = "security_area_wise_patrolling_logs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    time = Column(String, nullable=False)
+    location_checkpoint = Column(String, nullable=False)
+    observation = Column(Text, nullable=False)
+    status = Column(String, nullable=False)
+    remarks = Column(String, nullable=True)
+
+class SecurityKeyObservationViolation(Base):
+    __tablename__ = "security_key_observations_violations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    observation_violation = Column(Text, nullable=False)
+
+class SecurityImmediateAction(Base):
+    __tablename__ = "security_immediate_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    by_whom = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+
+class SecuritySupervisorComment(Base):
+    __tablename__ = "security_supervisor_comments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    comment = Column(Text, nullable=False)
+
+class SecurityPhotoEvidence(Base):
+    __tablename__ = "security_photo_evidence"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    photo_description = Column(Text, nullable=False)
+
+class SecuritySignOff(Base):
+    __tablename__ = "security_sign_offs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    patrolling_guard_signature = Column(String, nullable=True)
+    security_supervisor_signature = Column(String, nullable=True)
+    client_acknowledgment_signature = Column(String, nullable=True)
+
+# Security Patrolling Report Schemas
+class SecuritySiteInfoSchema(BaseModel):
+    site_name: str
+    location: str
+    date: str
+    shift: str
+    prepared_by: str
+    report_id: str
+
+class SecurityPatrollingScheduleSummarySchema(BaseModel):
+    total_rounds_planned: int
+    completed: int
+    missed: int
+    reason_for_missed_rounds: Optional[str] = None
+
+class SecurityAreaWisePatrollingLogSchema(BaseModel):
+    time: str
+    location_checkpoint: str
+    observation: str
+    status: str
+    remarks: Optional[str] = None
+
+class SecurityKeyObservationViolationSchema(BaseModel):
+    observation_violation: str
+
+class SecurityImmediateActionSchema(BaseModel):
+    action: str
+    by_whom: str
+    time: str
+
+class SecuritySupervisorCommentSchema(BaseModel):
+    comment: str
+
+class SecurityPhotoEvidenceSchema(BaseModel):
+    photo_description: str
+
+class SecuritySignOffSchema(BaseModel):
+    patrolling_guard_signature: Optional[str] = None
+    security_supervisor_signature: Optional[str] = None
+    client_acknowledgment_signature: Optional[str] = None
+
+class SecurityPatrollingReportCreate(BaseModel):
+    property_id: str
+    site_info: SecuritySiteInfoSchema
+    patrolling_schedule_summary: SecurityPatrollingScheduleSummarySchema
+    area_wise_patrolling_log: List[SecurityAreaWisePatrollingLogSchema]
+    key_observations_or_violations: List[SecurityKeyObservationViolationSchema]
+    immediate_actions_taken: List[SecurityImmediateActionSchema]
+    supervisor_comments: SecuritySupervisorCommentSchema
+    photo_evidence: List[SecurityPhotoEvidenceSchema]
+    sign_off: SecuritySignOffSchema
+
+class SecurityPatrollingReportUpdate(BaseModel):
+    site_info: Optional[SecuritySiteInfoSchema] = None
+    patrolling_schedule_summary: Optional[SecurityPatrollingScheduleSummarySchema] = None
+    area_wise_patrolling_log: Optional[List[SecurityAreaWisePatrollingLogSchema]] = None
+    key_observations_or_violations: Optional[List[SecurityKeyObservationViolationSchema]] = None
+    immediate_actions_taken: Optional[List[SecurityImmediateActionSchema]] = None
+    supervisor_comments: Optional[SecuritySupervisorCommentSchema] = None
+    photo_evidence: Optional[List[SecurityPhotoEvidenceSchema]] = None
+    sign_off: Optional[SecuritySignOffSchema] = None
+
+class SecuritySiteInfoResponse(SecuritySiteInfoSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPatrollingScheduleSummaryResponse(SecurityPatrollingScheduleSummarySchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityAreaWisePatrollingLogResponse(SecurityAreaWisePatrollingLogSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityKeyObservationViolationResponse(SecurityKeyObservationViolationSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityImmediateActionResponse(SecurityImmediateActionSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecuritySupervisorCommentResponse(SecuritySupervisorCommentSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPhotoEvidenceResponse(SecurityPhotoEvidenceSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecuritySignOffResponse(SecuritySignOffSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    site_info: Optional[SecuritySiteInfoResponse] = None
+    patrolling_schedule_summary: Optional[SecurityPatrollingScheduleSummaryResponse] = None
+    area_wise_patrolling_log: List[SecurityAreaWisePatrollingLogResponse] = []
+    key_observations_or_violations: List[SecurityKeyObservationViolationResponse] = []
+    immediate_actions_taken: List[SecurityImmediateActionResponse] = []
+    supervisor_comments: Optional[SecuritySupervisorCommentResponse] = None
+    photo_evidence: List[SecurityPhotoEvidenceResponse] = []
+    sign_off: Optional[SecuritySignOffResponse] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+SecurityPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+SecurityAreaWisePatrollingLog.__table__.create(bind=engine, checkfirst=True)
+SecurityKeyObservationViolation.__table__.create(bind=engine, checkfirst=True)
+SecurityImmediateAction.__table__.create(bind=engine, checkfirst=True)
+SecuritySupervisorComment.__table__.create(bind=engine, checkfirst=True)
+SecurityPhotoEvidence.__table__.create(bind=engine, checkfirst=True)
+SecuritySignOff.__table__.create(bind=engine, checkfirst=True)
+SecurityPatrollingScheduleSummary.__table__.create(bind=engine, checkfirst=True)
+SecuritySiteInfo.__table__.create(bind=engine, checkfirst=True)
+
+# Security Patrolling Report API Endpoints
+@app.post("/security-patrolling-reports/", response_model=SecurityPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Security Patrolling Report"])
+def create_security_patrolling_report(security_patrolling_report: SecurityPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = SecurityPatrollingReport(
+            property_id=security_patrolling_report.property_id
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create site info
+        if security_patrolling_report.site_info:
+            db_site_info = SecuritySiteInfo(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.site_info.dict()
+            )
+            db.add(db_site_info)
+
+        # Create patrolling schedule summary
+        if security_patrolling_report.patrolling_schedule_summary:
+            db_schedule_summary = SecurityPatrollingScheduleSummary(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.patrolling_schedule_summary.dict()
+            )
+            db.add(db_schedule_summary)
+
+        # Create area wise patrolling logs
+        for log in security_patrolling_report.area_wise_patrolling_log:
+            db_log = SecurityAreaWisePatrollingLog(
+                security_patrolling_report_id=db_report.id,
+                **log.dict()
+            )
+            db.add(db_log)
+
+        # Create key observations/violations
+        for observation in security_patrolling_report.key_observations_or_violations:
+            db_observation = SecurityKeyObservationViolation(
+                security_patrolling_report_id=db_report.id,
+                **observation.dict()
+            )
+            db.add(db_observation)
+
+        # Create immediate actions
+        for action in security_patrolling_report.immediate_actions_taken:
+            db_action = SecurityImmediateAction(
+                security_patrolling_report_id=db_report.id,
+                **action.dict()
+            )
+            db.add(db_action)
+
+        # Create supervisor comments
+        if security_patrolling_report.supervisor_comments:
+            db_supervisor_comment = SecuritySupervisorComment(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.supervisor_comments.dict()
+            )
+            db.add(db_supervisor_comment)
+
+        # Create photo evidence
+        for photo in security_patrolling_report.photo_evidence:
+            db_photo = SecurityPhotoEvidence(
+                security_patrolling_report_id=db_report.id,
+                **photo.dict()
+            )
+            db.add(db_photo)
+
+        # Create sign off
+        if security_patrolling_report.sign_off:
+            db_sign_off = SecuritySignOff(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.sign_off.dict()
+            )
+            db.add(db_sign_off)
+
+        db.commit()
+        db.refresh(db_report)
+
+        # Load all related data
+        db.refresh(db_report)
+        if db_report.site_info:
+            db.refresh(db_report.site_info)
+        if db_report.patrolling_schedule_summary:
+            db.refresh(db_report.patrolling_schedule_summary)
+        if db_report.supervisor_comments:
+            db.refresh(db_report.supervisor_comments)
+        if db_report.sign_off:
+            db.refresh(db_report.sign_off)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_all_security_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    shift: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(SecurityPatrollingReport)
+
+        if property_id:
+            query = query.filter(SecurityPatrollingReport.property_id == property_id)
+
+        if shift:
+            query = query.join(SecuritySiteInfo).filter(SecuritySiteInfo.shift == shift)
+
+        if date_from or date_to:
+            query = query.join(SecuritySiteInfo)
+            if date_from:
+                query = query.filter(SecuritySiteInfo.date >= date_from)
+            if date_to:
+                query = query.filter(SecuritySiteInfo.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def get_security_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/report-id/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def get_security_patrolling_report_by_report_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        # Find by the report_id field in site_info
+        report = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(SecuritySiteInfo.report_id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report: {str(e)}")
+
+@app.put("/security-patrolling-reports/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def update_security_patrolling_report(report_id: str, report_update: SecurityPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Update site info
+        if report_update.site_info:
+            if report.site_info:
+                for key, value in report_update.site_info.dict(exclude_unset=True).items():
+                    setattr(report.site_info, key, value)
+            else:
+                db_site_info = SecuritySiteInfo(
+                    security_patrolling_report_id=report.id,
+                    **report_update.site_info.dict()
+                )
+                db.add(db_site_info)
+
+        # Update patrolling schedule summary
+        if report_update.patrolling_schedule_summary:
+            if report.patrolling_schedule_summary:
+                for key, value in report_update.patrolling_schedule_summary.dict(exclude_unset=True).items():
+                    setattr(report.patrolling_schedule_summary, key, value)
+            else:
+                db_schedule_summary = SecurityPatrollingScheduleSummary(
+                    security_patrolling_report_id=report.id,
+                    **report_update.patrolling_schedule_summary.dict()
+                )
+                db.add(db_schedule_summary)
+
+        # Update area wise patrolling logs
+        if report_update.area_wise_patrolling_log is not None:
+            # Delete existing logs
+            db.query(SecurityAreaWisePatrollingLog).filter(
+                SecurityAreaWisePatrollingLog.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new logs
+            for log in report_update.area_wise_patrolling_log:
+                db_log = SecurityAreaWisePatrollingLog(
+                    security_patrolling_report_id=report.id,
+                    **log.dict()
+                )
+                db.add(db_log)
+
+        # Update key observations/violations
+        if report_update.key_observations_or_violations is not None:
+            # Delete existing observations
+            db.query(SecurityKeyObservationViolation).filter(
+                SecurityKeyObservationViolation.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new observations
+            for observation in report_update.key_observations_or_violations:
+                db_observation = SecurityKeyObservationViolation(
+                    security_patrolling_report_id=report.id,
+                    **observation.dict()
+                )
+                db.add(db_observation)
+
+        # Update immediate actions
+        if report_update.immediate_actions_taken is not None:
+            # Delete existing actions
+            db.query(SecurityImmediateAction).filter(
+                SecurityImmediateAction.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new actions
+            for action in report_update.immediate_actions_taken:
+                db_action = SecurityImmediateAction(
+                    security_patrolling_report_id=report.id,
+                    **action.dict()
+                )
+                db.add(db_action)
+
+        # Update supervisor comments
+        if report_update.supervisor_comments:
+            if report.supervisor_comments:
+                for key, value in report_update.supervisor_comments.dict(exclude_unset=True).items():
+                    setattr(report.supervisor_comments, key, value)
+            else:
+                db_supervisor_comment = SecuritySupervisorComment(
+                    security_patrolling_report_id=report.id,
+                    **report_update.supervisor_comments.dict()
+                )
+                db.add(db_supervisor_comment)
+
+        # Update photo evidence
+        if report_update.photo_evidence is not None:
+            # Delete existing photos
+            db.query(SecurityPhotoEvidence).filter(
+                SecurityPhotoEvidence.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new photos
+            for photo in report_update.photo_evidence:
+                db_photo = SecurityPhotoEvidence(
+                    security_patrolling_report_id=report.id,
+                    **photo.dict()
+                )
+                db.add(db_photo)
+
+        # Update sign off
+        if report_update.sign_off:
+            if report.sign_off:
+                for key, value in report_update.sign_off.dict(exclude_unset=True).items():
+                    setattr(report.sign_off, key, value)
+            else:
+                db_sign_off = SecuritySignOff(
+                    security_patrolling_report_id=report.id,
+                    **report_update.sign_off.dict()
+                )
+                db.add(db_sign_off)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating security patrolling report: {str(e)}")
+
+@app.delete("/security-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Security Patrolling Report"])
+def delete_security_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    shift: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.property_id == property_id)
+
+        if shift:
+            query = query.join(SecuritySiteInfo).filter(SecuritySiteInfo.shift == shift)
+
+        if date_from or date_to:
+            query = query.join(SecuritySiteInfo)
+            if date_from:
+                query = query.filter(SecuritySiteInfo.date >= date_from)
+            if date_to:
+                query = query.filter(SecuritySiteInfo.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.delete("/security-patrolling-reports/property/{property_id}", tags=["Security Patrolling Report"])
+def delete_security_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} security patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/shift/{shift}", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property_and_shift(property_id: str, shift: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(
+            SecurityPatrollingReport.property_id == property_id,
+            SecuritySiteInfo.shift == shift
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/date-range", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(
+            SecurityPatrollingReport.property_id == property_id,
+            SecuritySiteInfo.date >= date_from,
+            SecuritySiteInfo.date <= date_to
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/statistics", tags=["Security Patrolling Report"])
+def get_security_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get shift-wise statistics
+        shift_stats = db.query(
+            SecuritySiteInfo.shift,
+            func.count(SecuritySiteInfo.id).label('count')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).group_by(SecuritySiteInfo.shift).all()
+
+        # Get completion statistics
+        completion_stats = db.query(
+            func.sum(SecurityPatrollingScheduleSummary.total_rounds_planned).label('total_planned'),
+            func.sum(SecurityPatrollingScheduleSummary.completed).label('total_completed'),
+            func.sum(SecurityPatrollingScheduleSummary.missed).label('total_missed')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).first()
+
+        # Get status statistics from patrolling logs
+        status_stats = db.query(
+            SecurityAreaWisePatrollingLog.status,
+            func.count(SecurityAreaWisePatrollingLog.id).label('count')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).group_by(SecurityAreaWisePatrollingLog.status).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "shift_statistics": {shift: count for shift, count in shift_stats},
+            "completion_statistics": {
+                "total_rounds_planned": completion_stats.total_planned or 0,
+                "total_rounds_completed": completion_stats.total_completed or 0,
+                "total_rounds_missed": completion_stats.total_missed or 0,
+                "completion_rate": round((completion_stats.total_completed or 0) / (completion_stats.total_planned or 1) * 100, 2)
+            },
+            "status_statistics": {status: count for status, count in status_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report statistics: {str(e)}")
+
+# Facility Technical Patrolling Report Models
+class FacilityTechnicalPatrollingReport(Base):
+    __tablename__ = "facility_technical_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    report_date = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with entries
+    entries = relationship("FacilityTechnicalPatrollingEntry", backref="facility_technical_patrolling_report", cascade="all, delete-orphan")
+
+class FacilityTechnicalPatrollingEntry(Base):
+    __tablename__ = "facility_technical_patrolling_entries"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    facility_technical_patrolling_report_id = Column(String, ForeignKey("facility_technical_patrolling_reports.id"), nullable=False)
+    sl_no = Column(Integer, nullable=False)
+    date = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+    location_area_covered = Column(String, nullable=False)
+    equipment_asset_checked = Column(String, nullable=False)
+    observation_issue_found = Column(String, nullable=False)
+    action_taken = Column(String, nullable=False)
+    remarks = Column(String, nullable=True)
+    checked_by = Column(String, nullable=False)
+
+# Facility Technical Patrolling Report Schemas
+class FacilityTechnicalPatrollingEntrySchema(BaseModel):
+    sl_no: int
+    date: str
+    time: str
+    location_area_covered: str
+    equipment_asset_checked: str
+    observation_issue_found: str
+    action_taken: str
+    remarks: Optional[str] = None
+    checked_by: str
+
+class FacilityTechnicalPatrollingReportCreate(BaseModel):
+    property_id: str
+    report_date: str
+    entries: List[FacilityTechnicalPatrollingEntrySchema]
+
+class FacilityTechnicalPatrollingReportUpdate(BaseModel):
+    report_date: Optional[str] = None
+    entries: Optional[List[FacilityTechnicalPatrollingEntrySchema]] = None
+
+class FacilityTechnicalPatrollingEntryResponse(FacilityTechnicalPatrollingEntrySchema):
+    id: str
+    facility_technical_patrolling_report_id: str
+
+class FacilityTechnicalPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    report_date: str
+    entries: List[FacilityTechnicalPatrollingEntryResponse] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Create tables
+FacilityTechnicalPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+FacilityTechnicalPatrollingEntry.__table__.create(bind=engine, checkfirst=True)
+
+# Facility Technical Patrolling Report API Endpoints
+@app.post("/facility-technical-patrolling-reports/", response_model=FacilityTechnicalPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Facility Technical Patrolling Report"])
+def create_facility_technical_patrolling_report(report: FacilityTechnicalPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = FacilityTechnicalPatrollingReport(
+            property_id=report.property_id,
+            report_date=report.report_date
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create entries
+        for entry in report.entries:
+            db_entry = FacilityTechnicalPatrollingEntry(
+                facility_technical_patrolling_report_id=db_report.id,
+                **entry.dict()
+            )
+            db.add(db_entry)
+
+        db.commit()
+        db.refresh(db_report)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating facility technical patrolling report: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_all_facility_technical_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    report_date: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(FacilityTechnicalPatrollingReport)
+
+        if property_id:
+            query = query.filter(FacilityTechnicalPatrollingReport.property_id == property_id)
+
+        if report_date:
+            query = query.filter(FacilityTechnicalPatrollingReport.report_date == report_date)
+
+        if date_from or date_to:
+            if date_from:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date >= date_from)
+            if date_to:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/{report_id}", response_model=FacilityTechnicalPatrollingReportResponse, tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling report: {str(e)}")
+
+@app.put("/facility-technical-patrolling-reports/{report_id}", response_model=FacilityTechnicalPatrollingReportResponse, tags=["Facility Technical Patrolling Report"])
+def update_facility_technical_patrolling_report(report_id: str, report_update: FacilityTechnicalPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        # Update report date
+        if report_update.report_date:
+            report.report_date = report_update.report_date
+
+        # Update entries
+        if report_update.entries is not None:
+            # Delete existing entries
+            db.query(FacilityTechnicalPatrollingEntry).filter(
+                FacilityTechnicalPatrollingEntry.facility_technical_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new entries
+            for entry in report_update.entries:
+                db_entry = FacilityTechnicalPatrollingEntry(
+                    facility_technical_patrolling_report_id=report.id,
+                    **entry.dict()
+                )
+                db.add(db_entry)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(report)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating facility technical patrolling report: {str(e)}")
+
+@app.delete("/facility-technical-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Facility Technical Patrolling Report"])
+def delete_facility_technical_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting facility technical patrolling report: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    report_date: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.property_id == property_id)
+
+        if report_date:
+            query = query.filter(FacilityTechnicalPatrollingReport.report_date == report_date)
+
+        if date_from or date_to:
+            if date_from:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date >= date_from)
+            if date_to:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.delete("/facility-technical-patrolling-reports/property/{property_id}", tags=["Facility Technical Patrolling Report"])
+def delete_facility_technical_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} facility technical patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/date/{report_date}", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property_and_date(property_id: str, report_date: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id,
+            FacilityTechnicalPatrollingReport.report_date == report_date
+        ).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/date-range", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id,
+            FacilityTechnicalPatrollingReport.report_date >= date_from,
+            FacilityTechnicalPatrollingReport.report_date <= date_to
+        ).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/statistics", tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get total entries
+        total_entries = db.query(FacilityTechnicalPatrollingEntry).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get issue statistics
+        issue_stats = db.query(
+            FacilityTechnicalPatrollingEntry.observation_issue_found,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.observation_issue_found).all()
+
+        # Get equipment statistics
+        equipment_stats = db.query(
+            FacilityTechnicalPatrollingEntry.equipment_asset_checked,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.equipment_asset_checked).all()
+
+        # Get location statistics
+        location_stats = db.query(
+            FacilityTechnicalPatrollingEntry.location_area_covered,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.location_area_covered).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "total_entries": total_entries,
+            "issue_statistics": {issue: count for issue, count in issue_stats},
+            "equipment_statistics": {equipment: count for equipment, count in equipment_stats},
+            "location_statistics": {location: count for location, count in location_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling report statistics: {str(e)}")
+
+# Night Patrolling Report Models
+class NightPatrollingReport(Base):
+    __tablename__ = "night_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with general report details and observations
+    general_report_details = relationship("NightPatrollingGeneralReportDetails", backref="night_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    observations = relationship("NightPatrollingObservation", backref="night_patrolling_report", cascade="all, delete-orphan")
+    officer_signature = relationship("NightPatrollingOfficerSignature", backref="night_patrolling_report", uselist=False, cascade="all, delete-orphan")
+
+class NightPatrollingGeneralReportDetails(Base):
+    __tablename__ = "night_patrolling_general_report_details"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    date = Column(String, nullable=False)
+    patrolling_officer = Column(String, nullable=False)
+    site_name = Column(String, nullable=False)
+    shift = Column(String, nullable=False)
+    total_guards_on_duty = Column(Integer, nullable=False)
+    vehicle_used = Column(String, nullable=False)
+    weather_condition = Column(String, nullable=False)
+
+class NightPatrollingObservation(Base):
+    __tablename__ = "night_patrolling_observations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    sl_no = Column(Integer, nullable=False)
+    time_of_visit = Column(String, nullable=False)
+    location_visited = Column(String, nullable=False)
+    guard_on_duty = Column(String, nullable=False)
+    photo_of_staff = Column(String, nullable=True)
+    uniform_and_alertness = Column(String, nullable=False)
+    logbook_entry = Column(String, nullable=False)
+    issues_observed = Column(String, nullable=False)
+    action_taken = Column(String, nullable=False)
+    patrolling_officer_sign = Column(String, nullable=True)
+
+class NightPatrollingOfficerSignature(Base):
+    __tablename__ = "night_patrolling_officer_signatures"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    signature = Column(String, nullable=True)
+
+# Night Patrolling Report Schemas
+class NightPatrollingGeneralReportDetailsSchema(BaseModel):
+    date: str
+    patrolling_officer: str
+    site_name: str
+    shift: str
+    total_guards_on_duty: int
+    vehicle_used: str
+    weather_condition: str
+
+class NightPatrollingObservationSchema(BaseModel):
+    sl_no: int
+    time_of_visit: str
+    location_visited: str
+    guard_on_duty: str
+    photo_of_staff: Optional[str] = None
+    uniform_and_alertness: str
+    logbook_entry: str
+    issues_observed: str
+    action_taken: str
+    patrolling_officer_sign: Optional[str] = None
+
+class NightPatrollingOfficerSignatureSchema(BaseModel):
+    signature: Optional[str] = None
+
+class NightPatrollingReportCreate(BaseModel):
+    property_id: str
+    general_report_details: NightPatrollingGeneralReportDetailsSchema
+    observations: List[NightPatrollingObservationSchema]
+    officer_signature: NightPatrollingOfficerSignatureSchema
+
+class NightPatrollingReportUpdate(BaseModel):
+    general_report_details: Optional[NightPatrollingGeneralReportDetailsSchema] = None
+    observations: Optional[List[NightPatrollingObservationSchema]] = None
+    officer_signature: Optional[NightPatrollingOfficerSignatureSchema] = None
+
+class NightPatrollingGeneralReportDetailsResponse(NightPatrollingGeneralReportDetailsSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingObservationResponse(NightPatrollingObservationSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingOfficerSignatureResponse(NightPatrollingOfficerSignatureSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    general_report_details: Optional[NightPatrollingGeneralReportDetailsResponse] = None
+    observations: List[NightPatrollingObservationResponse] = []
+    officer_signature: Optional[NightPatrollingOfficerSignatureResponse] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Create tables
+NightPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingGeneralReportDetails.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingObservation.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingOfficerSignature.__table__.create(bind=engine, checkfirst=True)
+
+# Night Patrolling Report API Endpoints
+@app.post("/night-patrolling-reports/", response_model=NightPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Night Patrolling Report"])
+def create_night_patrolling_report(report: NightPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = NightPatrollingReport(
+            property_id=report.property_id
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create general report details
+        if report.general_report_details:
+            db_general_details = NightPatrollingGeneralReportDetails(
+                night_patrolling_report_id=db_report.id,
+                **report.general_report_details.dict()
+            )
+            db.add(db_general_details)
+
+        # Create observations
+        for observation in report.observations:
+            db_observation = NightPatrollingObservation(
+                night_patrolling_report_id=db_report.id,
+                **observation.dict()
+            )
+            db.add(db_observation)
+
+        # Create officer signature
+        if report.officer_signature:
+            db_officer_signature = NightPatrollingOfficerSignature(
+                night_patrolling_report_id=db_report.id,
+                **report.officer_signature.dict()
+            )
+            db.add(db_officer_signature)
+
+        db.commit()
+        db.refresh(db_report)
+
+        # Load all related data
+        db.refresh(db_report)
+        if db_report.general_report_details:
+            db.refresh(db_report.general_report_details)
+        if db_report.officer_signature:
+            db.refresh(db_report.officer_signature)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating night patrolling report: {str(e)}")
+
+@app.get("/night-patrolling-reports/", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_all_night_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    date: Optional[str] = None,
+    patrolling_officer: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(NightPatrollingReport)
+
+        if property_id:
+            query = query.filter(NightPatrollingReport.property_id == property_id)
+
+        if date or patrolling_officer or date_from or date_to:
+            query = query.join(NightPatrollingGeneralReportDetails)
+            
+            if date:
+                query = query.filter(NightPatrollingGeneralReportDetails.date == date)
+            
+            if patrolling_officer:
+                query = query.filter(NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer)
+            
+            if date_from:
+                query = query.filter(NightPatrollingGeneralReportDetails.date >= date_from)
+            
+            if date_to:
+                query = query.filter(NightPatrollingGeneralReportDetails.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/{report_id}", response_model=NightPatrollingReportResponse, tags=["Night Patrolling Report"])
+def get_night_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.general_report_details:
+            db.refresh(report.general_report_details)
+        if report.officer_signature:
+            db.refresh(report.officer_signature)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling report: {str(e)}")
+
+@app.put("/night-patrolling-reports/{report_id}", response_model=NightPatrollingReportResponse, tags=["Night Patrolling Report"])
+def update_night_patrolling_report(report_id: str, report_update: NightPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        # Update general report details
+        if report_update.general_report_details:
+            if report.general_report_details:
+                for key, value in report_update.general_report_details.dict(exclude_unset=True).items():
+                    setattr(report.general_report_details, key, value)
+            else:
+                db_general_details = NightPatrollingGeneralReportDetails(
+                    night_patrolling_report_id=report.id,
+                    **report_update.general_report_details.dict()
+                )
+                db.add(db_general_details)
+
+        # Update observations
+        if report_update.observations is not None:
+            # Delete existing observations
+            db.query(NightPatrollingObservation).filter(
+                NightPatrollingObservation.night_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new observations
+            for observation in report_update.observations:
+                db_observation = NightPatrollingObservation(
+                    night_patrolling_report_id=report.id,
+                    **observation.dict()
+                )
+                db.add(db_observation)
+
+        # Update officer signature
+        if report_update.officer_signature:
+            if report.officer_signature:
+                for key, value in report_update.officer_signature.dict(exclude_unset=True).items():
+                    setattr(report.officer_signature, key, value)
+            else:
+                db_officer_signature = NightPatrollingOfficerSignature(
+                    night_patrolling_report_id=report.id,
+                    **report_update.officer_signature.dict()
+                )
+                db.add(db_officer_signature)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Load all related data
+        db.refresh(report)
+        if report.general_report_details:
+            db.refresh(report.general_report_details)
+        if report.officer_signature:
+            db.refresh(report.officer_signature)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating night patrolling report: {str(e)}")
+
+@app.delete("/night-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Night Patrolling Report"])
+def delete_night_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting night patrolling report: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    date: Optional[str] = None,
+    patrolling_officer: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(NightPatrollingReport).filter(NightPatrollingReport.property_id == property_id)
+
+        if date or patrolling_officer or date_from or date_to:
+            query = query.join(NightPatrollingGeneralReportDetails)
+            
+            if date:
+                query = query.filter(NightPatrollingGeneralReportDetails.date == date)
+            
+            if patrolling_officer:
+                query = query.filter(NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer)
+            
+            if date_from:
+                query = query.filter(NightPatrollingGeneralReportDetails.date >= date_from)
+            
+            if date_to:
+                query = query.filter(NightPatrollingGeneralReportDetails.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.delete("/night-patrolling-reports/property/{property_id}", tags=["Night Patrolling Report"])
+def delete_night_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).filter(NightPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} night patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/date/{date}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_date(property_id: str, date: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.date == date
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/officer/{patrolling_officer}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_officer(property_id: str, patrolling_officer: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/date-range", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.date >= date_from,
+            NightPatrollingGeneralReportDetails.date <= date_to
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/statistics", tags=["Night Patrolling Report"])
+def get_night_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get total observations
+        total_observations = db.query(NightPatrollingObservation).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get uniform and alertness statistics
+        alertness_stats = db.query(
+            NightPatrollingObservation.uniform_and_alertness,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.uniform_and_alertness).all()
+
+        # Get logbook entry statistics
+        logbook_stats = db.query(
+            NightPatrollingObservation.logbook_entry,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.logbook_entry).all()
+
+        # Get location statistics
+        location_stats = db.query(
+            NightPatrollingObservation.location_visited,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.location_visited).all()
+
+        # Get issues statistics
+        issues_stats = db.query(
+            NightPatrollingObservation.issues_observed,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.issues_observed).all()
+
+        # Get weather condition statistics
+        weather_stats = db.query(
+            NightPatrollingGeneralReportDetails.weather_condition,
+            func.count(NightPatrollingGeneralReportDetails.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingGeneralReportDetails.weather_condition).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "total_observations": total_observations,
+            "alertness_statistics": {alertness: count for alertness, count in alertness_stats},
+            "logbook_entry_statistics": {logbook: count for logbook, count in logbook_stats},
+            "location_statistics": {location: count for location, count in location_stats},
+            "issues_statistics": {issue: count for issue, count in issues_stats},
+            "weather_statistics": {weather: count for weather, count in weather_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling report statistics: {str(e)}")
+
+# ... existing code ...

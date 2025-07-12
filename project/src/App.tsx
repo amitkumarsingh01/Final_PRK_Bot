@@ -39,6 +39,7 @@ import DailyTaskManagementAllDepartment from './components/DailyTaskManagement/D
 import DailyManagementReport from './components/DailyTaskManagement/DailyManagementReport';
 import MonthlyTask from './components/MonthlyTaskManagement/MonthlyTask';
 import WeekCalendar from './components/52Week/52WeekCalender';
+import IncidentReportPage from './components/IncidentReport/IncidentReport';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -108,6 +109,7 @@ const AppRoutes = () => {
         <Route path="daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
         <Route path="monthly-task-management" element={<MonthlyTask />} />
         <Route path="52-week-work-calendar" element={<WeekCalendar />} />
+        <Route path="incident-report" element={<IncidentReportPage />} />
         <Route path="daily-management-report" element={<DailyManagementReport />} />
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
