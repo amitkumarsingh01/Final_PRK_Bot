@@ -40,6 +40,41 @@ import DailyManagementReport from './components/DailyTaskManagement/DailyManagem
 import MonthlyTask from './components/MonthlyTaskManagement/MonthlyTask';
 import WeekCalendar from './components/52Week/52WeekCalender';
 import IncidentReportPage from './components/IncidentReport/IncidentReport';
+import NightIncidentPage from './components/Patrolling/NightIncident';
+import SiteSecurityPage from './components/Patrolling/SiteSecurity';
+import TechnicalTeamPatrollingPage from './components/Patrolling/TechnicalTeamPatrolling';
+import VisitorManagement from './components/GateManagement/VisitorManagement';
+import InwardNonReturnable from './components/GateManagement/InwardNonReturnable';
+import InwardReturnable from './components/GateManagement/InwardReturnable';
+import MoveOut from './components/GateManagement/MoveOut';
+import GatePassManagement from './components/GateManagement/GatePassManagement';
+import InteriorWorkTracking from './components/GateManagement/InteriorWorkTracking';
+import OutwardReturnable from './components/GateManagement/OutwardReturnable';
+import OutwardNonReturnable from './components/GateManagement/OutwardNonReturnable';
+import WorkPermitIssuance from './components/GateManagement/WorkPermitIssuance';
+import MoveIn from './components/GateManagement/MoveIn';
+import BlocklistManagement from './components/GateManagement/BlocklistManagement';
+import DailyEntryDetails from './components/GateManagement/DailyEntryDetails';
+import WaterTankerManagement from './components/GateManagement/WaterTankerManagement';
+import VendorEntryManagement from './components/GateManagement/VendorEntryManagement';
+import StaEntryManagement from './components/GateManagement/StaEntryManagement';
+import EmergencyContactDetails from './components/GateManagement/EmergencyContactDetails';
+import InteriorWorkApprovals from './components/CommunityManagement/InteriorWorkApprovals';
+import WorkPermitTracking from './components/CommunityManagement/WorkPermitTracking';
+import TicketsManagement from './components/CommunityManagement/TicketsManagement';
+import TicketAssignment from './components/CommunityManagement/TicketAssignment';
+import NoticeManagement from './components/CommunityManagement/NoticeManagement';
+import ParkingStickerManagement from './components/CommunityManagement/ParkingStickerManagement';
+import CommunicationAnnouncements from './components/CommunityManagement/CommunicationAnnouncements';                                                                                                                                                                                                                                                                           
+import MoveInCoordination from './components/CommunityManagement/MoveInCoordination';
+import MoveOutCoordination from './components/CommunityManagement/MoveOutCoordination';
+import AssetTaggingManagement from './components/AssetsManagement/AssetTaggingManagement';
+import AssetMovementLog from './components/AssetsManagement/AssetMovementLog';
+import AMCWarrantyTracker from './components/AssetsManagement/AMCWarrantyTracker';
+import MaintenanceSchedule from './components/AssetsManagement/MaintenanceSchedule';
+import AssetAudit from './components/AssetsManagement/AssetAudit';
+import DepreciationReplacement from './components/AssetsManagement/DepreciationReplacement';
+
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -110,6 +145,9 @@ const AppRoutes = () => {
         <Route path="monthly-task-management" element={<MonthlyTask />} />
         <Route path="52-week-work-calendar" element={<WeekCalendar />} />
         <Route path="incident-report" element={<IncidentReportPage />} />
+        <Route path="night-patrolling-report" element={<NightIncidentPage />} />
+        <Route path="site-security-patrolling-report" element={<SiteSecurityPage />} />
+        <Route path="technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
         <Route path="daily-management-report" element={<DailyManagementReport />} />
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
@@ -119,7 +157,39 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to="/profile" replace />} />
         <Route path="assets-management" element={<AssetManagement />} />
         <Route path="inventory-management" element={<InventoryManagement />} />
-
+        <Route path="visitor-management" element={<VisitorManagement />} />
+        <Route path="inward-non-returnable" element={<InwardNonReturnable />} />
+        <Route path="inward-returnable" element={<InwardReturnable />} />
+        <Route path="outward-non-returnable" element={<OutwardNonReturnable />} />
+        <Route path="outward-returnable" element={<OutwardReturnable />} />
+        <Route path="move-in" element={<MoveIn />} />
+        <Route path="move-out" element={<MoveOut />} />
+        <Route path="interior-work-tracking" element={<InteriorWorkTracking />} />
+        <Route path="work-permit-issuance" element={<WorkPermitIssuance />} />
+        <Route path="gate-pass-management" element={<GatePassManagement />} />  
+        <Route path="blocklist-management" element={<BlocklistManagement />} />
+        <Route path="daily-entry-details" element={<DailyEntryDetails />} />
+        <Route path="water-tanker-management" element={<WaterTankerManagement />} />
+        <Route path="vendor-entry-management" element={<VendorEntryManagement />} />
+        <Route path="sta-entry-management" element={<StaEntryManagement />} />
+        <Route path="emergency-contact-details" element={<EmergencyContactDetails />} />  
+        <Route path="tickets-management" element={<TicketsManagement />} />
+        <Route path="ticket-assignment" element={<TicketAssignment />} />
+        <Route path="notice-management" element={<NoticeManagement />} />
+        <Route path="parking-sticker-management" element={<ParkingStickerManagement />} />
+        <Route path="communication-announcements" element={<CommunicationAnnouncements />} />
+        <Route path="move-in-coordination" element={<MoveInCoordination />} />
+        <Route path="move-out-coordination" element={<MoveOutCoordination />} />
+        <Route path="interior-work-approvals" element={<InteriorWorkApprovals />} />
+        <Route path="work-permit-tracking" element={<WorkPermitTracking />} />  
+        
+        {/* Asset Management Routes */}
+        <Route path="asset-tagging-management" element={<AssetTaggingManagement />} />
+        <Route path="asset-movement-log" element={<AssetMovementLog />} />
+        <Route path="amc-warranty-tracker" element={<AMCWarrantyTracker />} />
+        <Route path="maintenance-schedule" element={<MaintenanceSchedule />} />
+        <Route path="asset-audit" element={<AssetAudit />} />
+        <Route path="depreciation-replacement" element={<DepreciationReplacement />} />
 
         <Route path="cadmin/users" element={<CadminUserProfile />} />
         <Route path="cadmin/tasks" element={<CadminTasks />} />

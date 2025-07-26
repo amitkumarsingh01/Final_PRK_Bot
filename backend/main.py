@@ -18,6 +18,7 @@ from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.types import JSON as SAJSON
 
 
+
 app = FastAPI(title="PRK Tech India")
 
 # Base URL for the application
@@ -3344,7 +3345,7 @@ class UtilityPanel(Base):
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationship with checkpoints
     checkpoints = relationship("UtilityPanelCheckPoint", backref="utility_panel", cascade="all, delete-orphan")
 
@@ -6928,3 +6929,1281 @@ def get_night_patrolling_report_statistics(property_id: str, db: Session = Depen
         raise HTTPException(status_code=500, detail=f"Error fetching night patrolling report statistics: {str(e)}")
 
 # ... existing code ...
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Dependency to get a DB session for each request.
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# ==============================================================================
+# 2. SQLAlchemy MODELS (Database Tables)
+# ==============================================================================
+
+# --- Main Parent Model ---
+class VisitorManagementReport(Base):
+    """The main report that acts as a container for all individual entries."""
+    __tablename__ = "visitor_management_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-many relationships to all child entry tables
+    inward_non_returnable = relationship("InwardNonReturnable", backref="report", cascade="all, delete-orphan")
+    inward_returnable = relationship("InwardReturnable", backref="report", cascade="all, delete-orphan")
+    outward_non_returnable = relationship("OutwardNonReturnable", backref="report", cascade="all, delete-orphan")
+    outward_returnable = relationship("OutwardReturnable", backref="report", cascade="all, delete-orphan")
+    move_in = relationship("MoveIn", backref="report", cascade="all, delete-orphan")
+    move_out = relationship("MoveOut", backref="report", cascade="all, delete-orphan")
+    interior_work_tracking = relationship("InteriorWorkTracking", backref="report", cascade="all, delete-orphan")
+    work_permit_issuance = relationship("WorkPermitIssuance", backref="report", cascade="all, delete-orphan")
+    gate_pass_management = relationship("GatePassManagement", backref="report", cascade="all, delete-orphan")
+    blocklist_management = relationship("BlocklistManagement", backref="report", cascade="all, delete-orphan")
+    daily_entry_details = relationship("DailyEntryDetails", backref="report", cascade="all, delete-orphan")
+    water_tanker_management = relationship("WaterTankerManagement", backref="report", cascade="all, delete-orphan")
+    vendor_entry_management = relationship("VendorEntryManagement", backref="report", cascade="all, delete-orphan")
+    staff_entry_management = relationship("StaffEntryManagement", backref="report", cascade="all, delete-orphan")
+    emergency_contact_details = relationship("EmergencyContactDetails", backref="report", cascade="all, delete-orphan")
+    visitor_management_log = relationship("VisitorManagementLog", backref="report", cascade="all, delete-orphan")
+
+
+# --- Child Entry Models ---
+class InwardNonReturnable(Base):
+    __tablename__ = 'inward_non_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); supplier_name = Column(String, nullable=False); supplier_contact = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class InwardReturnable(Base):
+    __tablename__ = 'inward_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); supplier_name = Column(String, nullable=False); supplier_contact = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); expected_return_date = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class OutwardNonReturnable(Base):
+    __tablename__ = 'outward_non_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); recipient_name = Column(String, nullable=False); recipient_contact = Column(String, nullable=False); outward_date = Column(String, nullable=False); outward_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class OutwardReturnable(Base):
+    __tablename__ = 'outward_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); recipient_name = Column(String, nullable=False); recipient_contact = Column(String, nullable=False); outward_date = Column(String, nullable=False); outward_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); expected_return_date = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class MoveIn(Base):
+    __tablename__ = 'move_in'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    move_in_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); move_in_date = Column(String, nullable=False); move_in_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); no_of_persons = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class MoveOut(Base):
+    __tablename__ = 'move_out'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    move_out_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); move_out_date = Column(String, nullable=False); move_out_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); no_of_persons = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class InteriorWorkTracking(Base):
+    __tablename__ = 'interior_work_tracking'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    work_id = Column(String, nullable=False); resident_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); work_description = Column(String, nullable=False); start_date = Column(String, nullable=False); end_date = Column(String, nullable=False); contractor_name = Column(String, nullable=False); contractor_contact = Column(String, nullable=False); no_of_workers = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class WorkPermitIssuance(Base):
+    __tablename__ = 'work_permit_issuance'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    permit_id = Column(String, nullable=False); worker_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); company_name = Column(String, nullable=False); work_type = Column(String, nullable=False); permit_issue_date = Column(String, nullable=False); permit_expiry_date = Column(String, nullable=False); address = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class GatePassManagement(Base):
+    __tablename__ = 'gate_pass_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    pass_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_date = Column(String, nullable=True); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class BlocklistManagement(Base):
+    __tablename__ = 'blocklist_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    blocklist_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); reason_for_block = Column(String, nullable=False); date_added = Column(String, nullable=False); added_by = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class DailyEntryDetails(Base):
+    __tablename__ = 'daily_entry_details'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    entry_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class WaterTankerManagement(Base):
+    __tablename__ = 'water_tanker_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    tanker_id = Column(String, nullable=False); supplier_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); capacity_liters = Column(Integer, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class VendorEntryManagement(Base):
+    __tablename__ = 'vendor_entry_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    vendor_id = Column(String, nullable=False); vendor_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); company_name = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class StaffEntryManagement(Base):
+    __tablename__ = 'staff_entry_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    staff_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); department = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class EmergencyContactDetails(Base):
+    __tablename__ = 'emergency_contact_details'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    contact_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); relation = Column(String, nullable=False); address = Column(String, nullable=False); emergency_type = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class VisitorManagementLog(Base):
+    __tablename__ = 'visitor_management_log'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    record_id = Column(String, nullable=False); type = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); company_supplier = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_date = Column(String, nullable=True); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); expected_return_date = Column(String, nullable=True); blocklist_status = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas for individual entries ---
+class InwardNonReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; supplier_name: str; supplier_contact: str; entry_date: str; entry_time: str; gate_no: str; vehicle_no: str; driver_name: str; security_officer: str; remarks: str
+class InwardReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; supplier_name: str; supplier_contact: str; entry_date: str; entry_time: str; gate_no: str; vehicle_no: str; driver_name: str; expected_return_date: str; security_officer: str; remarks: str
+class OutwardNonReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; recipient_name: str; recipient_contact: str; outward_date: str; outward_time: str; gate_no: str; vehicle_no: str; driver_name: str; security_officer: str; remarks: str
+class OutwardReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; recipient_name: str; recipient_contact: str; outward_date: str; outward_time: str; gate_no: str; vehicle_no: str; driver_name: str; expected_return_date: str; security_officer: str; remarks: str
+class MoveInSchema(BaseModel):
+    move_in_id: str; name: str; contact_number: str; address: str; move_in_date: str; move_in_time: str; gate_no: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class MoveOutSchema(BaseModel):
+    move_out_id: str; name: str; contact_number: str; address: str; move_out_date: str; move_out_time: str; gate_no: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class InteriorWorkTrackingSchema(BaseModel):
+    work_id: str; resident_name: str; contact_number: str; address: str; work_description: str; start_date: str; end_date: str; contractor_name: str; contractor_contact: str; no_of_workers: int; security_officer: str; remarks: str
+class WorkPermitIssuanceSchema(BaseModel):
+    permit_id: str; worker_name: str; contact_number: str; company_name: str; work_type: str; permit_issue_date: str; permit_expiry_date: str; address: str; security_officer: str; remarks: str
+class GatePassManagementSchema(BaseModel):
+    pass_id: str; name: str; contact_number: str; purpose: str; entry_date: str; entry_time: str; exit_date: Optional[str] = None; exit_time: Optional[str] = None; gate_no: str; vehicle_no: str; security_officer: str; remarks: str
+class BlocklistManagementSchema(BaseModel):
+    blocklist_id: str; name: str; contact_number: str; reason_for_block: str; date_added: str; added_by: str; remarks: str
+class DailyEntryDetailsSchema(BaseModel):
+    entry_id: str; name: str; contact_number: str; purpose: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; vehicle_no: str; security_officer: str; remarks: str
+class WaterTankerManagementSchema(BaseModel):
+    tanker_id: str; supplier_name: str; contact_number: str; vehicle_no: str; driver_name: str; capacity_liters: int; entry_date: str; entry_time: str; gate_no: str; security_officer: str; remarks: str
+class VendorEntryManagementSchema(BaseModel):
+    vendor_id: str; vendor_name: str; contact_number: str; company_name: str; purpose: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; security_officer: str; remarks: str
+class StaffEntryManagementSchema(BaseModel):
+    staff_id: str; name: str; contact_number: str; department: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; security_officer: str; remarks: str
+class EmergencyContactDetailsSchema(BaseModel):
+    contact_id: str; name: str; contact_number: str; relation: str; address: str; emergency_type: str; security_officer: str; remarks: str
+class VisitorManagementLogSchema(BaseModel):
+    record_id: str; type: str; name: str; contact_number: str; purpose: str; company_supplier: str; item_description: str; quantity: int; vehicle_no: str; driver_name: str; entry_date: str; entry_time: str; exit_date: Optional[str] = None; exit_time: Optional[str] = None; gate_no: str; expected_return_date: Optional[str] = None; blocklist_status: str; security_officer: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class VisitorManagementReportCreate(BaseModel):
+    property_id: str
+    inward_non_returnable: List[InwardNonReturnableSchema] = []
+    inward_returnable: List[InwardReturnableSchema] = []
+    outward_non_returnable: List[OutwardNonReturnableSchema] = []
+    outward_returnable: List[OutwardReturnableSchema] = []
+    move_in: List[MoveInSchema] = []
+    move_out: List[MoveOutSchema] = []
+    interior_work_tracking: List[InteriorWorkTrackingSchema] = []
+    work_permit_issuance: List[WorkPermitIssuanceSchema] = []
+    gate_pass_management: List[GatePassManagementSchema] = []
+    blocklist_management: List[BlocklistManagementSchema] = []
+    daily_entry_details: List[DailyEntryDetailsSchema] = []
+    water_tanker_management: List[WaterTankerManagementSchema] = []
+    vendor_entry_management: List[VendorEntryManagementSchema] = []
+    staff_entry_management: List[StaffEntryManagementSchema] = []
+    emergency_contact_details: List[EmergencyContactDetailsSchema] = []
+    visitor_management_log: List[VisitorManagementLogSchema] = []
+
+class VisitorManagementReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    inward_non_returnable: Optional[List[InwardNonReturnableSchema]] = None
+    inward_returnable: Optional[List[InwardReturnableSchema]] = None
+    outward_non_returnable: Optional[List[OutwardNonReturnableSchema]] = None
+    outward_returnable: Optional[List[OutwardReturnableSchema]] = None
+    move_in: Optional[List[MoveInSchema]] = None
+    move_out: Optional[List[MoveOutSchema]] = None
+    interior_work_tracking: Optional[List[InteriorWorkTrackingSchema]] = None
+    work_permit_issuance: Optional[List[WorkPermitIssuanceSchema]] = None
+    gate_pass_management: Optional[List[GatePassManagementSchema]] = None
+    blocklist_management: Optional[List[BlocklistManagementSchema]] = None
+    daily_entry_details: Optional[List[DailyEntryDetailsSchema]] = None
+    water_tanker_management: Optional[List[WaterTankerManagementSchema]] = None
+    vendor_entry_management: Optional[List[VendorEntryManagementSchema]] = None
+    staff_entry_management: Optional[List[StaffEntryManagementSchema]] = None
+    emergency_contact_details: Optional[List[EmergencyContactDetailsSchema]] = None
+    visitor_management_log: Optional[List[VisitorManagementLogSchema]] = None
+
+# --- Response Schemas (include DB-generated fields like id) ---
+class InwardNonReturnableResponse(InwardNonReturnableSchema): id: str; report_id: str
+class InwardReturnableResponse(InwardReturnableSchema): id: str; report_id: str
+class OutwardNonReturnableResponse(OutwardNonReturnableSchema): id: str; report_id: str
+class OutwardReturnableResponse(OutwardReturnableSchema): id: str; report_id: str
+class MoveInResponse(MoveInSchema): id: str; report_id: str
+class MoveOutResponse(MoveOutSchema): id: str; report_id: str
+class InteriorWorkTrackingResponse(InteriorWorkTrackingSchema): id: str; report_id: str
+class WorkPermitIssuanceResponse(WorkPermitIssuanceSchema): id: str; report_id: str
+class GatePassManagementResponse(GatePassManagementSchema): id: str; report_id: str
+class BlocklistManagementResponse(BlocklistManagementSchema): id: str; report_id: str
+class DailyEntryDetailsResponse(DailyEntryDetailsSchema): id: str; report_id: str
+class WaterTankerManagementResponse(WaterTankerManagementSchema): id: str; report_id: str
+class VendorEntryManagementResponse(VendorEntryManagementSchema): id: str; report_id: str
+class StaffEntryManagementResponse(StaffEntryManagementSchema): id: str; report_id: str
+class EmergencyContactDetailsResponse(EmergencyContactDetailsSchema): id: str; report_id: str
+class VisitorManagementLogResponse(VisitorManagementLogSchema): id: str; report_id: str
+
+class VisitorManagementReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    inward_non_returnable: List[InwardNonReturnableResponse] = []
+    inward_returnable: List[InwardReturnableResponse] = []
+    outward_non_returnable: List[OutwardNonReturnableResponse] = []
+    outward_returnable: List[OutwardReturnableResponse] = []
+    move_in: List[MoveInResponse] = []
+    move_out: List[MoveOutResponse] = []
+    interior_work_tracking: List[InteriorWorkTrackingResponse] = []
+    work_permit_issuance: List[WorkPermitIssuanceResponse] = []
+    gate_pass_management: List[GatePassManagementResponse] = []
+    blocklist_management: List[BlocklistManagementResponse] = []
+    daily_entry_details: List[DailyEntryDetailsResponse] = []
+    water_tanker_management: List[WaterTankerManagementResponse] = []
+    vendor_entry_management: List[VendorEntryManagementResponse] = []
+    staff_entry_management: List[StaffEntryManagementResponse] = []
+    emergency_contact_details: List[EmergencyContactDetailsResponse] = []
+    visitor_management_log: List[VisitorManagementLogResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+
+# This command creates all the database tables defined in the models.
+# It's good practice to run this once when you first set up your application.
+# You can also manage migrations with a tool like Alembic.
+Base.metadata.create_all(bind=engine)
+
+# Helper dictionary to map schema field names to their corresponding SQLAlchemy models.
+MODEL_MAP = {
+    "inward_non_returnable": InwardNonReturnable,
+    "inward_returnable": InwardReturnable,
+    "outward_non_returnable": OutwardNonReturnable,
+    "outward_returnable": OutwardReturnable,
+    "move_in": MoveIn,
+    "move_out": MoveOut,
+    "interior_work_tracking": InteriorWorkTracking,
+    "work_permit_issuance": WorkPermitIssuance,
+    "gate_pass_management": GatePassManagement,
+    "blocklist_management": BlocklistManagement,
+    "daily_entry_details": DailyEntryDetails,
+    "water_tanker_management": WaterTankerManagement,
+    "vendor_entry_management": VendorEntryManagement,
+    "staff_entry_management": StaffEntryManagement,
+    "emergency_contact_details": EmergencyContactDetails,
+    "visitor_management_log": VisitorManagementLog,
+}
+
+# --- API Endpoints ---
+@app.post("/visitor-management-reports/", response_model=VisitorManagementReportResponse, status_code=status.HTTP_201_CREATED, tags=["Visitor Management Report"])
+def create_visitor_management_report(report: VisitorManagementReportCreate, db: Session = Depends(get_db)):
+    """
+    Create a new visitor management report with all its associated entries.
+    """
+    try:
+        db_report = VisitorManagementReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()  # Use flush to get the report's generated ID before commit.
+
+        # Iterate through the model map to create all child entries from the payload.
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+
+@app.get("/visitor-management-reports/", response_model=List[VisitorManagementReportResponse], tags=["Visitor Management Report"])
+def get_all_visitor_management_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """
+    Retrieve all visitor management reports, with optional filtering by property_id.
+    """
+    try:
+        query = db.query(VisitorManagementReport)
+        if property_id:
+            query = query.filter(VisitorManagementReport.property_id == property_id)
+        
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+
+@app.get("/visitor-management-reports/{report_id}", response_model=VisitorManagementReportResponse, tags=["Visitor Management Report"])
+def get_visitor_management_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a single visitor management report by its ID.
+    """
+    report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
+@app.put("/visitor-management-reports/{report_id}", response_model=VisitorManagementReportResponse, tags=["Visitor Management Report"])
+def update_visitor_management_report(report_id: str, report_update: VisitorManagementReportUpdate, db: Session = Depends(get_db)):
+    """
+    Update a visitor management report.
+    For lists of entries (e.g., move_in), this replaces the entire existing list with the new one.
+    """
+    db_report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    try:
+        # Update property_id if provided in the payload.
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        # Use the "delete and replace" strategy for updating child entries.
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                # Delete all existing entries of this type for the report.
+                db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                # Create the new entries from the payload.
+                for entry_data in update_entries:
+                    db_entry = model(report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+
+@app.delete("/visitor-management-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Visitor Management Report"])
+def delete_visitor_management_report(report_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a visitor management report and all its associated entries.
+    """
+    report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    try:
+        db.delete(report)  # The 'cascade="all, delete-orphan"' setting handles deleting all children.
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+@app.get("/visitor-management-reports/property/{property_id}", response_model=List[VisitorManagementReportResponse], tags=["Visitor Management Report"])
+def get_reports_by_property(property_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Retrieve all reports associated with a specific property ID.
+    """
+    return get_all_visitor_management_reports(skip=skip, limit=limit, property_id=property_id, db=db)
+
+
+@app.delete("/visitor-management-reports/property/{property_id}", tags=["Visitor Management Report"])
+def delete_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Delete all reports (and their child entries) associated with a specific property ID.
+    """
+    try:
+        # We must fetch the reports first to trigger the ORM's cascade delete mechanism.
+        reports_to_delete = db.query(VisitorManagementReport).filter(VisitorManagementReport.property_id == property_id).all()
+        if not reports_to_delete:
+            raise HTTPException(status_code=404, detail=f"No reports found for property ID {property_id}")
+        
+        count = len(reports_to_delete)
+        for report in reports_to_delete:
+            db.delete(report)
+            
+        db.commit()
+        return {"message": f"Successfully deleted {count} reports for property {property_id}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting reports by property: {str(e)}")
+
+
+class CommunityReport(Base):
+    __tablename__ = "community_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    tickets = relationship("Ticket", backref="report", cascade="all, delete-orphan")
+    ticket_assignments = relationship("TicketAssignment", backref="report", cascade="all, delete-orphan")
+    notices = relationship("Notice", backref="report", cascade="all, delete-orphan")
+    parking_stickers = relationship("ParkingSticker", backref="report", cascade="all, delete-orphan")
+    announcements = relationship("Announcement", backref="report", cascade="all, delete-orphan")
+    move_in_coordinations = relationship("MoveInCoordination", backref="report", cascade="all, delete-orphan")
+    move_out_coordinations = relationship("MoveOutCoordination", backref="report", cascade="all, delete-orphan")
+    interior_work_approvals = relationship("InteriorWorkApproval", backref="report", cascade="all, delete-orphan")
+    work_permit_trackings = relationship("WorkPermitTracking", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class Ticket(Base):
+    __tablename__ = 'tickets'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    ticket_id = Column(String); resident_name = Column(String); contact_number = Column(String); address = Column(String); issue_type = Column(String); description = Column(String); priority = Column(String); status = Column(String); reported_date = Column(String); reported_time = Column(String); resolution_date = Column(String, nullable=True); resolution_time = Column(String, nullable=True); assigned_team = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class TicketAssignment(Base):
+    __tablename__ = 'ticket_assignments'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    assignment_id = Column(String); ticket_id = Column(String); assigned_to = Column(String); department = Column(String); assignment_date = Column(String); assignment_time = Column(String); priority = Column(String); status = Column(String); expected_resolution_date = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class Notice(Base):
+    __tablename__ = 'notices'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    notice_id = Column(String); title = Column(String); description = Column(String); target_audience = Column(String); issue_date = Column(String); expiry_date = Column(String); issued_by = Column(String); communication_channel = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class ParkingSticker(Base):
+    __tablename__ = 'parking_stickers'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    sticker_id = Column(String); resident_name = Column(String); contact_number = Column(String); vehicle_no = Column(String); vehicle_type = Column(String); sticker_issue_date = Column(String); sticker_expiry_date = Column(String); address = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class Announcement(Base):
+    __tablename__ = 'announcements'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    communication_id = Column(String); title = Column(String); description = Column(String); target_audience = Column(String); sent_date = Column(String); sent_time = Column(String); sent_by = Column(String); channel = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class MoveInCoordination(Base):
+    __tablename__ = 'move_in_coordinations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    move_in_id = Column(String); name = Column(String); contact_number = Column(String); address = Column(String); move_in_date = Column(String); move_in_time = Column(String); vehicle_no = Column(String); driver_name = Column(String); no_of_persons = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class MoveOutCoordination(Base):
+    __tablename__ = 'move_out_coordinations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    move_out_id = Column(String); name = Column(String); contact_number = Column(String); address = Column(String); move_out_date = Column(String); move_out_time = Column(String); vehicle_no = Column(String); driver_name = Column(String); no_of_persons = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class InteriorWorkApproval(Base):
+    __tablename__ = 'interior_work_approvals'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    approval_id = Column(String); resident_name = Column(String); contact_number = Column(String); address = Column(String); work_description = Column(String); approval_status = Column(String); approval_date = Column(String); start_date = Column(String); end_date = Column(String); contractor_name = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class WorkPermitTracking(Base):
+    __tablename__ = 'work_permit_trackings'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    permit_id = Column(String); worker_name = Column(String); contact_number = Column(String); company_name = Column(String); work_type = Column(String); permit_issue_date = Column(String); permit_expiry_date = Column(String); address = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class TicketSchema(BaseModel):
+    ticket_id: str; resident_name: str; contact_number: str; address: str; issue_type: str; description: str; priority: str; status: str; reported_date: str; reported_time: str; resolution_date: Optional[str] = None; resolution_time: Optional[str] = None; assigned_team: str; security_officer: str; remarks: str
+class TicketAssignmentSchema(BaseModel):
+    assignment_id: str; ticket_id: str; assigned_to: str; department: str; assignment_date: str; assignment_time: str; priority: str; status: str; expected_resolution_date: str; security_officer: str; remarks: str
+class NoticeSchema(BaseModel):
+    notice_id: str; title: str; description: str; target_audience: str; issue_date: str; expiry_date: str; issued_by: str; communication_channel: str; status: str; security_officer: str; remarks: str
+class ParkingStickerSchema(BaseModel):
+    sticker_id: str; resident_name: str; contact_number: str; vehicle_no: str; vehicle_type: str; sticker_issue_date: str; sticker_expiry_date: str; address: str; status: str; security_officer: str; remarks: str
+class AnnouncementSchema(BaseModel):
+    communication_id: str; title: str; description: str; target_audience: str; sent_date: str; sent_time: str; sent_by: str; channel: str; status: str; security_officer: str; remarks: str
+class MoveInCoordinationSchema(BaseModel):
+    move_in_id: str; name: str; contact_number: str; address: str; move_in_date: str; move_in_time: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class MoveOutCoordinationSchema(BaseModel):
+    move_out_id: str; name: str; contact_number: str; address: str; move_out_date: str; move_out_time: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class InteriorWorkApprovalSchema(BaseModel):
+    approval_id: str; resident_name: str; contact_number: str; address: str; work_description: str; approval_status: str; approval_date: str; start_date: str; end_date: str; contractor_name: str; security_officer: str; remarks: str
+class WorkPermitTrackingSchema(BaseModel):
+    permit_id: str; worker_name: str; contact_number: str; company_name: str; work_type: str; permit_issue_date: str; permit_expiry_date: str; address: str; status: str; security_officer: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class CommunityReportCreate(BaseModel):
+    property_id: str
+    tickets: List[TicketSchema] = []
+    ticket_assignments: List[TicketAssignmentSchema] = []
+    notices: List[NoticeSchema] = []
+    parking_stickers: List[ParkingStickerSchema] = []
+    announcements: List[AnnouncementSchema] = []
+    move_in_coordinations: List[MoveInCoordinationSchema] = []
+    move_out_coordinations: List[MoveOutCoordinationSchema] = []
+    interior_work_approvals: List[InteriorWorkApprovalSchema] = []
+    work_permit_trackings: List[WorkPermitTrackingSchema] = []
+
+class CommunityReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    tickets: Optional[List[TicketSchema]] = None
+    ticket_assignments: Optional[List[TicketAssignmentSchema]] = None
+    notices: Optional[List[NoticeSchema]] = None
+    parking_stickers: Optional[List[ParkingStickerSchema]] = None
+    announcements: Optional[List[AnnouncementSchema]] = None
+    move_in_coordinations: Optional[List[MoveInCoordinationSchema]] = None
+    move_out_coordinations: Optional[List[MoveOutCoordinationSchema]] = None
+    interior_work_approvals: Optional[List[InteriorWorkApprovalSchema]] = None
+    work_permit_trackings: Optional[List[WorkPermitTrackingSchema]] = None
+
+# --- Response Schemas ---
+class TicketResponse(TicketSchema): id: str; community_report_id: str
+class TicketAssignmentResponse(TicketAssignmentSchema): id: str; community_report_id: str
+class NoticeResponse(NoticeSchema): id: str; community_report_id: str
+class ParkingStickerResponse(ParkingStickerSchema): id: str; community_report_id: str
+class AnnouncementResponse(AnnouncementSchema): id: str; community_report_id: str
+class MoveInCoordinationResponse(MoveInCoordinationSchema): id: str; community_report_id: str
+class MoveOutCoordinationResponse(MoveOutCoordinationSchema): id: str; community_report_id: str
+class InteriorWorkApprovalResponse(InteriorWorkApprovalSchema): id: str; community_report_id: str
+class WorkPermitTrackingResponse(WorkPermitTrackingSchema): id: str; community_report_id: str
+
+class CommunityReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    tickets: List[TicketResponse] = []
+    ticket_assignments: List[TicketAssignmentResponse] = []
+    notices: List[NoticeResponse] = []
+    parking_stickers: List[ParkingStickerResponse] = []
+    announcements: List[AnnouncementResponse] = []
+    move_in_coordinations: List[MoveInCoordinationResponse] = []
+    move_out_coordinations: List[MoveOutCoordinationResponse] = []
+    interior_work_approvals: List[InteriorWorkApprovalResponse] = []
+    work_permit_trackings: List[WorkPermitTrackingResponse] = []
+
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "tickets": Ticket,
+    "ticket_assignments": TicketAssignment,
+    "notices": Notice,
+    "parking_stickers": ParkingSticker,
+    "announcements": Announcement,
+    "move_in_coordinations": MoveInCoordination,
+    "move_out_coordinations": MoveOutCoordination,
+    "interior_work_approvals": InteriorWorkApproval,
+    "work_permit_trackings": WorkPermitTracking,
+}
+
+@app.post("/community-reports/", response_model=CommunityReportResponse, status_code=status.HTTP_201_CREATED, tags=["Community Management Report"])
+def create_community_report(report: CommunityReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = CommunityReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(community_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/community-reports/", response_model=List[CommunityReportResponse], tags=["Community Management Report"])
+def get_all_community_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(CommunityReport)
+        if property_id:
+            query = query.filter(CommunityReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/community-reports/{report_id}", response_model=CommunityReportResponse, tags=["Community Management Report"])
+def get_community_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+    return report
+
+@app.put("/community-reports/{report_id}", response_model=CommunityReportResponse, tags=["Community Management Report"])
+def update_community_report(report_id: str, report_update: CommunityReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.community_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(community_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/community-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Community Management Report"])
+def delete_community_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+@app.get("/community-reports/property/{property_id}", response_model=List[CommunityReportResponse], tags=["Community Management Report"])
+def get_reports_by_property(property_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return get_all_community_reports(skip=skip, limit=limit, property_id=property_id, db=db)
+
+@app.delete("/community-reports/property/{property_id}", tags=["Community Management Report"])
+def delete_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports_to_delete = db.query(CommunityReport).filter(CommunityReport.property_id == property_id).all()
+        if not reports_to_delete:
+            raise HTTPException(status_code=404, detail=f"No reports found for property ID {property_id}")
+        
+        count = len(reports_to_delete)
+        for report in reports_to_delete:
+            db.delete(report)
+            
+        db.commit()
+        return {"message": f"Successfully deleted {count} reports for property {property_id}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting reports by property: {str(e)}")
+
+# --- Main Parent Model ---
+class InventoryReport(Base):
+    __tablename__ = "inventory_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    inventory_items = relationship("InventoryItem", backref="report", cascade="all, delete-orphan")
+    stock_transactions = relationship("StockTransaction", backref="report", cascade="all, delete-orphan")
+    min_max_levels = relationship("MinMaxLevel", backref="report", cascade="all, delete-orphan")
+    consumption_reports = relationship("ConsumptionReport", backref="report", cascade="all, delete-orphan")
+    expiry_damage_logs = relationship("ExpiryDamageLog", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class InventoryItem(Base):
+    __tablename__ = 'inventory_items'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    item_id = Column(String); item_name = Column(String); category = Column(String); current_stock = Column(Integer); unit = Column(String); location = Column(String); last_updated = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class StockTransaction(Base):
+    __tablename__ = 'stock_transactions'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    transaction_id = Column(String); item_id = Column(String); item_name = Column(String); transaction_type = Column(String); quantity = Column(Integer); unit = Column(String); date = Column(String); time = Column(String); supplier_recipient = Column(String); vehicle_no = Column(String, nullable=True); responsible_person = Column(String); remarks = Column(String)
+
+class MinMaxLevel(Base):
+    __tablename__ = 'min_max_levels'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    item_id = Column(String); item_name = Column(String); category = Column(String); current_stock = Column(Integer); minimum_level = Column(Integer); maximum_level = Column(Integer); status = Column(String); last_checked = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class ConsumptionReport(Base):
+    __tablename__ = 'consumption_reports'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    report_id = Column(String); item_id = Column(String); item_name = Column(String); category = Column(String); quantity_consumed = Column(Integer); unit = Column(String); period_start = Column(String); period_end = Column(String); consumed_by = Column(String); purpose = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class ExpiryDamageLog(Base):
+    __tablename__ = 'expiry_damage_logs'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    log_id = Column(String); item_id = Column(String); item_name = Column(String); category = Column(String); quantity = Column(Integer); unit = Column(String); status = Column(String); date_recorded = Column(String); expiry_date = Column(String, nullable=True); reason = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas for individual entries ---
+class InventoryItemSchema(BaseModel):
+    item_id: str; item_name: str; category: str; current_stock: int; unit: str; location: str; last_updated: str; responsible_person: str; remarks: str
+class StockTransactionSchema(BaseModel):
+    transaction_id: str; item_id: str; item_name: str; transaction_type: str; quantity: int; unit: str; date: str; time: str; supplier_recipient: str; vehicle_no: Optional[str] = None; responsible_person: str; remarks: str
+class MinMaxLevelSchema(BaseModel):
+    item_id: str; item_name: str; category: str; current_stock: int; minimum_level: int; maximum_level: int; status: str; last_checked: str; responsible_person: str; remarks: str
+class ConsumptionReportSchema(BaseModel):
+    report_id: str; item_id: str; item_name: str; category: str; quantity_consumed: int; unit: str; period_start: str; period_end: str; consumed_by: str; purpose: str; responsible_person: str; remarks: str
+class ExpiryDamageLogSchema(BaseModel):
+    log_id: str; item_id: str; item_name: str; category: str; quantity: int; unit: str; status: str; date_recorded: str; expiry_date: Optional[str] = None; reason: str; responsible_person: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class InventoryReportCreate(BaseModel):
+    property_id: str
+    inventory_items: List[InventoryItemSchema] = []
+    stock_transactions: List[StockTransactionSchema] = []
+    min_max_levels: List[MinMaxLevelSchema] = []
+    consumption_reports: List[ConsumptionReportSchema] = []
+    expiry_damage_logs: List[ExpiryDamageLogSchema] = []
+
+class InventoryReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    inventory_items: Optional[List[InventoryItemSchema]] = None
+    stock_transactions: Optional[List[StockTransactionSchema]] = None
+    min_max_levels: Optional[List[MinMaxLevelSchema]] = None
+    consumption_reports: Optional[List[ConsumptionReportSchema]] = None
+    expiry_damage_logs: Optional[List[ExpiryDamageLogSchema]] = None
+
+# --- Response Schemas ---
+class InventoryItemResponse(InventoryItemSchema): id: str; inventory_report_id: str
+class StockTransactionResponse(StockTransactionSchema): id: str; inventory_report_id: str
+class MinMaxLevelResponse(MinMaxLevelSchema): id: str; inventory_report_id: str
+class ConsumptionReportResponse(ConsumptionReportSchema): id: str; inventory_report_id: str
+class ExpiryDamageLogResponse(ExpiryDamageLogSchema): id: str; inventory_report_id: str
+
+class InventoryReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    inventory_items: List[InventoryItemResponse] = []
+    stock_transactions: List[StockTransactionResponse] = []
+    min_max_levels: List[MinMaxLevelResponse] = []
+    consumption_reports: List[ConsumptionReportResponse] = []
+    expiry_damage_logs: List[ExpiryDamageLogResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "inventory_items": InventoryItem,
+    "stock_transactions": StockTransaction,
+    "min_max_levels": MinMaxLevel,
+    "consumption_reports": ConsumptionReport,
+    "expiry_damage_logs": ExpiryDamageLog,
+}
+
+@app.post("/inventory-reports/", response_model=InventoryReportResponse, status_code=status.HTTP_201_CREATED, tags=["Inventory Management Report"])
+def create_inventory_report(report: InventoryReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = InventoryReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(inventory_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/inventory-reports/", response_model=List[InventoryReportResponse], tags=["Inventory Management Report"])
+def get_all_inventory_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(InventoryReport)
+        if property_id:
+            query = query.filter(InventoryReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/inventory-reports/{report_id}", response_model=InventoryReportResponse, tags=["Inventory Management Report"])
+def get_inventory_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+    return report
+
+@app.put("/inventory-reports/{report_id}", response_model=InventoryReportResponse, tags=["Inventory Management Report"])
+def update_inventory_report(report_id: str, report_update: InventoryReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.inventory_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(inventory_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/inventory-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Inventory Management Report"])
+def delete_inventory_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+# --- Main Parent Model ---
+class AssetReport(Base):
+    __tablename__ = "asset_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    assets = relationship("Asset", backref="report", cascade="all, delete-orphan")
+    movement_logs = relationship("AssetMovementLog", backref="report", cascade="all, delete-orphan")
+    amc_warranties = relationship("AmcWarranty", backref="report", cascade="all, delete-orphan")
+    maintenance_schedules = relationship("MaintenanceSchedule", backref="report", cascade="all, delete-orphan")
+    audits = relationship("AssetAudit", backref="report", cascade="all, delete-orphan")
+    depreciations = relationship("Depreciation", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class Asset(Base):
+    __tablename__ = 'assets_main'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    asset_id = Column(String); asset_name = Column(String); category = Column(String); tag_barcode = Column(String); location = Column(String); purchase_date = Column(String); cost = Column(Float); status = Column(String); assigned_to = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class AssetMovementLog(Base):
+    __tablename__ = 'asset_movement_logs'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    movement_id = Column(String); asset_id = Column(String); asset_name = Column(String); from_location = Column(String); to_location = Column(String); movement_date = Column(String); movement_time = Column(String); purpose = Column(String); transported_by = Column(String); vehicle_no = Column(String, nullable=True); responsible_person = Column(String); remarks = Column(String)
+
+class AmcWarranty(Base):
+    __tablename__ = 'amc_warranties'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    amc_warranty_id = Column(String); asset_id = Column(String); asset_name = Column(String); contract_type = Column(String); provider = Column(String); start_date = Column(String); end_date = Column(String); cost = Column(Float); coverage_details = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class MaintenanceSchedule(Base):
+    __tablename__ = 'maintenance_schedules'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    maintenance_id = Column(String); asset_id = Column(String); asset_name = Column(String); maintenance_type = Column(String); scheduled_date = Column(String); actual_date = Column(String, nullable=True); status = Column(String); technician = Column(String); cost = Column(Float); responsible_person = Column(String); remarks = Column(String)
+
+class AssetAudit(Base):
+    __tablename__ = 'asset_audits'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    audit_id = Column(String); asset_id = Column(String); asset_name = Column(String); audit_date = Column(String); location = Column(String); condition = Column(String); status = Column(String); auditor = Column(String); discrepancies = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class Depreciation(Base):
+    __tablename__ = 'depreciations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    depreciation_id = Column(String); asset_id = Column(String); asset_name = Column(String); purchase_date = Column(String); purchase_cost = Column(Float); depreciation_method = Column(String); annual_depreciation = Column(Float); current_value = Column(Float); replacement_date = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+
+# --- Base Schemas for individual entries ---
+class AssetSchema(BaseModel):
+    asset_id: str; asset_name: str; category: str; tag_barcode: str; location: str; purchase_date: str; cost: float; status: str; assigned_to: str; responsible_person: str; remarks: str
+class AssetMovementLogSchema(BaseModel):
+    movement_id: str; asset_id: str; asset_name: str; from_location: str; to_location: str; movement_date: str; movement_time: str; purpose: str; transported_by: str; vehicle_no: Optional[str] = None; responsible_person: str; remarks: str
+class AmcWarrantySchema(BaseModel):
+    amc_warranty_id: str; asset_id: str; asset_name: str; contract_type: str; provider: str; start_date: str; end_date: str; cost: float; coverage_details: str; status: str; responsible_person: str; remarks: str
+class MaintenanceScheduleSchema(BaseModel):
+    maintenance_id: str; asset_id: str; asset_name: str; maintenance_type: str; scheduled_date: str; actual_date: Optional[str] = None; status: str; technician: str; cost: float; responsible_person: str; remarks: str
+class AssetAuditSchema(BaseModel):
+    audit_id: str; asset_id: str; asset_name: str; audit_date: str; location: str; condition: str; status: str; auditor: str; discrepancies: str; responsible_person: str; remarks: str
+class DepreciationSchema(BaseModel):
+    depreciation_id: str; asset_id: str; asset_name: str; purchase_date: str; purchase_cost: float; depreciation_method: str; annual_depreciation: float; current_value: float; replacement_date: str; status: str; responsible_person: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class AssetReportCreate(BaseModel):
+    property_id: str
+    assets: List[AssetSchema] = []
+    movement_logs: List[AssetMovementLogSchema] = []
+    amc_warranties: List[AmcWarrantySchema] = []
+    maintenance_schedules: List[MaintenanceScheduleSchema] = []
+    audits: List[AssetAuditSchema] = []
+    depreciations: List[DepreciationSchema] = []
+
+class AssetReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    assets: Optional[List[AssetSchema]] = None
+    movement_logs: Optional[List[AssetMovementLogSchema]] = None
+    amc_warranties: Optional[List[AmcWarrantySchema]] = None
+    maintenance_schedules: Optional[List[MaintenanceScheduleSchema]] = None
+    audits: Optional[List[AssetAuditSchema]] = None
+    depreciations: Optional[List[DepreciationSchema]] = None
+
+# --- Response Schemas ---
+class AssetResponse(AssetSchema): id: str; asset_report_id: str
+class AssetMovementLogResponse(AssetMovementLogSchema): id: str; asset_report_id: str
+class AmcWarrantyResponse(AmcWarrantySchema): id: str; asset_report_id: str
+class MaintenanceScheduleResponse(MaintenanceScheduleSchema): id: str; asset_report_id: str
+class AssetAuditResponse(AssetAuditSchema): id: str; asset_report_id: str
+class DepreciationResponse(DepreciationSchema): id: str; asset_report_id: str
+
+class AssetReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    assets: List[AssetResponse] = []
+    movement_logs: List[AssetMovementLogResponse] = []
+    amc_warranties: List[AmcWarrantyResponse] = []
+    maintenance_schedules: List[MaintenanceScheduleResponse] = []
+    audits: List[AssetAuditResponse] = []
+    depreciations: List[DepreciationResponse] = []
+
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "assets": Asset,
+    "movement_logs": AssetMovementLog,
+    "amc_warranties": AmcWarranty,
+    "maintenance_schedules": MaintenanceSchedule,
+    "audits": AssetAudit,
+    "depreciations": Depreciation,
+}
+
+@app.post("/asset-reports/", response_model=AssetReportResponse, status_code=status.HTTP_201_CREATED, tags=["Asset Management Report"])
+def create_asset_report(report: AssetReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = AssetReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(asset_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/asset-reports/", response_model=List[AssetReportResponse], tags=["Asset Management Report"])
+def get_all_asset_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(AssetReport)
+        if property_id:
+            query = query.filter(AssetReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/asset-reports/{report_id}", response_model=AssetReportResponse, tags=["Asset Management Report"])
+def get_asset_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+    return report
+
+@app.put("/asset-reports/{report_id}", response_model=AssetReportResponse, tags=["Asset Management Report"])
+def update_asset_report(report_id: str, report_update: AssetReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.asset_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(asset_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/asset-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Asset Management Report"])
+def delete_asset_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+# --- Main Parent Model ---
+class QualityReport(Base):
+    __tablename__ = "quality_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    quality_plans = relationship("QualityPlan", backref="report", cascade="all, delete-orphan")
+    process_setups = relationship("ProcessSetup", backref="report", cascade="all, delete-orphan")
+    quality_assurance_activities = relationship("QualityAssurance", backref="report", cascade="all, delete-orphan")
+    quality_control_checks = relationship("QualityControl", backref="report", cascade="all, delete-orphan")
+    performance_monitors = relationship("PerformanceMonitor", backref="report", cascade="all, delete-orphan")
+    documents = relationship("QualityDocument", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class QualityPlan(Base):
+    __tablename__ = 'quality_plans'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    plan_id = Column(String); project_process_name = Column(String); objective = Column(String); standards = Column(String); start_date = Column(String); end_date = Column(String); responsible_person = Column(String); status = Column(String); remarks = Column(String)
+
+class ProcessSetup(Base):
+    __tablename__ = 'process_setups'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    process_id = Column(String); process_name = Column(String); description = Column(String); inputs = Column(String); outputs = Column(String); owner = Column(String); tools_methods = Column(String); status = Column(String); last_updated = Column(String); remarks = Column(String)
+
+class QualityAssurance(Base):
+    __tablename__ = 'quality_assurance_activities'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    qa_id = Column(String); project_process_id = Column(String); activity = Column(String); standard = Column(String); execution_date = Column(String); responsible_person = Column(String); compliance_status = Column(String); evidence = Column(String); remarks = Column(String)
+
+class QualityControl(Base):
+    __tablename__ = 'quality_control_checks'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    qc_id = Column(String); project_process_id = Column(String); item_output = Column(String); specification = Column(String); inspection_date = Column(String); inspection_time = Column(String); result = Column(String); inspector = Column(String); corrective_action = Column(String); remarks = Column(String)
+
+class PerformanceMonitor(Base):
+    __tablename__ = 'performance_monitors'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    monitor_id = Column(String); project_process_id = Column(String); metric = Column(String); target = Column(String); actual = Column(String); variance = Column(String); date_checked = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class QualityDocument(Base):
+    __tablename__ = 'quality_documents'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    document_id = Column(String); project_process_id = Column(String); document_type = Column(String); title = Column(String); created_date = Column(String); author = Column(String); status = Column(String); storage_location = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas ---
+class QualityPlanSchema(BaseModel):
+    plan_id: str; project_process_name: str; objective: str; standards: str; start_date: str; end_date: str; responsible_person: str; status: str; remarks: str
+class ProcessSetupSchema(BaseModel):
+    process_id: str; process_name: str; description: str; inputs: str; outputs: str; owner: str; tools_methods: str; status: str; last_updated: str; remarks: str
+class QualityAssuranceSchema(BaseModel):
+    qa_id: str; project_process_id: str; activity: str; standard: str; execution_date: str; responsible_person: str; compliance_status: str; evidence: str; remarks: str
+class QualityControlSchema(BaseModel):
+    qc_id: str; project_process_id: str; item_output: str; specification: str; inspection_date: str; inspection_time: str; result: str; inspector: str; corrective_action: str; remarks: str
+class PerformanceMonitorSchema(BaseModel):
+    monitor_id: str; project_process_id: str; metric: str; target: str; actual: str; variance: str; date_checked: str; status: str; responsible_person: str; remarks: str
+class QualityDocumentSchema(BaseModel):
+    document_id: str; project_process_id: str; document_type: str; title: str; created_date: str; author: str; status: str; storage_location: str; responsible_person: str; remarks: str
+
+# --- Create and Update Schemas ---
+class QualityReportCreate(BaseModel):
+    property_id: str
+    quality_plans: List[QualityPlanSchema] = []
+    process_setups: List[ProcessSetupSchema] = []
+    quality_assurance_activities: List[QualityAssuranceSchema] = []
+    quality_control_checks: List[QualityControlSchema] = []
+    performance_monitors: List[PerformanceMonitorSchema] = []
+    documents: List[QualityDocumentSchema] = []
+
+class QualityReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    quality_plans: Optional[List[QualityPlanSchema]] = None
+    process_setups: Optional[List[ProcessSetupSchema]] = None
+    quality_assurance_activities: Optional[List[QualityAssuranceSchema]] = None
+    quality_control_checks: Optional[List[QualityControlSchema]] = None
+    performance_monitors: Optional[List[PerformanceMonitorSchema]] = None
+    documents: Optional[List[QualityDocumentSchema]] = None
+
+# --- Response Schemas ---
+class QualityPlanResponse(QualityPlanSchema): id: str; quality_report_id: str
+class ProcessSetupResponse(ProcessSetupSchema): id: str; quality_report_id: str
+class QualityAssuranceResponse(QualityAssuranceSchema): id: str; quality_report_id: str
+class QualityControlResponse(QualityControlSchema): id: str; quality_report_id: str
+class PerformanceMonitorResponse(PerformanceMonitorSchema): id: str; quality_report_id: str
+class QualityDocumentResponse(QualityDocumentSchema): id: str; quality_report_id: str
+
+class QualityReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    quality_plans: List[QualityPlanResponse] = []
+    process_setups: List[ProcessSetupResponse] = []
+    quality_assurance_activities: List[QualityAssuranceResponse] = []
+    quality_control_checks: List[QualityControlResponse] = []
+    performance_monitors: List[PerformanceMonitorResponse] = []
+    documents: List[QualityDocumentResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "quality_plans": QualityPlan,
+    "process_setups": ProcessSetup,
+    "quality_assurance_activities": QualityAssurance,
+    "quality_control_checks": QualityControl,
+    "performance_monitors": PerformanceMonitor,
+    "documents": QualityDocument,
+}
+
+@app.post("/quality-reports/", response_model=QualityReportResponse, status_code=status.HTTP_201_CREATED, tags=["Quality Management Report"])
+def create_quality_report(report: QualityReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = QualityReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(quality_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/quality-reports/", response_model=List[QualityReportResponse], tags=["Quality Management Report"])
+def get_all_quality_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(QualityReport)
+        if property_id:
+            query = query.filter(QualityReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/quality-reports/{report_id}", response_model=QualityReportResponse, tags=["Quality Management Report"])
+def get_quality_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+    return report
+
+@app.put("/quality-reports/{report_id}", response_model=QualityReportResponse, tags=["Quality Management Report"])
+def update_quality_report(report_id: str, report_update: QualityReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.quality_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(quality_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/quality-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Quality Management Report"])
+def delete_quality_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+

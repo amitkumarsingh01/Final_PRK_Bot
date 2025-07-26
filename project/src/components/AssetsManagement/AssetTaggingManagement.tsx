@@ -1,0 +1,324 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+interface Property {
+  id: string;
+  name: string;
+  title: string;
+  description?: string;
+  logo_base64?: string;
+}
+
+interface Asset {
+  id?: string;
+  asset_report_id?: string;
+  asset_id: string;
+  asset_name: string;
+  category: string;
+  tag_barcode: string;
+  location: string;
+  purchase_date: string;
+  cost: number;
+  status: string;
+  assigned_to: string;
+  responsible_person: string;
+  remarks: string;
+}
+
+interface AssetReport {
+  id: string;
+  property_id: string;
+  assets: Asset[];
+}
+
+const API_URL = 'https://server.prktechindia.in/asset-reports/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const orange = '#FB7E03';
+const orangeDark = '#E06002';
+
+const emptyAsset: Asset = {
+  asset_id: '',
+  asset_name: '',
+  category: '',
+  tag_barcode: '',
+  location: '',
+  purchase_date: '',
+  cost: 0,
+  status: '',
+  assigned_to: '',
+  responsible_person: '',
+  remarks: '',
+};
+
+const AssetTaggingManagementPage: React.FC = () => {
+  const { user } = useAuth();
+  const [data, setData] = useState<AssetReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [viewModal, setViewModal] = useState<{ open: boolean; item: Asset | null }>({ open: false, item: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: Asset | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await axios.get(PROPERTIES_URL);
+        setProperties(res.data);
+      } catch (e) {
+        setError('Failed to fetch properties');
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserProperty = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const res = await axios.get('https://server.prktechindia.in/profile', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
+        if (matchedUser && matchedUser.property_id) {
+          setSelectedPropertyId(matchedUser.property_id);
+        }
+        if (matchedUser && matchedUser.user_role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProperty();
+  }, [user]);
+
+  const fetchData = async (propertyId: string) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      setData(res.data);
+    } catch (e) {
+      setError('Failed to fetch asset reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (selectedPropertyId) {
+      fetchData(selectedPropertyId);
+    }
+  }, [selectedPropertyId]);
+
+  const handleEdit = (item: Asset, reportId: string) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  };
+  const handleAdd = (reportId: string) => {
+    setEditModal({
+      open: true,
+      isNew: true,
+      item: { ...emptyAsset },
+      reportId,
+    });
+  };
+  const handleDelete = async (itemId: string, reportId: string) => {
+    if (!window.confirm('Delete this asset?')) return;
+    try {
+      const report = data.find(r => r.id === reportId);
+      if (!report) return;
+      const newArr = report.assets.filter(i => i.id !== itemId);
+      await axios.put(`${API_URL}${reportId}`, { assets: newArr });
+      fetchData(selectedPropertyId);
+    } catch (e) {
+      setError('Failed to delete');
+    }
+  };
+  const handleView = (item: Asset) => {
+    setViewModal({ open: true, item });
+  };
+
+  const handleSave = async () => {
+    if (!editModal.item || !editModal.reportId) return;
+    try {
+      const report = data.find(r => r.id === editModal.reportId);
+      if (!report) return;
+      let newArr: Asset[];
+      if (editModal.isNew) {
+        newArr = [...report.assets, editModal.item];
+      } else {
+        newArr = report.assets.map(i =>
+          i.id === editModal.item!.id ? editModal.item! : i
+        );
+      }
+      await axios.put(`${API_URL}${editModal.reportId}`, { assets: newArr });
+      setEditModal({ open: false, item: null, isNew: false, reportId: null });
+      fetchData(selectedPropertyId);
+    } catch (e) {
+      setError('Failed to save changes');
+    }
+  };
+
+  return (
+    <div className="p-6" style={{ background: '#fff' }}>
+      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Asset Tagging Management</h2>
+      {/* Property Selection Dropdown */}
+      <div className="mb-6 max-w-md">
+        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <select
+            id="propertySelect"
+            value={selectedPropertyId}
+            onChange={e => setSelectedPropertyId(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+          >
+            <option value="">Select a property...</option>
+            {properties.map(property => (
+              <option key={property.id} value={property.id}>
+                {property.name} - {property.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {error && <div className="mb-2 text-red-600">{error}</div>}
+      <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr style={{ background: orange, color: '#fff' }}>
+              <th className="px-3 py-2 border">Sl.No</th>
+              <th className="px-3 py-2 border">Asset ID</th>
+              <th className="px-3 py-2 border">Asset Name</th>
+              <th className="px-3 py-2 border">Category</th>
+              <th className="px-3 py-2 border">Tag/Barcode</th>
+              <th className="px-3 py-2 border">Location</th>
+              <th className="px-3 py-2 border">Purchase Date</th>
+              <th className="px-3 py-2 border">Cost</th>
+              <th className="px-3 py-2 border">Status</th>
+              <th className="px-3 py-2 border">Assigned To</th>
+              <th className="px-3 py-2 border">Responsible Person</th>
+              <th className="px-3 py-2 border">Remarks</th>
+              <th className="px-3 py-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={13} className="text-center py-6">Loading...</td></tr>
+            ) : (
+              <>
+                {data.flatMap((report, rIdx) =>
+                  report.assets.map((item, idx) => (
+                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                      <td className="border px-2 py-1">{idx + 1}</td>
+                      <td className="border px-2 py-1">{item.asset_id}</td>
+                      <td className="border px-2 py-1">{item.asset_name}</td>
+                      <td className="border px-2 py-1">{item.category}</td>
+                      <td className="border px-2 py-1">{item.tag_barcode}</td>
+                      <td className="border px-2 py-1">{item.location}</td>
+                      <td className="border px-2 py-1">{item.purchase_date}</td>
+                      <td className="border px-2 py-1">₹{item.cost.toLocaleString()}</td>
+                      <td className="border px-2 py-1">{item.status}</td>
+                      <td className="border px-2 py-1">{item.assigned_to}</td>
+                      <td className="border px-2 py-1">{item.responsible_person}</td>
+                      <td className="border px-2 py-1">{item.remarks}</td>
+                      <td className="border px-2 py-1 text-center">
+                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                        {isAdmin && (
+                          <>
+                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+      {isAdmin && data.length > 0 && (
+        <button
+          onClick={() => handleAdd(data[0].id)}
+          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+        >
+          <Plus size={18} className="mr-2" /> Add Asset
+        </button>
+      )}
+      {editModal.open && editModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editModal.isNew ? 'Add' : 'Edit'} Asset
+              </h3>
+              <button
+                onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={e => { e.preventDefault(); handleSave(); }}>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="border rounded px-3 py-2" placeholder="Asset ID" value={editModal.item.asset_id} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, asset_id: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Asset Name" value={editModal.item.asset_name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, asset_name: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Category" value={editModal.item.category} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, category: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Tag/Barcode" value={editModal.item.tag_barcode} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, tag_barcode: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Location" value={editModal.item.location} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, location: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Purchase Date" type="date" value={editModal.item.purchase_date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, purchase_date: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Cost" type="number" value={editModal.item.cost} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, cost: parseFloat(e.target.value) } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Status" value={editModal.item.status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, status: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Assigned To" value={editModal.item.assigned_to} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, assigned_to: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Responsible Person" value={editModal.item.responsible_person} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, responsible_person: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Remarks" value={editModal.item.remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, remarks: e.target.value } })} />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button type="button" onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })} className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {viewModal.open && viewModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Asset Details
+              </h3>
+              <button
+                onClick={() => setViewModal({ open: false, item: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><b>Asset ID:</b> {viewModal.item.asset_id}</div>
+              <div><b>Asset Name:</b> {viewModal.item.asset_name}</div>
+              <div><b>Category:</b> {viewModal.item.category}</div>
+              <div><b>Tag/Barcode:</b> {viewModal.item.tag_barcode}</div>
+              <div><b>Location:</b> {viewModal.item.location}</div>
+              <div><b>Purchase Date:</b> {viewModal.item.purchase_date}</div>
+              <div><b>Cost:</b> ₹{viewModal.item.cost.toLocaleString()}</div>
+              <div><b>Status:</b> {viewModal.item.status}</div>
+              <div><b>Assigned To:</b> {viewModal.item.assigned_to}</div>
+              <div><b>Responsible Person:</b> {viewModal.item.responsible_person}</div>
+              <div><b>Remarks:</b> {viewModal.item.remarks}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AssetTaggingManagementPage; 
