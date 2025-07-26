@@ -74,6 +74,11 @@ import AMCWarrantyTracker from './components/AssetsManagement/AMCWarrantyTracker
 import MaintenanceSchedule from './components/AssetsManagement/MaintenanceSchedule';
 import AssetAudit from './components/AssetsManagement/AssetAudit';
 import DepreciationReplacement from './components/AssetsManagement/DepreciationReplacement';
+import InventoryTracking from './components/InventoryManagement/InventoryTracking';
+import StockEntryIssue from './components/InventoryManagement/StockEntryIssue';
+import MinMaxLevelMonitoring from './components/InventoryManagement/MinMaxLevelMonitoring';
+import ConsumptionReports from './components/InventoryManagement/ConsumptionReports';
+import ExpiryDamageLog from './components/InventoryManagement/ExpiryDamageLog';
 
 // import UserTasks from './pages/Users/usertasks';
 
@@ -190,6 +195,13 @@ const AppRoutes = () => {
         <Route path="maintenance-schedule" element={<MaintenanceSchedule />} />
         <Route path="asset-audit" element={<AssetAudit />} />
         <Route path="depreciation-replacement" element={<DepreciationReplacement />} />
+        
+        {/* Inventory Management Routes */}
+        <Route path="inventory-tracking" element={<InventoryTracking />} />
+        <Route path="stock-entry-issue" element={<StockEntryIssue />} />
+        <Route path="min-max-level-monitoring" element={<MinMaxLevelMonitoring />} />
+        <Route path="consumption-reports" element={<ConsumptionReports />} />
+        <Route path="expiry-damage-log" element={<ExpiryDamageLog />} />
 
         <Route path="cadmin/users" element={<CadminUserProfile />} />
         <Route path="cadmin/tasks" element={<CadminTasks />} />

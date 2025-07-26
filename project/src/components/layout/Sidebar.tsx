@@ -199,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '/daily-task-management-all-department', label: 'Daily Task Management of all department' },
-          { path: '#', label: 'Daily logs of all department' },
+          { path: '/tasks', label: 'Daily logs of all department' },
           { path: '/daily-management-report', label: 'Daily Management Report' },
           { path: '#', label: 'Daily Complete work Details ' },
         ]
@@ -586,11 +586,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Inventory Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Inventory Tracking' },
-          { path: '#', label: 'Stock Entry & Issue' },
-          { path: '#', label: 'Minimum & Maximum Level Monitoring' },
-          { path: '#', label: 'Consumption Reports' },
-          { path: '#', label: 'Expiry & Damage Log' },
+          { path: '/inventory-tracking', label: 'Inventory Tracking' },
+          { path: '/stock-entry-issue', label: 'Stock Entry & Issue' },
+          { path: '/min-max-level-monitoring', label: 'Minimum & Maximum Level Monitoring' },
+          { path: '/consumption-reports', label: 'Consumption Reports' },
+          { path: '/expiry-damage-log', label: 'Expiry & Damage Log' },
         ]
       },
       // 13. Asset Management
@@ -841,7 +841,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '#', label: 'Daily Task Management of all department' },
-          { path: '#', label: 'Daily logs of all department' },
+          { path: '/tasks', label: 'Daily logs of all department' },
           { path: '#', label: 'Daily Management Report' },
           { path: '#', label: 'Daily Complete work Details ' },
         ]
@@ -1229,14 +1229,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         {!isCollapsed && (
           <Link to="/dashboard" className="flex items-center text-xl font-bold">
             {userProfile?.user_type === 'admin' ? (
-              <img src={logo} alt="Logo" className="h-10 w-10 mr-2" />
+              <img src={logo} alt="Logo" className="h-30 w-30 mr-2" />
             ) : propertyLogo ? (
               <img src={propertyLogo} alt="Property Logo" className="h-10 w-10 mr-2 rounded-full object-cover border" />
             ) : (
               <span className="h-10 w-10 mr-2 flex items-center justify-center bg-gray-200 rounded-full"><User size={24} /></span>
             )}
-            <span className="text-[#000435]">PRK</span>
-            <span className="text-[#E06002]">TECH</span>
+            {/* <span className="text-[#000435]">PRK</span>
+            <span className="text-[#E06002]">TECH</span> */}
           </Link>
         )}
         {isCollapsed && (
