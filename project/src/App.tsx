@@ -104,7 +104,34 @@ import MaintenanceSchedulePage from './components/CCTVAudit/Maintenance_Schedule
 import Documentation from './components/CCTVAudit/Documentation';
 import AmcAndCompliance from './components/CCTVAudit/AMC_and_Compliance';
 import SiteAssessment from './components/CCTVAudit/Site_Assessment';
-
+import AuditReportPage from './components/AuditReport/AuditReport';
+import ProjectManagement from './components/ProjectManagement/All_Project_Management_Dashboard';
+import ProjectInitiation from './components/ProjectManagement/Project_Initiation';
+import ProjectPlanning from './components/ProjectManagement/Project_Planning';
+import TeamResourceAllocation from './components/ProjectManagement/Team_Resource_Allocation';
+import ExecutionAndImplementation from './components/ProjectManagement/Execution_and_Implementation';
+import MonitoringAndControl from './components/ProjectManagement/Monitoring_and_Control';
+import DocumentationAndReporting from './components/ProjectManagement/Documentation_and_Reporting';
+import ProjectClosure from './components/ProjectManagement/Project_Closure';
+import ProcurementPlanning from './components/ProcurementManagement/Procurement_Planning';
+import VendorManagement from './components/ProcurementManagement/Vendor_Management';
+import PurchaseRequisitionToOrder from './components/ProcurementManagement/Purchase_Requisition_to_Order';
+import GoodsReceiptAndInspection from './components/ProcurementManagement/Goods_Receipt_and_Inspection';
+import InventoryAndStockManagement from './components/ProcurementManagement/Inventory_and_Stock_Management';
+import PaymentTracking from './components/ProcurementManagement/Payment_Tracking';  
+import ProcurementDocumentation from './components/ProcurementManagement/Procurement_Documentation';
+import ComplianceAndPolicy from './components/ProcurementManagement/Compliance_and_Policy';
+import ReportingAndAnalysis from './components/ProcurementManagement/Reporting_and_Analysis';
+import ProcurementCategories from './components/ProcurementManagement/Procurement_Categories';
+import VendorMasterManagement from './components/VendorManagement/Vendor_Master_Management';
+import VendorClassication from './components/VendorManagement/Vendor_Classication';
+import VendorEvaluation from './components/VendorManagement/Vendor_Evaluation';
+import IntegrationWithPurchaseProcess from './components/VendorManagement/Integration_with_Purchase_Process';
+import VendorRelationshipManagement from './components/VendorManagement/Vendor_Relationship_Management';
+import ComplianceAndLegalCheck from './components/VendorManagement/Compliance_and_Legal_Check';
+import VendorDocumentation from './components/VendorManagement/Vendor_Documentation';
+// import ReportingAndAnalysis_Vendor from './components/VendorManagement/Reporting_and_Analysis';
+import Vendor_Reporting_and_Analysis from './components/VendorManagement/Reporting_and_Analysis';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -179,6 +206,7 @@ const AppRoutes = () => {
         <Route path="site-security-patrolling-report" element={<SiteSecurityPage />} />
         <Route path="technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
         <Route path="daily-management-report" element={<DailyManagementReport />} />
+        <Route path="audit-reports" element={<AuditReportPage />} />
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
         <Route path="reports" element={<div className="p-4">Reports Page</div>} />
@@ -283,7 +311,40 @@ const AppRoutes = () => {
         <Route path="maintenance-schedule" element={<MaintenanceSchedulePage />} />
         <Route path="documentation" element={<Documentation />} />
         <Route path="amc-and-compliance" element={<AmcAndCompliance />} />
-        
+
+        {/* Project Management Routes */}
+        <Route path="project-management" element={<ProjectManagement />} />
+        <Route path="project-initiation" element={<ProjectInitiation />} />
+        <Route path="project-planning" element={<ProjectPlanning />} />
+        <Route path="team-resource-allocation" element={<TeamResourceAllocation />} />
+        <Route path="execution-and-implementation" element={<ExecutionAndImplementation />} />
+        <Route path="monitoring-and-control" element={<MonitoringAndControl />} />
+        <Route path="documentation-and-reporting" element={<DocumentationAndReporting />} />
+        <Route path="project-closure" element={<ProjectClosure />} />
+
+        {/* Procurement Management Routes */}
+        <Route path="procurement-planning" element={<ProcurementPlanning />} />
+        <Route path="vendor-management" element={<VendorManagement />} />
+        <Route path="purchase-requisition-to-order" element={<PurchaseRequisitionToOrder />} />
+        <Route path="goods-receipt-and-inspection" element={<GoodsReceiptAndInspection />} /> 
+        <Route path="inventory-and-stock-management" element={<InventoryAndStockManagement />} />
+        <Route path="payment-tracking" element={<PaymentTracking />} />
+        <Route path="procurement-documentation" element={<ProcurementDocumentation />} />
+        <Route path="compliance-and-policy" element={<ComplianceAndPolicy />} />
+        <Route path="reporting-and-analysis" element={<ReportingAndAnalysis />} />
+        <Route path="procurement-categories" element={<ProcurementCategories />} />
+
+        {/* Vendor Management Routes */}
+        <Route path="vendor-master-management" element={<VendorMasterManagement />} />
+        <Route path="vendor-classication" element={<VendorClassication />} />
+        <Route path="vendor-evaluation" element={<VendorEvaluation />} />
+        <Route path="integration-with-purchase-process" element={<IntegrationWithPurchaseProcess />} />
+        <Route path="vendor-relationship-management" element={<VendorRelationshipManagement />} />
+        <Route path="compliance-and-legal-check" element={<ComplianceAndLegalCheck />} />
+        <Route path="vendor-documentation" element={<VendorDocumentation />} />
+        <Route path="reporting-and-analysis" element={<Vendor_Reporting_and_Analysis />} />
+
+
       </Route>
 
       {/* Catch all unmatched routes */}

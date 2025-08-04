@@ -7814,7 +7814,7 @@ class AssetReport(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    assets = relationship("Asset", backref="report", cascade="all, delete-orphan")
+    assets = relationship("AssetMain", backref="report", cascade="all, delete-orphan")
     movement_logs = relationship("AssetMovementLog", backref="report", cascade="all, delete-orphan")
     amc_warranties = relationship("AmcWarranty", backref="report", cascade="all, delete-orphan")
     maintenance_schedules = relationship("MaintenanceSchedule", backref="report", cascade="all, delete-orphan")
@@ -7822,7 +7822,7 @@ class AssetReport(Base):
     depreciations = relationship("Depreciation", backref="report", cascade="all, delete-orphan")
 
 # --- Child Entry Models ---
-class Asset(Base):
+class AssetMain(Base):
     __tablename__ = 'assets_main'
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
@@ -8208,441 +8208,457 @@ def delete_quality_report(report_id: str, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
 
-# Main Report Table
-class CctvAuditReport(Base):
-    __tablename__ = "cctv_audit_reports"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    property_id = Column(String, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+# # Main Report Table
+# class CctvAuditReport(Base):
+#     __tablename__ = "cctv_audit_reports"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     property_id = Column(String, index=True, nullable=False)
+#     created_at = Column(DateTime, default=datetime.utcnow)
+#     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships (deletes children when parent is deleted)
-    site_assessments = relationship("SiteAssessmentFormat", back_populates="report", cascade="all, delete-orphan")
-    installation_checklists = relationship("InstallationChecklist", back_populates="report", cascade="all, delete-orphan")
-    configuration_checklists = relationship("ConfigurationTestingChecklist", back_populates="report", cascade="all, delete-orphan")
-    daily_operations = relationship("DailyOperationsMonitoring", back_populates="report", cascade="all, delete-orphan")
-    maintenance_schedules = relationship("CctvMaintenanceSchedule", back_populates="report", cascade="all, delete-orphan")
-    amc_compliance_formats = relationship("AmcComplianceFormat", back_populates="report", cascade="all, delete-orphan")
-    site_information = relationship("SiteInformation", uselist=False, back_populates="report", cascade="all, delete-orphan")
-    camera_inventory_logs = relationship("CameraInventoryLog", back_populates="report", cascade="all, delete-orphan")
+#     # Relationships (deletes children when parent is deleted)
+#     site_assessments = relationship("SiteAssessmentFormat", back_populates="report", cascade="all, delete-orphan")
+#     installation_checklists = relationship("InstallationChecklist", back_populates="report", cascade="all, delete-orphan")
+#     configuration_checklists = relationship("ConfigurationTestingChecklist", back_populates="report", cascade="all, delete-orphan")
+#     daily_operations = relationship("DailyOperationsMonitoring", back_populates="report", cascade="all, delete-orphan")
+#     maintenance_schedules = relationship("CctvMaintenanceSchedule", back_populates="report", cascade="all, delete-orphan")
+#     amc_compliance_formats = relationship("AmcComplianceFormat", back_populates="report", cascade="all, delete-orphan")
+#     site_information = relationship("SiteInformation", uselist=False, back_populates="report", cascade="all, delete-orphan")
+#     camera_inventory_logs = relationship("CameraInventoryLog", back_populates="report", cascade="all, delete-orphan")
 
-# Child Tables
-class SiteAssessmentFormat(Base):
-    __tablename__ = "site_assessment_formats"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Description = Column(String)
-    Checklist_Points = Column(String)
-    Checked_Status = Column(String)
-    Observations = Column(String)
-    Suggestions_Actions = Column(String)
-    Responsibility = Column(String)
-    Target_Date = Column(String, nullable=True)
-    Photo_Insert = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="site_assessments")
+# # Child Tables
+# class SiteAssessmentFormat(Base):
+#     __tablename__ = "site_assessment_formats"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Description = Column(String)
+#     Checklist_Points = Column(String)
+#     Checked_Status = Column(String)
+#     Observations = Column(String)
+#     Suggestions_Actions = Column(String)
+#     Responsibility = Column(String)
+#     Target_Date = Column(String, nullable=True)
+#     Photo_Insert = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="site_assessments")
 
-class InstallationChecklist(Base):
-    __tablename__ = "installation_checklists"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Category = Column(String)
-    Checklist_Point = Column(String)
-    Checked = Column(String)
-    Observations = Column(String)
-    Remarks_Action_Required = Column(String)
-    Responsibility = Column(String)
-    Target_Completion_Date = Column(String, nullable=True)
-    Photo_Insert = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="installation_checklists")
+# class InstallationChecklist(Base):
+#     __tablename__ = "installation_checklists"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Category = Column(String)
+#     Checklist_Point = Column(String)
+#     Checked = Column(String)
+#     Observations = Column(String)
+#     Remarks_Action_Required = Column(String)
+#     Responsibility = Column(String)
+#     Target_Completion_Date = Column(String, nullable=True)
+#     Photo_Insert = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="installation_checklists")
 
-class ConfigurationTestingChecklist(Base):
-    __tablename__ = "configuration_testing_checklists"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Category = Column(String)
-    Checklist_Point = Column(String)
-    Checked = Column(String)
-    Observations = Column(String)
-    Suggestions_Action_Required = Column(String)
-    Responsibility = Column(String)
-    Target_Completion_Date = Column(String, nullable=True)
-    Photo_Screenshot = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="configuration_checklists")
+# class ConfigurationTestingChecklist(Base):
+#     __tablename__ = "configuration_testing_checklists"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Category = Column(String)
+#     Checklist_Point = Column(String)
+#     Checked = Column(String)
+#     Observations = Column(String)
+#     Suggestions_Action_Required = Column(String)
+#     Responsibility = Column(String)
+#     Target_Completion_Date = Column(String, nullable=True)
+#     Photo_Screenshot = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="configuration_checklists")
 
-class DailyOperationsMonitoring(Base):
-    __tablename__ = "daily_operations_monitorings"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Category = Column(String)
-    Checklist_Point = Column(String)
-    Checked = Column(String)
-    Observations = Column(String)
-    Actions_Required = Column(String)
-    Responsibility = Column(String)
-    Time_Checked = Column(String)
-    Photo_Screenshot = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="daily_operations")
+# class DailyOperationsMonitoring(Base):
+#     __tablename__ = "daily_operations_monitorings"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Category = Column(String)
+#     Checklist_Point = Column(String)
+#     Checked = Column(String)
+#     Observations = Column(String)
+#     Actions_Required = Column(String)
+#     Responsibility = Column(String)
+#     Time_Checked = Column(String)
+#     Photo_Screenshot = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="daily_operations")
 
-class CctvMaintenanceSchedule(Base):
-    __tablename__ = "cctv_maintenance_schedules"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Maintenance_Type = Column(String)
-    Checklist_Point_Task = Column(String)
-    Frequency = Column(String)
-    Last_Maintenance_Date = Column(String, nullable=True)
-    Next_Due_Date = Column(String, nullable=True)
-    Status = Column(String)
-    Observations_Issues = Column(String)
-    Action_Taken_Required = Column(String)
-    Responsible = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="maintenance_schedules")
+# class CctvMaintenanceSchedule(Base):
+#     __tablename__ = "cctv_maintenance_schedules"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Maintenance_Type = Column(String)
+#     Checklist_Point_Task = Column(String)
+#     Frequency = Column(String)
+#     Last_Maintenance_Date = Column(String, nullable=True)
+#     Next_Due_Date = Column(String, nullable=True)
+#     Status = Column(String)
+#     Observations_Issues = Column(String)
+#     Action_Taken_Required = Column(String)
+#     Responsible = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="maintenance_schedules")
 
-class AmcComplianceFormat(Base):
-    __tablename__ = "amc_compliance_formats"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    SL_No = Column(Integer)
-    Category = Column(String)
-    Checklist_Description = Column(String)
-    Details_Status = Column(String)
-    Last_Updated = Column(String, nullable=True)
-    Next_Due_Date = Column(String, nullable=True)
-    Observations_Non_Compliance = Column(String)
-    Action_Taken_Required = Column(String)
-    Responsible = Column(String)
-    Remarks = Column(String)
-    report = relationship("CctvAuditReport", back_populates="amc_compliance_formats")
+# class AmcComplianceFormat(Base):
+#     __tablename__ = "amc_compliance_formats"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     SL_No = Column(Integer)
+#     Category = Column(String)
+#     Checklist_Description = Column(String)
+#     Details_Status = Column(String)
+#     Last_Updated = Column(String, nullable=True)
+#     Next_Due_Date = Column(String, nullable=True)
+#     Observations_Non_Compliance = Column(String)
+#     Action_Taken_Required = Column(String)
+#     Responsible = Column(String)
+#     Remarks = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="amc_compliance_formats")
 
-class SiteInformation(Base):
-    __tablename__ = "site_information"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    Site_Name_Code = Column(String)
-    Address = Column(String)
-    Contact_Person_Site_Incharge = Column(String)
-    CCTV_Install_Date = Column(String)
-    report = relationship("CctvAuditReport", back_populates="site_information")
+# class SiteInformation(Base):
+#     __tablename__ = "site_information"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     Site_Name_Code = Column(String)
+#     Address = Column(String)
+#     Contact_Person_Site_Incharge = Column(String)
+#     CCTV_Install_Date = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="site_information")
 
-class CameraInventoryLog(Base):
-    __tablename__ = "camera_inventory_logs"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
-    Camera_ID_Name = Column(String)
-    Camera_Type = Column(String)
-    Brand_Model_No = Column(String)
-    Resolution_MP = Column(String)
-    Location_Installed = Column(String)
-    Indoor_Outdoor = Column(String)
-    Working_Status = Column(String)
-    report = relationship("CctvAuditReport", back_populates="camera_inventory_logs")
+# class CameraInventoryLog(Base):
+#     __tablename__ = "camera_inventory_logs"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+#     Camera_ID_Name = Column(String)
+#     Camera_Type = Column(String)
+#     Brand_Model_No = Column(String)
+#     Resolution_MP = Column(String)
+#     Location_Installed = Column(String)
+#     Indoor_Outdoor = Column(String)
+#     Working_Status = Column(String)
+#     report = relationship("CctvAuditReport", back_populates="camera_inventory_logs")
 
 
-# --- Pydantic Schemas ---
+# # --- Pydantic Schemas ---
 
-# Base schemas for individual items
-class SiteAssessmentFormatSchema(BaseModel):
-    SL_No: int
-    Description: str
-    Checklist_Points: str
-    Checked_Status: str
-    Observations: str
-    Suggestions_Actions: str
-    Responsibility: str
-    Target_Date: Optional[str] = None
-    Photo_Insert: str
-    Remarks: str
-    class Config: from_attributes = True
-
-class InstallationChecklistSchema(BaseModel):
-    SL_No: int
-    Category: str
-    Checklist_Point: str
-    Checked: str
-    Observations: str
-    Remarks_Action_Required: str
-    Responsibility: str
-    Target_Completion_Date: Optional[str] = None
-    Photo_Insert: str
-    Remarks: str
-    class Config: from_attributes = True
-
-class ConfigurationTestingChecklistSchema(BaseModel):
-    SL_No: int
-    Category: str
-    Checklist_Point: str
-    Checked: str
-    Observations: str
-    Suggestions_Action_Required: str
-    Responsibility: str
-    Target_Completion_Date: Optional[str] = None
-    Photo_Screenshot: str
-    Remarks: str
-    class Config: from_attributes = True
-
-class DailyOperationsMonitoringSchema(BaseModel):
-    SL_No: int
-    Category: str
-    Checklist_Point: str
-    Checked: str
-    Observations: str
-    Actions_Required: str
-    Responsibility: str
-    Time_Checked: str
-    Photo_Screenshot: str
-    Remarks: str
-    class Config: from_attributes = True
-
-class CctvMaintenanceScheduleSchema(BaseModel):
-    SL_No: int
-    Maintenance_Type: str
-    Checklist_Point_Task: str
-    Frequency: str
-    Last_Maintenance_Date: Optional[str] = None
-    Next_Due_Date: Optional[str] = None
-    Status: str
-    Observations_Issues: str
-    Action_Taken_Required: str
-    Responsible: str
-    Remarks: str
-    class Config: from_attributes = True
+# # Base schemas for individual items
+# class SiteAssessmentFormatSchema(BaseModel):
+#     SL_No: int
+#     Description: str
+#     Checklist_Points: str
+#     Checked_Status: str
+#     Observations: str
+#     Suggestions_Actions: str
+#     Responsibility: str
+#     Target_Date: Optional[str] = None
+#     Photo_Insert: str
+#     Remarks: str
     
-class AmcComplianceFormatSchema(BaseModel):
-    SL_No: int
-    Category: str
-    Checklist_Description: str
-    Details_Status: str
-    Last_Updated: Optional[str] = None
-    Next_Due_Date: Optional[str] = None
-    Observations_Non_Compliance: str
-    Action_Taken_Required: str
-    Responsible: str
-    Remarks: str
-    class Config: from_attributes = True
+#     class Config:
+#         from_attributes = True
 
-class SiteInformationSchema(BaseModel):
-    Site_Name_Code: str
-    Address: str
-    Contact_Person_Site_Incharge: str
-    CCTV_Install_Date: str
-    class Config: from_attributes = True
+# class InstallationChecklistSchema(BaseModel):
+#     SL_No: int
+#     Category: str
+#     Checklist_Point: str
+#     Checked: str
+#     Observations: str
+#     Remarks_Action_Required: str
+#     Responsibility: str
+#     Target_Completion_Date: Optional[str] = None
+#     Photo_Insert: str
+#     Remarks: str
+    
+#     class Config:
+#         from_attributes = True
 
-class CameraInventoryLogSchema(BaseModel):
-    Camera_ID_Name: str
-    Camera_Type: str
-    Brand_Model_No: str
-    Resolution_MP: str
-    Location_Installed: str
-    Indoor_Outdoor: str
-    Working_Status: str
-    class Config: from_attributes = True
+# class ConfigurationTestingChecklistSchema(BaseModel):
+#     SL_No: int
+#     Category: str
+#     Checklist_Point: str
+#     Checked: str
+#     Observations: str
+#     Suggestions_Action_Required: str
+#     Responsibility: str
+#     Target_Completion_Date: Optional[str] = None
+#     Photo_Screenshot: str
+#     Remarks: str
+    
+#     class Config:
+#         from_attributes = True
 
-class DocumentationFormatSchema(BaseModel):
-    Site_Information: SiteInformationSchema
-    Camera_Inventory_Log: List[CameraInventoryLogSchema] = []
+# class DailyOperationsMonitoringSchema(BaseModel):
+#     SL_No: int
+#     Category: str
+#     Checklist_Point: str
+#     Checked: str
+#     Observations: str
+#     Actions_Required: str
+#     Responsibility: str
+#     Time_Checked: str
+#     Photo_Screenshot: str
+#     Remarks: str
+    
+#     class Config:
+#         from_attributes = True
 
-# Schemas for Create/Update operations
-class CctvAuditData(BaseModel):
-    Site_Assessment_Format: List[SiteAssessmentFormatSchema] = []
-    Installation_Checklist: List[InstallationChecklistSchema] = []
-    Configuration_Testing_Checklist: List[ConfigurationTestingChecklistSchema] = []
-    Daily_Operations_Monitoring: List[DailyOperationsMonitoringSchema] = []
-    Maintenance_Schedule: List[CctvMaintenanceScheduleSchema] = []
-    Documentation_Format: DocumentationFormatSchema
-    AMC_Compliance_Format: List[AmcComplianceFormatSchema] = []
+# class CctvMaintenanceScheduleSchema(BaseModel):
+#     SL_No: int
+#     Maintenance_Type: str
+#     Checklist_Point_Task: str
+#     Frequency: str
+#     Last_Maintenance_Date: Optional[str] = None
+#     Next_Due_Date: Optional[str] = None
+#     Status: str
+#     Observations_Issues: str
+#     Action_Taken_Required: str
+#     Responsible: str
+#     Remarks: str
+    
+#     class Config:
+#         from_attributes = True
+    
+# class AmcComplianceFormatSchema(BaseModel):
+#     SL_No: int
+#     Category: str
+#     Checklist_Description: str
+#     Details_Status: str
+#     Last_Updated: Optional[str] = None
+#     Next_Due_Date: Optional[str] = None
+#     Observations_Non_Compliance: str
+#     Action_Taken_Required: str
+#     Responsible: str
+#     Remarks: str
+    
+#     class Config:
+#         from_attributes = True
 
-class CctvAuditReportCreate(BaseModel):
-    property_id: str
-    CCTV_Audit: CctvAuditData
+# class SiteInformationSchema(BaseModel):
+#     Site_Name_Code: str
+#     Address: str
+#     Contact_Person_Site_Incharge: str
+#     CCTV_Install_Date: str
+    
+#     class Config:
+#         from_attributes = True
 
-class CctvAuditReportUpdate(BaseModel):
-    property_id: Optional[str] = None
-    CCTV_Audit: Optional[CctvAuditData] = None
+# class CameraInventoryLogSchema(BaseModel):
+#     Camera_ID_Name: str
+#     Camera_Type: str
+#     Brand_Model_No: str
+#     Resolution_MP: str
+#     Location_Installed: str
+#     Indoor_Outdoor: str
+#     Working_Status: str
+    
+#     class Config:
+#         from_attributes = True
 
-# Schemas for Response models (including generated IDs)
-class SiteAssessmentFormatResponse(SiteAssessmentFormatSchema): id: str; cctv_audit_id: str
-class InstallationChecklistResponse(InstallationChecklistSchema): id: str; cctv_audit_id: str
-class ConfigurationTestingChecklistResponse(ConfigurationTestingChecklistSchema): id: str; cctv_audit_id: str
-class DailyOperationsMonitoringResponse(DailyOperationsMonitoringSchema): id: str; cctv_audit_id: str
-class MaintenanceScheduleResponse(CctvMaintenanceScheduleSchema): id: str; cctv_audit_id: str
-class AmcComplianceFormatResponse(AmcComplianceFormatSchema): id: str; cctv_audit_id: str
-class SiteInformationResponse(SiteInformationSchema): id: str; cctv_audit_id: str
-class CameraInventoryLogResponse(CameraInventoryLogSchema): id: str; cctv_audit_id: str
+# class DocumentationFormatSchema(BaseModel):
+#     Site_Information: SiteInformationSchema
+#     Camera_Inventory_Log: List[CameraInventoryLogSchema] = []
 
-class DocumentationFormatResponse(BaseModel):
-    Site_Information: SiteInformationResponse
-    Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
+# # Schemas for Create/Update operations
+# class CctvAuditData(BaseModel):
+#     Site_Assessment_Format: List[SiteAssessmentFormatSchema] = []
+#     Installation_Checklist: List[InstallationChecklistSchema] = []
+#     Configuration_Testing_Checklist: List[ConfigurationTestingChecklistSchema] = []
+#     Daily_Operations_Monitoring: List[DailyOperationsMonitoringSchema] = []
+#     Maintenance_Schedule: List[CctvMaintenanceScheduleSchema] = []
+#     Documentation_Format: DocumentationFormatSchema
+#     AMC_Compliance_Format: List[AmcComplianceFormatSchema] = []
 
-class CctvAuditReportResponse(BaseModel):
-    id: str
-    property_id: str
-    created_at: datetime
-    updated_at: datetime
-    Site_Assessment_Format: List[SiteAssessmentFormatResponse] = []
-    Installation_Checklist: List[InstallationChecklistResponse] = []
-    Configuration_Testing_Checklist: List[ConfigurationTestingChecklistResponse] = []
-    Daily_Operations_Monitoring: List[DailyOperationsMonitoringResponse] = []
-    Maintenance_Schedule: List[MaintenanceScheduleResponse] = []
-    AMC_Compliance_Format: List[AmcComplianceFormatResponse] = []
-    Site_Information: Optional[SiteInformationResponse] = None
-    Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
+# class CctvAuditReportCreate(BaseModel):
+#     property_id: str
+#     CCTV_Audit: CctvAuditData
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+# class CctvAuditReportUpdate(BaseModel):
+#     property_id: Optional[str] = None
+#     CCTV_Audit: Optional[CctvAuditData] = None
 
-    @classmethod
-    def model_validate(cls, obj):
-        # Create a copy of the object to avoid modifying the original
-        data = {
-            'id': obj.id,
-            'property_id': obj.property_id,
-            'created_at': obj.created_at,
-            'updated_at': obj.updated_at,
-            'Site_Assessment_Format': [SiteAssessmentFormatResponse.model_validate(item) for item in obj.site_assessments],
-            'Installation_Checklist': [InstallationChecklistResponse.model_validate(item) for item in obj.installation_checklists],
-            'Configuration_Testing_Checklist': [ConfigurationTestingChecklistResponse.model_validate(item) for item in obj.configuration_checklists],
-            'Daily_Operations_Monitoring': [DailyOperationsMonitoringResponse.model_validate(item) for item in obj.daily_operations],
-            'Maintenance_Schedule': [MaintenanceScheduleResponse.model_validate(item) for item in obj.maintenance_schedules],
-            'AMC_Compliance_Format': [AmcComplianceFormatResponse.model_validate(item) for item in obj.amc_compliance_formats],
-            'Site_Information': SiteInformationResponse.model_validate(obj.site_information) if obj.site_information else None,
-            'Camera_Inventory_Log': [CameraInventoryLogResponse.model_validate(item) for item in obj.camera_inventory_logs]
-        }
-        return cls(**data)
+# # Schemas for Response models (including generated IDs)
+# class SiteAssessmentFormatResponse(SiteAssessmentFormatSchema): id: str; cctv_audit_id: str
+# class InstallationChecklistResponse(InstallationChecklistSchema): id: str; cctv_audit_id: str
+# class ConfigurationTestingChecklistResponse(ConfigurationTestingChecklistSchema): id: str; cctv_audit_id: str
+# class DailyOperationsMonitoringResponse(DailyOperationsMonitoringSchema): id: str; cctv_audit_id: str
+# class MaintenanceScheduleResponse(CctvMaintenanceScheduleSchema): id: str; cctv_audit_id: str
+# class AmcComplianceFormatResponse(AmcComplianceFormatSchema): id: str; cctv_audit_id: str
+# class SiteInformationResponse(SiteInformationSchema): id: str; cctv_audit_id: str
+# class CameraInventoryLogResponse(CameraInventoryLogSchema): id: str; cctv_audit_id: str
 
-# Create database tables on startup
-Base.metadata.create_all(bind=engine)
+# class DocumentationFormatResponse(BaseModel):
+#     Site_Information: SiteInformationResponse
+#     Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
 
-# Map JSON field names to SQLAlchemy models
-MODEL_MAP = {
-    "Site_Assessment_Format": (SiteAssessmentFormat, "site_assessments"),
-    "Installation_Checklist": (InstallationChecklist, "installation_checklists"),
-    "Configuration_Testing_Checklist": (ConfigurationTestingChecklist, "configuration_checklists"),
-    "Daily_Operations_Monitoring": (DailyOperationsMonitoring, "daily_operations"),
-    "Maintenance_Schedule": (CctvMaintenanceSchedule, "maintenance_schedules"),
-    "AMC_Compliance_Format": (AmcComplianceFormat, "amc_compliance_formats"),
-}
+# class CctvAuditReportResponse(BaseModel):
+#     id: str
+#     property_id: str
+#     created_at: datetime
+#     updated_at: datetime
+#     Site_Assessment_Format: List[SiteAssessmentFormatResponse] = []
+#     Installation_Checklist: List[InstallationChecklistResponse] = []
+#     Configuration_Testing_Checklist: List[ConfigurationTestingChecklistResponse] = []
+#     Daily_Operations_Monitoring: List[DailyOperationsMonitoringResponse] = []
+#     Maintenance_Schedule: List[MaintenanceScheduleResponse] = []
+#     AMC_Compliance_Format: List[AmcComplianceFormatResponse] = []
+#     Site_Information: Optional[SiteInformationResponse] = None
+#     Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
 
-@app.post("/cctv-audits/", response_model=CctvAuditReportResponse, status_code=status.HTTP_201_CREATED, tags=["CCTV Audit Report"])
-def create_cctv_audit_report(report: CctvAuditReportCreate, db: Session = Depends(get_db)):
-    try:
-        db_report = CctvAuditReport(property_id=report.property_id)
-        db.add(db_report)
-        db.flush() # Flush to get the db_report.id
+#     class Config:
+#         from_attributes = True
+#         populate_by_name = True
 
-        audit_data = report.CCTV_Audit
+#     @classmethod
+#     def model_validate(cls, obj):
+#         # Create a copy of the object to avoid modifying the original
+#         data = {
+#             'id': obj.id,
+#             'property_id': obj.property_id,
+#             'created_at': obj.created_at,
+#             'updated_at': obj.updated_at,
+#             'Site_Assessment_Format': [SiteAssessmentFormatResponse.model_validate(item) for item in obj.site_assessments],
+#             'Installation_Checklist': [InstallationChecklistResponse.model_validate(item) for item in obj.installation_checklists],
+#             'Configuration_Testing_Checklist': [ConfigurationTestingChecklistResponse.model_validate(item) for item in obj.configuration_checklists],
+#             'Daily_Operations_Monitoring': [DailyOperationsMonitoringResponse.model_validate(item) for item in obj.daily_operations],
+#             'Maintenance_Schedule': [MaintenanceScheduleResponse.model_validate(item) for item in obj.maintenance_schedules],
+#             'AMC_Compliance_Format': [AmcComplianceFormatResponse.model_validate(item) for item in obj.amc_compliance_formats],
+#             'Site_Information': SiteInformationResponse.model_validate(obj.site_information) if obj.site_information else None,
+#             'Camera_Inventory_Log': [CameraInventoryLogResponse.model_validate(item) for item in obj.camera_inventory_logs]
+#         }
+#         return cls(**data)
 
-        # Handle nested list entries
-        for field, (model, _) in MODEL_MAP.items():
-            entries = getattr(audit_data, field, [])
-            if entries:
-                for entry_data in entries:
-                    db_entry = model(cctv_audit_id=db_report.id, **entry_data.dict())
-                    db.add(db_entry)
+# # Create database tables on startup
+# Base.metadata.create_all(bind=engine)
+
+# # Map JSON field names to SQLAlchemy models
+# MODEL_MAP = {
+#     "Site_Assessment_Format": (SiteAssessmentFormat, "site_assessments"),
+#     "Installation_Checklist": (InstallationChecklist, "installation_checklists"),
+#     "Configuration_Testing_Checklist": (ConfigurationTestingChecklist, "configuration_checklists"),
+#     "Daily_Operations_Monitoring": (DailyOperationsMonitoring, "daily_operations"),
+#     "Maintenance_Schedule": (CctvMaintenanceSchedule, "maintenance_schedules"),
+#     "AMC_Compliance_Format": (AmcComplianceFormat, "amc_compliance_formats"),
+# }
+
+# @app.post("/cctv-audits/", response_model=CctvAuditReportResponse, status_code=status.HTTP_201_CREATED, tags=["CCTV Audit Report"])
+# def create_cctv_audit_report(report: CctvAuditReportCreate, db: Session = Depends(get_db)):
+#     try:
+#         db_report = CctvAuditReport(property_id=report.property_id)
+#         db.add(db_report)
+#         db.flush() # Flush to get the db_report.id
+
+#         audit_data = report.CCTV_Audit
+
+#         # Handle nested list entries
+#         for field, (model, _) in MODEL_MAP.items():
+#             entries = getattr(audit_data, field, [])
+#             if entries:
+#                 for entry_data in entries:
+#                     db_entry = model(cctv_audit_id=db_report.id, **entry_data.model_dump())
+#                     db.add(db_entry)
         
-        # Handle Documentation_Format separately
-        doc_format = audit_data.Documentation_Format
-        if doc_format.Site_Information:
-            db_site_info = SiteInformation(cctv_audit_id=db_report.id, **doc_format.Site_Information.dict())
-            db.add(db_site_info)
+#         # Handle Documentation_Format separately
+#         doc_format = audit_data.Documentation_Format
+#         if doc_format.Site_Information:
+#             db_site_info = SiteInformation(cctv_audit_id=db_report.id, **doc_format.Site_Information.model_dump())
+#             db.add(db_site_info)
         
-        for log_data in doc_format.Camera_Inventory_Log:
-            db_log = CameraInventoryLog(cctv_audit_id=db_report.id, **log_data.dict())
-            db.add(db_log)
+#         for log_data in doc_format.Camera_Inventory_Log:
+#             db_log = CameraInventoryLog(cctv_audit_id=db_report.id, **log_data.model_dump())
+#             db.add(db_log)
 
-        db.commit()
-        db.refresh(db_report)
-        return CctvAuditReportResponse.model_validate(db_report) # Use model_validate for complex nested models
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error creating CCTV audit report: {str(e)}")
+#         db.commit()
+#         db.refresh(db_report)
+#         return CctvAuditReportResponse.model_validate(db_report) # Use model_validate for complex nested models
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"Error creating CCTV audit report: {str(e)}")
 
-@app.get("/cctv-audits/", response_model=List[CctvAuditReportResponse], tags=["CCTV Audit Report"])
-def get_all_cctv_audit_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
-    try:
-        query = db.query(CctvAuditReport)
-        if property_id:
-            query = query.filter(CctvAuditReport.property_id == property_id)
-        reports = query.offset(skip).limit(limit).all()
-        return [CctvAuditReportResponse.model_validate(r) for r in reports]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching CCTV audit reports: {str(e)}")
+# @app.get("/cctv-audits/", response_model=List[CctvAuditReportResponse], tags=["CCTV Audit Report"])
+# def get_all_cctv_audit_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+#     try:
+#         query = db.query(CctvAuditReport)
+#         if property_id:
+#             query = query.filter(CctvAuditReport.property_id == property_id)
+#         reports = query.offset(skip).limit(limit).all()
+#         return [CctvAuditReportResponse.model_validate(r) for r in reports]
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error fetching CCTV audit reports: {str(e)}")
 
-@app.get("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
-def get_cctv_audit_report_by_id(report_id: str, db: Session = Depends(get_db)):
-    report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="CCTV audit report not found")
-    return CctvAuditReportResponse.model_validate(report)
+# @app.get("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
+# def get_cctv_audit_report_by_id(report_id: str, db: Session = Depends(get_db)):
+#     report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+#     if not report:
+#         raise HTTPException(status_code=404, detail="CCTV audit report not found")
+#     return CctvAuditReportResponse.model_validate(report)
 
-@app.put("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
-def update_cctv_audit_report(report_id: str, report_update: CctvAuditReportUpdate, db: Session = Depends(get_db)):
-    db_report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
-    if not db_report:
-        raise HTTPException(status_code=404, detail="CCTV audit report not found")
+# @app.put("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
+# def update_cctv_audit_report(report_id: str, report_update: CctvAuditReportUpdate, db: Session = Depends(get_db)):
+#     db_report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+#     if not db_report:
+#         raise HTTPException(status_code=404, detail="CCTV audit report not found")
 
-    try:
-        if report_update.property_id:
-            db_report.property_id = report_update.property_id
+#     try:
+#         if report_update.property_id:
+#             db_report.property_id = report_update.property_id
 
-        if report_update.CCTV_Audit:
-            audit_data = report_update.CCTV_Audit
-            # Handle list updates (delete old, create new)
-            for field, (model, rel_name) in MODEL_MAP.items():
-                update_entries = getattr(audit_data, field, None)
-                if update_entries is not None:
-                    # Delete existing
-                    db.query(model).filter(model.cctv_audit_id == report_id).delete(synchronize_session=False)
-                    # Add new
-                    for entry_data in update_entries:
-                        db_entry = model(cctv_audit_id=report_id, **entry_data.dict())
-                        db.add(db_entry)
+#         if report_update.CCTV_Audit:
+#             audit_data = report_update.CCTV_Audit
+#             # Handle list updates (delete old, create new)
+#             for field, (model, rel_name) in MODEL_MAP.items():
+#                 update_entries = getattr(audit_data, field, None)
+#                 if update_entries is not None:
+#                     # Delete existing
+#                     db.query(model).filter(model.cctv_audit_id == report_id).delete(synchronize_session=False)
+#                     # Add new
+#                     for entry_data in update_entries:
+#                         db_entry = model(cctv_audit_id=report_id, **entry_data.model_dump())
+#                         db.add(db_entry)
             
-            # Handle Documentation_Format update
-            doc_format_update = getattr(audit_data, 'Documentation_Format', None)
-            if doc_format_update:
-                # Update SiteInformation
-                if doc_format_update.Site_Information:
-                    db.query(SiteInformation).filter(SiteInformation.cctv_audit_id == report_id).delete(synchronize_session=False)
-                    db_site_info = SiteInformation(cctv_audit_id=report_id, **doc_format_update.Site_Information.dict())
-                    db.add(db_site_info)
-                # Update CameraInventoryLog
-                if doc_format_update.Camera_Inventory_Log is not None:
-                    db.query(CameraInventoryLog).filter(CameraInventoryLog.cctv_audit_id == report_id).delete(synchronize_session=False)
-                    for log_data in doc_format_update.Camera_Inventory_Log:
-                        db_log = CameraInventoryLog(cctv_audit_id=report_id, **log_data.dict())
-                        db.add(db_log)
+#             # Handle Documentation_Format update
+#             doc_format_update = getattr(audit_data, 'Documentation_Format', None)
+#             if doc_format_update:
+#                 # Update SiteInformation
+#                 if doc_format_update.Site_Information:
+#                     db.query(SiteInformation).filter(SiteInformation.cctv_audit_id == report_id).delete(synchronize_session=False)
+#                     db_site_info = SiteInformation(cctv_audit_id=report_id, **doc_format_update.Site_Information.model_dump())
+#                     db.add(db_site_info)
+#                 # Update CameraInventoryLog
+#                 if doc_format_update.Camera_Inventory_Log is not None:
+#                     db.query(CameraInventoryLog).filter(CameraInventoryLog.cctv_audit_id == report_id).delete(synchronize_session=False)
+#                     for log_data in doc_format_update.Camera_Inventory_Log:
+#                         db_log = CameraInventoryLog(cctv_audit_id=report_id, **log_data.model_dump())
+#                         db.add(db_log)
         
-        db_report.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(db_report)
-        return CctvAuditReportResponse.model_validate(db_report)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating CCTV audit report: {str(e)}")
+#         db_report.updated_at = datetime.utcnow()
+#         db.commit()
+#         db.refresh(db_report)
+#         return CctvAuditReportResponse.model_validate(db_report)
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"Error updating CCTV audit report: {str(e)}")
 
-@app.delete("/cctv-audits/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["CCTV Audit Report"])
-def delete_cctv_audit_report(report_id: str, db: Session = Depends(get_db)):
-    report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
-    if not report:
-        raise HTTPException(status_code=404, detail="CCTV audit report not found")
+# @app.delete("/cctv-audits/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["CCTV Audit Report"])
+# def delete_cctv_audit_report(report_id: str, db: Session = Depends(get_db)):
+#     report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+#     if not report:
+#         raise HTTPException(status_code=404, detail="CCTV audit report not found")
     
-    try:
-        db.delete(report)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error deleting CCTV audit report: {str(e)}")
+#     try:
+#         db.delete(report)
+#         db.commit()
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"Error deleting CCTV audit report: {str(e)}")
 
 # Main Report Table
 class FireSafetyReport(Base):
@@ -11403,6 +11419,12 @@ class SiteVisitReportResponse(BaseModel):
         return cls(id=orm_model.id, property_id=orm_model.property_id, created_at=orm_model.created_at, updated_at=orm_model.updated_at, report_data=data)
 
 
+def orm_to_dict(orm_obj):
+    """Convert SQLAlchemy ORM object to dictionary"""
+    if orm_obj is None:
+        return None
+    return {c.name: getattr(orm_obj, c.name) for c in orm_obj.__table__.columns}
+
 Base.metadata.create_all(bind=engine)
 
 ONE_TO_MANY_MAP = {
@@ -11840,3 +11862,263 @@ def delete_kpi_record(record_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting KPI record: {str(e)}")
+
+# --- SQLAlchemy ORM Models ---
+
+# Main Parent Table
+class CCTVAuditReport(Base):
+    __tablename__ = "cctv_audit_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    site_assessments = relationship("SiteAssessmentFormat", back_populates="report", cascade="all, delete-orphan")
+    installation_checklists = relationship("InstallationChecklist", back_populates="report", cascade="all, delete-orphan")
+    configuration_checklists = relationship("ConfigurationTestingChecklist", back_populates="report", cascade="all, delete-orphan")
+    daily_operations = relationship("DailyOperationsMonitoring", back_populates="report", cascade="all, delete-orphan")
+    maintenance_schedules = relationship("CctvMaintenanceSchedule", back_populates="report", cascade="all, delete-orphan")
+    amc_compliance_formats = relationship("AMCComplianceFormat", back_populates="report", cascade="all, delete-orphan")
+    
+    # Documentation Format Children
+    site_information = relationship("SiteInformation", uselist=False, back_populates="report", cascade="all, delete-orphan")
+    camera_inventory_logs = relationship("CameraInventoryLog", back_populates="report", cascade="all, delete-orphan")
+
+
+# Child Tables
+class SiteAssessmentFormat(Base):
+    __tablename__ = "site_assessment_formats"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Description = Column(String); Checklist_Points = Column(String); Checked_Status = Column(String); Observations = Column(String); Suggestions_Actions = Column(String); Responsibility = Column(String); Target_Date = Column(String); Photo_Insert = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="site_assessments")
+
+class InstallationChecklist(Base):
+    __tablename__ = "installation_checklists"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Category = Column(String); Checklist_Point = Column(String); Checked = Column(String); Observations = Column(String); Remarks_Action_Required = Column(String); Responsibility = Column(String); Target_Completion_Date = Column(String); Photo_Insert = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="installation_checklists")
+
+class ConfigurationTestingChecklist(Base):
+    __tablename__ = "configuration_testing_checklists"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Category = Column(String); Checklist_Point = Column(String); Checked = Column(String); Observations = Column(String); Suggestions_Action_Required = Column(String); Responsibility = Column(String); Target_Completion_Date = Column(String); Photo_Screenshot = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="configuration_checklists")
+
+class DailyOperationsMonitoring(Base):
+    __tablename__ = "daily_operations_monitoring"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Category = Column(String); Checklist_Point = Column(String); Checked = Column(String); Observations = Column(String); Actions_Required = Column(String); Responsibility = Column(String); Time_Checked = Column(String); Photo_Screenshot = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="daily_operations")
+
+class CctvMaintenanceSchedule(Base):
+    __tablename__ = "cctv_maintenance_schedules"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Maintenance_Type = Column(String); Checklist_Point_Task = Column(String); Frequency = Column(String); Last_Maintenance_Date = Column(String); Next_Due_Date = Column(String); Status = Column(String); Observations_Issues = Column(String); Action_Taken_Required = Column(String); Responsible = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="maintenance_schedules")
+
+class SiteInformation(Base):
+    __tablename__ = "site_information"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), unique=True, nullable=False)
+    Site_Name_Code = Column(String); Address = Column(String); Contact_Person_Site_Incharge = Column(String); CCTV_Install_Date = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="site_information")
+
+class CameraInventoryLog(Base):
+    __tablename__ = "camera_inventory_logs"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    Camera_ID_Name = Column(String); Camera_Type = Column(String); Brand_Model_No = Column(String); Resolution_MP = Column(String); Location_Installed = Column(String); Indoor_Outdoor = Column(String); Working_Status = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="camera_inventory_logs")
+    
+class AMCComplianceFormat(Base):
+    __tablename__ = "amc_compliance_formats"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer); Category = Column(String); Checklist_Description = Column(String); Details_Status = Column(String); Last_Updated = Column(String); Next_Due_Date = Column(String); Observations_Non_Compliance = Column(String); Action_Taken_Required = Column(String); Responsible = Column(String); Remarks = Column(String)
+    report = relationship("CCTVAuditReport", back_populates="amc_compliance_formats")
+
+# --- Pydantic Schemas ---
+class SiteAssessmentFormatSchema(BaseModel): 
+    SL_No: int; Description: str; Checklist_Points: str; Checked_Status: str; Observations: str; Suggestions_Actions: str; Responsibility: str; Target_Date: str; Photo_Insert: str; Remarks: str
+    class Config: from_attributes = True
+
+class InstallationChecklistSchema(BaseModel): 
+    SL_No: int; Category: str; Checklist_Point: str; Checked: str; Observations: str; Remarks_Action_Required: str; Responsibility: str; Target_Completion_Date: str; Photo_Insert: str; Remarks: str
+    class Config: from_attributes = True
+
+class ConfigurationTestingChecklistSchema(BaseModel): 
+    SL_No: int; Category: str; Checklist_Point: str; Checked: str; Observations: str; Suggestions_Action_Required: str; Responsibility: str; Target_Completion_Date: str; Photo_Screenshot: str; Remarks: str
+    class Config: from_attributes = True
+
+class DailyOperationsMonitoringSchema(BaseModel): 
+    SL_No: int; Category: str; Checklist_Point: str; Checked: str; Observations: str; Actions_Required: str; Responsibility: str; Time_Checked: str; Photo_Screenshot: str; Remarks: str
+    class Config: from_attributes = True
+
+class CctvMaintenanceScheduleSchema(BaseModel): 
+    SL_No: int; Maintenance_Type: str; Checklist_Point_Task: str; Frequency: str; Last_Maintenance_Date: str; Next_Due_Date: str; Status: str; Observations_Issues: str; Action_Taken_Required: str; Responsible: str; Remarks: str
+    class Config: from_attributes = True
+
+class SiteInformationSchema(BaseModel): 
+    Site_Name_Code: str; Address: str; Contact_Person_Site_Incharge: str; CCTV_Install_Date: str
+    class Config: from_attributes = True
+
+class CameraInventoryLogSchema(BaseModel): 
+    Camera_ID_Name: str; Camera_Type: str; Brand_Model_No: str; Resolution_MP: str; Location_Installed: str; Indoor_Outdoor: str; Working_Status: str
+    class Config: from_attributes = True
+
+class AMCComplianceFormatSchema(BaseModel): 
+    SL_No: int; Category: str; Checklist_Description: str; Details_Status: str; Last_Updated: str; Next_Due_Date: str; Observations_Non_Compliance: str; Action_Taken_Required: str; Responsible: str; Remarks: str
+    class Config: from_attributes = True
+
+class DocumentationFormatSchema(BaseModel):
+    Site_Information: SiteInformationSchema
+    Camera_Inventory_Log: List[CameraInventoryLogSchema] = []
+    
+    class Config:
+        from_attributes = True
+
+class CCTVAuditData(BaseModel):
+    Site_Assessment_Format: List[SiteAssessmentFormatSchema] = []; Installation_Checklist: List[InstallationChecklistSchema] = []; Configuration_Testing_Checklist: List[ConfigurationTestingChecklistSchema] = []; Daily_Operations_Monitoring: List[DailyOperationsMonitoringSchema] = []; Maintenance_Schedule: List[CctvMaintenanceScheduleSchema] = []; Documentation_Format: DocumentationFormatSchema; AMC_Compliance_Format: List[AMCComplianceFormatSchema] = []
+    
+    class Config:
+        from_attributes = True
+
+class CCTVAuditReportCreate(BaseModel):
+    property_id: str
+    CCTV_Audit: CCTVAuditData
+class CCTVAuditReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    CCTV_Audit: Optional[CCTVAuditData] = None
+
+class CCTVAuditReportResponse(BaseModel):
+    id: str; property_id: str; created_at: datetime; updated_at: datetime
+    CCTV_Audit: CCTVAuditData = Field(..., alias="cctv_audit_data")
+    class Config: from_attributes = True; populate_by_name = True
+
+    @classmethod
+    def from_orm_model(cls, orm_model: CCTVAuditReport):
+        # Convert ORM objects to dictionaries for Pydantic using helper function
+        site_assessments = [SiteAssessmentFormatSchema.model_validate(orm_to_dict(item)) for item in orm_model.site_assessments]
+        installation_checklists = [InstallationChecklistSchema.model_validate(orm_to_dict(item)) for item in orm_model.installation_checklists]
+        configuration_checklists = [ConfigurationTestingChecklistSchema.model_validate(orm_to_dict(item)) for item in orm_model.configuration_checklists]
+        daily_operations = [DailyOperationsMonitoringSchema.model_validate(orm_to_dict(item)) for item in orm_model.daily_operations]
+        maintenance_schedules = [CctvMaintenanceScheduleSchema.model_validate(orm_to_dict(item)) for item in orm_model.maintenance_schedules]
+        amc_compliance_formats = [AMCComplianceFormatSchema.model_validate(orm_to_dict(item)) for item in orm_model.amc_compliance_formats]
+        
+        # Handle one-to-one relationship
+        site_information = SiteInformationSchema.model_validate(orm_to_dict(orm_model.site_information)) if orm_model.site_information else None
+        camera_inventory_logs = [CameraInventoryLogSchema.model_validate(orm_to_dict(item)) for item in orm_model.camera_inventory_logs]
+        
+        documentation_format = DocumentationFormatSchema(
+            Site_Information=site_information,
+            Camera_Inventory_Log=camera_inventory_logs
+        )
+        
+        data = CCTVAuditData(
+            Site_Assessment_Format=site_assessments,
+            Installation_Checklist=installation_checklists,
+            Configuration_Testing_Checklist=configuration_checklists,
+            Daily_Operations_Monitoring=daily_operations,
+            Maintenance_Schedule=maintenance_schedules,
+            AMC_Compliance_Format=amc_compliance_formats,
+            Documentation_Format=documentation_format
+        )
+        return cls(id=orm_model.id, property_id=orm_model.property_id, created_at=orm_model.created_at, updated_at=orm_model.updated_at, cctv_audit_data=data)
+
+
+Base.metadata.create_all(bind=engine)
+
+ONE_TO_MANY_MAP = {
+    "Site_Assessment_Format": SiteAssessmentFormat, "Installation_Checklist": InstallationChecklist, "Configuration_Testing_Checklist": ConfigurationTestingChecklist,
+    "Daily_Operations_Monitoring": DailyOperationsMonitoring, "Maintenance_Schedule": CctvMaintenanceSchedule, "AMC_Compliance_Format": AMCComplianceFormat,
+    "Camera_Inventory_Log": CameraInventoryLog
+}
+ONE_TO_ONE_MAP = {"Site_Information": SiteInformation}
+TAG = "CCTV Audit Reports"
+
+@app.post("/cctv-audit-reports/", response_model=CCTVAuditReportResponse, status_code=status.HTTP_201_CREATED, tags=[TAG])
+def create_report(report_data: CCTVAuditReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = CCTVAuditReport(property_id=report_data.property_id); db.add(db_report); db.flush()
+        cctv_audit_payload = report_data.CCTV_Audit
+
+        # Handle one-to-one
+        site_info_data = cctv_audit_payload.Documentation_Format.Site_Information
+        db.add(SiteInformation(report_id=db_report.id, **site_info_data.model_dump()))
+
+        # Handle one-to-many from Documentation_Format
+        for entry_data in cctv_audit_payload.Documentation_Format.Camera_Inventory_Log:
+            db.add(CameraInventoryLog(report_id=db_report.id, **entry_data.model_dump()))
+
+        # Handle other one-to-many lists
+        for key, model in ONE_TO_MANY_MAP.items():
+            if key == "Camera_Inventory_Log": continue # Already handled
+            entries = getattr(cctv_audit_payload, key, [])
+            for entry_data in entries:
+                db.add(model(report_id=db_report.id, **entry_data.model_dump()))
+
+        db.commit(); db.refresh(db_report)
+        return CCTVAuditReportResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/cctv-audit-reports/", response_model=List[CCTVAuditReportResponse], tags=[TAG])
+def get_all_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(CCTVAuditReport)
+    if property_id: query = query.filter(CCTVAuditReport.property_id == property_id)
+    records = query.offset(skip).limit(limit).all()
+    return [CCTVAuditReportResponse.from_orm_model(r) for r in records]
+
+@app.get("/cctv-audit-reports/{report_id}", response_model=CCTVAuditReportResponse, tags=[TAG])
+def get_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    record = db.query(CCTVAuditReport).filter(CCTVAuditReport.id == report_id).first()
+    if not record: raise HTTPException(status_code=404, detail="Report not found")
+    return CCTVAuditReportResponse.from_orm_model(record)
+
+@app.put("/cctv-audit-reports/{report_id}", response_model=CCTVAuditReportResponse, tags=[TAG])
+def update_report(report_id: str, update_data: CCTVAuditReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(CCTVAuditReport).filter(CCTVAuditReport.id == report_id).first()
+    if not db_report: raise HTTPException(status_code=404, detail="Report not found")
+    try:
+        if update_data.property_id: db_report.property_id = update_data.property_id
+        if update_data.CCTV_Audit:
+            cctv_audit_payload = update_data.CCTV_Audit
+            
+            # Update Site_Information
+            site_info_data = cctv_audit_payload.Documentation_Format.Site_Information
+            db.query(SiteInformation).filter(SiteInformation.report_id == report_id).delete(synchronize_session=False)
+            db.add(SiteInformation(report_id=report_id, **site_info_data.model_dump()))
+            
+            # Update Camera_Inventory_Log
+            db.query(CameraInventoryLog).filter(CameraInventoryLog.report_id == report_id).delete(synchronize_session=False)
+            for entry_data in cctv_audit_payload.Documentation_Format.Camera_Inventory_Log:
+                db.add(CameraInventoryLog(report_id=report_id, **entry_data.model_dump()))
+
+            # Update other lists
+            for key, model in ONE_TO_MANY_MAP.items():
+                if key == "Camera_Inventory_Log": continue
+                entries = getattr(cctv_audit_payload, key, None)
+                if entries is not None:
+                    db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                    for entry_data in entries:
+                        db.add(model(report_id=report_id, **entry_data.model_dump()))
+
+        db_report.updated_at = datetime.utcnow(); db.commit(); db.refresh(db_report)
+        return CCTVAuditReportResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/cctv-audit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG])
+def delete_report(report_id: str, db: Session = Depends(get_db)):
+    record = db.query(CCTVAuditReport).filter(CCTVAuditReport.id == report_id).first()
+    if not record: raise HTTPException(status_code=404, detail="Report not found")
+    try:
+        db.delete(record); db.commit()
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")

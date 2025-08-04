@@ -241,294 +241,298 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <ClipboardList size={20} />,
         label: 'Reports and Audit',
         hasSubmenu: true,
         submenuItems: [
-          {
-            path: '#',
-            label: 'Departmental Reporting and Audit',
-            hasSubmenu: true,
-            submenuItems: [
-              {
-                path: '#',
-                label: 'FMS Department',
-                hasSubmenu: true,
-                submenuItems: [
-                  {
-                    path: '#',
-                    label: 'Housekeeping and Waste Management',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Chute Room Audit' },
-                      { path: '#', label: 'OWC Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Landscaping and Gardening Maintenance',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Landscaping and Garden Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Pest Control',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Pest Control Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Carpet and Upholstery',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Carpet and Upholstery Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Common Area Management',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Common Area Housekeeping Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Restroom Hygiene Management',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Restroom Hygiene Management Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Pantry Service',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Pantry Service Audit' },
-                    ]
-                  },
-                  {
-                    path: '#',
-                    label: 'Civil Maintenance',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Civil Audit Format' },
-                    ]
-                  },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Technical Department',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'BMS (Building Management Software)' },
-                  { path: '#', label: 'Booster Pump Audit' },
-                  { path: '#', label: 'CCTV System' },
-                  { path: '#', label: 'Electrical Department' },
-                  { path: '#', label: 'Fire Protection System' },
-                  { path: '#', label: 'Intercom System Audit Report' },
-                  { path: '#', label: 'Plumbing Department' },
-                  { path: '#', label: 'Storm Water System Audit' },
-                  { path: '#', label: 'STP Audit Format' },
-                  { path: '#', label: 'Swimming Pool Plant Audit Format' },
-                  { path: '#', label: 'WTP Audit Format' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Administration Department',
-                hasSubmenu: true,
-                submenuItems: [
-                  {
-                    path: '#',
-                    label: 'Front Office and Reception',
-                    hasSubmenu: true,
-                    submenuItems: [
-                      { path: '#', label: 'Attendance and Leave Management' },
-                      { path: '#', label: 'HR Coordination and Payroll Support' },
-                      { path: '#', label: 'Procurement and Inventory' },
-                      { path: '#', label: 'Record Keeping and Documents' },
-                      { path: '#', label: 'Client Coordinator' },
-                      { path: '#', label: 'Vendor Management' },
-                      { path: '#', label: 'Office Supply Management' },
-                      { path: '#', label: 'Transport & Courier Services' },
-                      { path: '#', label: 'Staff Verification' },
-                    ]
-                  },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Security Department',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Guarding Manpower' },
-                  { path: '#', label: 'Patrol Team (Day and Night)' },
-                  { path: '#', label: 'Control Room Monitoring' },
-                  { path: '#', label: 'Access Control Operations' },
-                  { path: '#', label: 'Risk Management' },
-                  { path: '#', label: 'Visitor Management' },
-                  { path: '#', label: 'Fire and Emergency Response Team' },
-                  { path: '#', label: 'CCTV Monitoring' },
-                  { path: '#', label: 'Escort and Protocol Security' },
-                  { path: '#', label: 'Training and Drill Coordinator' },
-                  { path: '#', label: 'Security New Site Survey' },
-                  { path: '#', label: 'Residents Vehicle Parking Verification' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Common Snag Audit',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Basement Audit' },
-                  { path: '#', label: 'Common Snag Audit Format' },
-                  { path: '#', label: 'EHS Audit' },
-                  { path: '#', label: 'Helipad Audit' },
-                  { path: '#', label: 'Multi-Level Parking' },
-                  { path: '#', label: 'Safety Audit' },
-                  { path: '#', label: 'Tower Snag Audit' },
-                ]
-              },
-            ]
-          },
-          {
-            path: '#',
-            label: 'Internal Audit',
-            hasSubmenu: true,
-            submenuItems: [
-              {
-                path: '#',
-                label: 'Security Department',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Security Deployment Internal Audit' },
-                  { path: '#', label: 'Access Control Internal Audit' },
-                  { path: '#', label: 'Patrol Logs' },
-                  { path: '#', label: 'CCTV Monitoring' },
-                  { path: '#', label: 'Incident Management' },
-                  { path: '#', label: 'Escort and Protocol' },
-                  { path: '#', label: 'Control Room' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Facility and Soft Services',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Carpet and Upholstery Internal Audit' },
-                  { path: '#', label: 'Cleaning Checklist Internal Audit' },
-                  { path: '#', label: 'Common Area Internal Audit' },
-                  { path: '#', label: 'Pantry Services Internal Audit' },
-                  { path: '#', label: 'Pest Control Internal Audit' },
-                  { path: '#', label: 'Restroom Hygiene Audit' },
-                  { path: '#', label: 'Waste Management Internal Audit' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Fire and Safety',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Fire Extinguisher Internal Audit' },
-                  { path: '#', label: 'Fire Alarm Panel Internal Audit' },
-                  { path: '#', label: 'Emergency Exit Audit Format' },
-                  { path: '#', label: 'Fire Drill Audit' },
-                  { path: '#', label: 'First Aid Kit Internal Audit' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Technical and Maintenance',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Electrical Systems – Internal Audit Format' },
-                  { path: '#', label: 'STP/WTP – Internal Audit Format' },
-                  { path: '#', label: 'DG Set – Internal Audit Format' },
-                  { path: '#', label: 'Lift/HVAC – Internal Audit Format' },
-                  { path: '#', label: 'Tools & Equipment – Internal Audit Format' },
-                  { path: '#', label: 'Plumbing Systems – Internal Audit Format' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Back-End Office',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Attendance & Leave Audit Format' },
-                  { path: '#', label: 'ID Cards Verification Audit Format' },
-                  { path: '#', label: 'Payroll Processing Audit Format' },
-                  { path: '#', label: 'Staff Record Verification Audit Format' },
-                  { path: '#', label: 'Office Supplies Audit Format' },
-                  { path: '#', label: 'Stationery & Inventory Stock Audit Format' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Finance and Procurement',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'Invoice Processing Audit – PO vs GRN vs Invoice Matching' },
-                  { path: '#', label: 'Petty Cash Audit Format' },
-                  { path: '#', label: 'Vendor Payment Compliance Audit Format' },
-                  { path: '#', label: 'Contract AMC Management Audit Format' },
-                  { path: '#', label: 'Inventory Audit Format – Inward vs Outward vs Physical Stock' },
-                  { path: '#', label: 'Budget Control & Site-Wise Expense Audit Format' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'IT and Digital Tools',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'FMS Software Internal Audit Format' },
-                  { path: '#', label: 'Biometric CCTV Internal Audit Format' },
-                  { path: '#', label: 'Visitor App QR Tools Internal Audit Format' },
-                  { path: '#', label: 'Data Security Audit Format' },
-                ]
-              },
-              {
-                path: '#',
-                label: 'Compliance and Documents',
-                hasSubmenu: true,
-                submenuItems: [
-                  { path: '#', label: 'ISO Legal Documents Audit Format' },
-                  { path: '#', label: 'Site Agreement Audit Format' },
-                  { path: '#', label: 'Training Logs Audit Format' },
-                  { path: '#', label: 'Escalation Record Audit Format' },
-                  { path: '#', label: 'Client Feedback Audit Format' },
-                ]
-              },
-            ]
-          },
-          {
-            path: '#',
-            label: 'Compliance Audit',
-            hasSubmenu: true,
-            submenuItems: [
-              { path: '#', label: 'Statutory and Compliance Details' },
-              { path: '#', label: 'HR & Manpower Compliance' },
-              { path: '#', label: 'Finance & Tax Compliance Audit Format' },
-              { path: '#', label: 'Site Operations & Safety Compliance' },
-            ]
-          },
-          {
-            path: '#',
-            label: 'New Site Proposal Audit',
-            hasSubmenu: true,
-            submenuItems: [
-              { path: '#', label: 'Security New Site Proposal' },
-              { path: '#', label: 'Facility New Site Proposal' },
-            ]
-          },
+          { path: '/audit-reports', label: 'Audit Reports' },
         ]
       },
+      //   submenuItems: [
+      //     {
+      //       path: '#',
+      //       label: 'Departmental Reporting and Audit',
+      //       hasSubmenu: true,
+      //       submenuItems: [
+      //         {
+      //           path: '#',
+      //           label: 'FMS Department',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             {
+      //               path: '#',
+      //               label: 'Housekeeping and Waste Management',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Chute Room Audit' },
+      //                 { path: '#', label: 'OWC Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Landscaping and Gardening Maintenance',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Landscaping and Garden Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Pest Control',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Pest Control Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Carpet and Upholstery',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Carpet and Upholstery Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Common Area Management',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Common Area Housekeeping Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Restroom Hygiene Management',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Restroom Hygiene Management Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Pantry Service',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Pantry Service Audit' },
+      //               ]
+      //             },
+      //             {
+      //               path: '#',
+      //               label: 'Civil Maintenance',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Civil Audit Format' },
+      //               ]
+      //             },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Technical Department',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'BMS (Building Management Software)' },
+      //             { path: '#', label: 'Booster Pump Audit' },
+      //             { path: '#', label: 'CCTV System' },
+      //             { path: '#', label: 'Electrical Department' },
+      //             { path: '#', label: 'Fire Protection System' },
+      //             { path: '#', label: 'Intercom System Audit Report' },
+      //             { path: '#', label: 'Plumbing Department' },
+      //             { path: '#', label: 'Storm Water System Audit' },
+      //             { path: '#', label: 'STP Audit Format' },
+      //             { path: '#', label: 'Swimming Pool Plant Audit Format' },
+      //             { path: '#', label: 'WTP Audit Format' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Administration Department',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             {
+      //               path: '#',
+      //               label: 'Front Office and Reception',
+      //               hasSubmenu: true,
+      //               submenuItems: [
+      //                 { path: '#', label: 'Attendance and Leave Management' },
+      //                 { path: '#', label: 'HR Coordination and Payroll Support' },
+      //                 { path: '#', label: 'Procurement and Inventory' },
+      //                 { path: '#', label: 'Record Keeping and Documents' },
+      //                 { path: '#', label: 'Client Coordinator' },
+      //                 { path: '#', label: 'Vendor Management' },
+      //                 { path: '#', label: 'Office Supply Management' },
+      //                 { path: '#', label: 'Transport & Courier Services' },
+      //                 { path: '#', label: 'Staff Verification' },
+      //               ]
+      //             },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Security Department',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Guarding Manpower' },
+      //             { path: '#', label: 'Patrol Team (Day and Night)' },
+      //             { path: '#', label: 'Control Room Monitoring' },
+      //             { path: '#', label: 'Access Control Operations' },
+      //             { path: '#', label: 'Risk Management' },
+      //             { path: '#', label: 'Visitor Management' },
+      //             { path: '#', label: 'Fire and Emergency Response Team' },
+      //             { path: '#', label: 'CCTV Monitoring' },
+      //             { path: '#', label: 'Escort and Protocol Security' },
+      //             { path: '#', label: 'Training and Drill Coordinator' },
+      //             { path: '#', label: 'Security New Site Survey' },
+      //             { path: '#', label: 'Residents Vehicle Parking Verification' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Common Snag Audit',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Basement Audit' },
+      //             { path: '#', label: 'Common Snag Audit Format' },
+      //             { path: '#', label: 'EHS Audit' },
+      //             { path: '#', label: 'Helipad Audit' },
+      //             { path: '#', label: 'Multi-Level Parking' },
+      //             { path: '#', label: 'Safety Audit' },
+      //             { path: '#', label: 'Tower Snag Audit' },
+      //           ]
+      //         },
+      //       ]
+      //     },
+      //     {
+      //       path: '#',
+      //       label: 'Internal Audit',
+      //       hasSubmenu: true,
+      //       submenuItems: [
+      //         {
+      //           path: '#',
+      //           label: 'Security Department',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Security Deployment Internal Audit' },
+      //             { path: '#', label: 'Access Control Internal Audit' },
+      //             { path: '#', label: 'Patrol Logs' },
+      //             { path: '#', label: 'CCTV Monitoring' },
+      //             { path: '#', label: 'Incident Management' },
+      //             { path: '#', label: 'Escort and Protocol' },
+      //             { path: '#', label: 'Control Room' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Facility and Soft Services',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Carpet and Upholstery Internal Audit' },
+      //             { path: '#', label: 'Cleaning Checklist Internal Audit' },
+      //             { path: '#', label: 'Common Area Internal Audit' },
+      //             { path: '#', label: 'Pantry Services Internal Audit' },
+      //             { path: '#', label: 'Pest Control Internal Audit' },
+      //             { path: '#', label: 'Restroom Hygiene Audit' },
+      //             { path: '#', label: 'Waste Management Internal Audit' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Fire and Safety',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Fire Extinguisher Internal Audit' },
+      //             { path: '#', label: 'Fire Alarm Panel Internal Audit' },
+      //             { path: '#', label: 'Emergency Exit Audit Format' },
+      //             { path: '#', label: 'Fire Drill Audit' },
+      //             { path: '#', label: 'First Aid Kit Internal Audit' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Technical and Maintenance',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Electrical Systems – Internal Audit Format' },
+      //             { path: '#', label: 'STP/WTP – Internal Audit Format' },
+      //             { path: '#', label: 'DG Set – Internal Audit Format' },
+      //             { path: '#', label: 'Lift/HVAC – Internal Audit Format' },
+      //             { path: '#', label: 'Tools & Equipment – Internal Audit Format' },
+      //             { path: '#', label: 'Plumbing Systems – Internal Audit Format' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Back-End Office',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Attendance & Leave Audit Format' },
+      //             { path: '#', label: 'ID Cards Verification Audit Format' },
+      //             { path: '#', label: 'Payroll Processing Audit Format' },
+      //             { path: '#', label: 'Staff Record Verification Audit Format' },
+      //             { path: '#', label: 'Office Supplies Audit Format' },
+      //             { path: '#', label: 'Stationery & Inventory Stock Audit Format' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Finance and Procurement',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'Invoice Processing Audit – PO vs GRN vs Invoice Matching' },
+      //             { path: '#', label: 'Petty Cash Audit Format' },
+      //             { path: '#', label: 'Vendor Payment Compliance Audit Format' },
+      //             { path: '#', label: 'Contract AMC Management Audit Format' },
+      //             { path: '#', label: 'Inventory Audit Format – Inward vs Outward vs Physical Stock' },
+      //             { path: '#', label: 'Budget Control & Site-Wise Expense Audit Format' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'IT and Digital Tools',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'FMS Software Internal Audit Format' },
+      //             { path: '#', label: 'Biometric CCTV Internal Audit Format' },
+      //             { path: '#', label: 'Visitor App QR Tools Internal Audit Format' },
+      //             { path: '#', label: 'Data Security Audit Format' },
+      //           ]
+      //         },
+      //         {
+      //           path: '#',
+      //           label: 'Compliance and Documents',
+      //           hasSubmenu: true,
+      //           submenuItems: [
+      //             { path: '#', label: 'ISO Legal Documents Audit Format' },
+      //             { path: '#', label: 'Site Agreement Audit Format' },
+      //             { path: '#', label: 'Training Logs Audit Format' },
+      //             { path: '#', label: 'Escalation Record Audit Format' },
+      //             { path: '#', label: 'Client Feedback Audit Format' },
+      //           ]
+      //         },
+      //       ]
+      //     },
+      //     {
+      //       path: '#',
+      //       label: 'Compliance Audit',
+      //       hasSubmenu: true,
+      //       submenuItems: [
+      //         { path: '#', label: 'Statutory and Compliance Details' },
+      //         { path: '#', label: 'HR & Manpower Compliance' },
+      //         { path: '#', label: 'Finance & Tax Compliance Audit Format' },
+      //         { path: '#', label: 'Site Operations & Safety Compliance' },
+      //       ]
+      //     },
+      //     {
+      //       path: '#',
+      //       label: 'New Site Proposal Audit',
+      //       hasSubmenu: true,
+      //       submenuItems: [
+      //         { path: '#', label: 'Security New Site Proposal' },
+      //         { path: '#', label: 'Facility New Site Proposal' },
+      //       ]
+      //     },
+      //   ]
+      // },
       // 09. Transition Management
       {
         path: '#',
@@ -618,14 +622,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Project Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'All Project Management Dashboard' },
-          { path: '#', label: 'Project Initiation' },
-          { path: '#', label: 'Project Planning' },
-          { path: '#', label: 'Team Resource Allocation' },
-          { path: '#', label: 'Execution and Implementation' },
-          { path: '#', label: 'Monitoring and Control' },
-          { path: '#', label: 'Documentation and Reporting' },
-          { path: '#', label: 'Project Closure' },
+          { path: '/project-management', label: 'All Project Management Dashboard' },
+          { path: '/project-initiation', label: 'Project Initiation' },
+          { path: '/project-planning', label: 'Project Planning' },
+          { path: '/team-resource-allocation', label: 'Team Resource Allocation' },
+          { path: '/execution-and-implementation', label: 'Execution and Implementation' },
+          { path: '/monitoring-and-control', label: 'Monitoring and Control' },
+          { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
+          { path: '/project-closure', label: 'Project Closure' },
         ]
       },
       // 15. Quality and Process Management
@@ -687,16 +691,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Procurement Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Procurement Planning' },
-          { path: '#', label: 'Vendor Management' },
-          { path: '#', label: 'Purchase Requisition to Order' },
-          { path: '#', label: 'Goods Receipt and Inspection' },
-          { path: '#', label: 'Inventory and Stock Management' },
-          { path: '#', label: 'Payment Tracking' },
-          { path: '#', label: 'Procurement Documentation' },
-          { path: '#', label: 'Compliance and Policy' },
-          { path: '#', label: 'Reporting and Analysis' },
-          { path: '#', label: 'Procurement Categories' },
+          { path: '/procurement-planning', label: 'Procurement Planning' },
+          { path: '/vendor-management', label: 'Vendor Management' },
+          { path: '/purchase-requisition-to-order', label: 'Purchase Requisition to Order' },
+          { path: '/goods-receipt-and-inspection', label: 'Goods Receipt and Inspection' },
+          { path: '/inventory-and-stock-management', label: 'Inventory and Stock Management' },
+          { path: '/payment-tracking', label: 'Payment Tracking' },
+          { path: '/procurement-documentation', label: 'Procurement Documentation' },
+          { path: '/compliance-and-policy', label: 'Compliance and Policy' },
+          { path: '/reporting-and-analysis', label: 'Reporting and Analysis' },
+          { path: '/procurement-categories', label: 'Procurement Categories' },
         ]
       },
       // 19. Vendor Management
@@ -706,15 +710,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Vendor Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Vendor Master Management' },
-          { path: '#', label: 'Vendor Classication' },
-          { path: '#', label: 'Vendor Evaluation' },
-          { path: '#', label: 'Integration with Purchase Process' },
-          { path: '#', label: 'Payment Tracking' },
-          { path: '#', label: 'Vendor Relationship Management' },
-          { path: '#', label: 'Compliance and Legal Check' },
-          { path: '#', label: 'Vendor Documentation' },
-          { path: '#', label: 'Reporting and Analysis' },
+          { path: '/vendor-master-management', label: 'Vendor Master Management' },
+          { path: '/vendor-classication', label: 'Vendor Classication' },
+          { path: '/vendor-evaluation', label: 'Vendor Evaluation' },
+          { path: '/integration-with-purchase-process', label: 'Integration with Purchase Process' },
+          { path: '/payment-tracking', label: 'Payment Tracking' },
+          { path: '/vendor-relationship-management', label: 'Vendor Relationship Management' },
+          { path: '/compliance-and-legal-check', label: 'Compliance and Legal Check' },
+          { path: '/vendor-documentation', label: 'Vendor Documentation' },
+          { path: '/reporting-and-analysis', label: 'Reporting and Analysis' },
         ]
       },
       // 20. Service Level Agreement (SLA)
