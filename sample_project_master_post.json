@@ -1,0 +1,268 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "project_initiation": {
+    "project_id": "PROJ_003",
+    "project_name": "Building Automation System Implementation",
+    "sponsor": "Facility Management Department",
+    "objective": "Implement comprehensive building automation system to improve energy efficiency and operational control",
+    "start_date": "2024-03-01",
+    "budget": 5000000.00,
+    "status": "In Progress",
+    "project_manager": "Sarah Johnson",
+    "stakeholders": [
+      "Facility Management Team",
+      "IT Department",
+      "Operations Team",
+      "Maintenance Staff",
+      "Building Security"
+    ],
+    "remarks": "Critical project for modernizing building infrastructure and reducing operational costs"
+  },
+  "project_planning": {
+    "plan_id": "PLAN_003",
+    "project_id": "PROJ_003",
+    "project_name": "Building Automation System Implementation",
+    "scope": "Installation and integration of building automation system including HVAC, lighting, security, and energy management",
+    "milestones": [
+      "System Design and Planning - Week 2",
+      "Equipment Procurement - Week 4",
+      "Infrastructure Preparation - Week 6",
+      "System Installation - Week 10",
+      "Testing and Commissioning - Week 14",
+      "Training and Handover - Week 16"
+    ],
+    "start_date": "2024-03-01",
+    "end_date": "2024-06-15",
+    "resources_required": [
+      "Automation Engineers",
+      "Electrical Technicians",
+      "IT Specialists",
+      "Project Coordinators",
+      "Training Resources"
+    ],
+    "risk_assessment": "Medium risk due to integration complexity with existing systems",
+    "status": "Planning Complete",
+    "project_manager": "Sarah Johnson",
+    "remarks": "Comprehensive planning completed with stakeholder approval"
+  },
+  "team_resource_allocation": [
+    {
+      "allocation_id": "ALLOC_001",
+      "project_id": "PROJ_003",
+      "project_name": "Building Automation System Implementation",
+      "team_member": "Mike Chen",
+      "role": "Lead Automation Engineer",
+      "allocation_start_date": "2024-03-01",
+      "allocation_end_date": "2024-06-15",
+      "hours_allocated": 480,
+      "department": "Engineering",
+      "status": "Allocated",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Primary technical lead for system design and implementation"
+    },
+    {
+      "allocation_id": "ALLOC_002",
+      "project_id": "PROJ_003",
+      "project_name": "Building Automation System Implementation",
+      "team_member": "Lisa Rodriguez",
+      "role": "IT Integration Specialist",
+      "allocation_start_date": "2024-03-15",
+      "allocation_end_date": "2024-06-15",
+      "hours_allocated": 360,
+      "department": "IT",
+      "status": "Allocated",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Responsible for network integration and cybersecurity"
+    },
+    {
+      "allocation_id": "ALLOC_003",
+      "project_id": "PROJ_003",
+      "project_name": "Building Automation System Implementation",
+      "team_member": "David Kim",
+      "role": "Electrical Technician",
+      "allocation_start_date": "2024-04-01",
+      "allocation_end_date": "2024-06-15",
+      "hours_allocated": 320,
+      "department": "Maintenance",
+      "status": "Allocated",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Support for electrical installation and testing"
+    }
+  ],
+  "execution_implementation": [
+    {
+      "task_id": "TASK_001",
+      "project_id": "PROJ_003",
+      "project_name": "Building Automation System Implementation",
+      "task_description": "Design automation system architecture and create detailed technical specifications",
+      "assigned_to": "Mike Chen",
+      "start_date": "2024-03-01",
+      "due_date": "2024-03-15",
+      "progress": 100,
+      "status": "Completed",
+      "priority": "High",
+      "project_manager": "Sarah Johnson",
+      "remarks": "System design completed and approved by stakeholders"
+    },
+    {
+      "task_id": "TASK_002",
+      "project_id": "PROJ_003",
+      "project_name": "Building Automation System Implementation",
+      "task_description": "Procure automation equipment and components",
+      "assigned_to": "Sarah Johnson",
+      "start_date": "2024-03-16",
+      "due_date": "2024-04-15",
+      "progress": 75,
+      "status": "In Progress",
+      "priority": "High",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Equipment procurement in progress, 75% complete"
+    },
+    {
+      "task_id": "TASK_003",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "task_description": "Prepare network infrastructure for system integration",
+      "assigned_to": "Lisa Rodriguez",
+      "start_date": "2024-03-15",
+      "due_date": "2024-04-30",
+      "progress": 60,
+      "status": "In Progress",
+      "priority": "Medium",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Network preparation ongoing, security protocols being implemented"
+    }
+  ],
+  "monitoring_control": [
+    {
+      "monitor_id": "MON_001",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "kpi_metric": "Project Timeline Adherence",
+      "target": 100,
+      "actual": 95,
+      "variance": -5,
+      "date_checked": "2024-04-01",
+      "status": "On Track",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Project is 95% on schedule, minor delays in procurement"
+    },
+    {
+      "monitor_id": "MON_002",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "kpi_metric": "Budget Utilization",
+      "target": 25,
+      "actual": 22,
+      "variance": -3,
+      "date_checked": "2024-04-01",
+      "status": "Under Budget",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Budget utilization at 22%, 3% under planned expenditure"
+    },
+    {
+      "monitor_id": "MON_003",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "kpi_metric": "Quality Standards Compliance",
+      "target": 100,
+      "actual": 100,
+      "variance": 0,
+      "date_checked": "2024-04-01",
+      "status": "Excellent",
+      "project_manager": "Sarah Johnson",
+      "remarks": "All completed work meets quality standards"
+    }
+  ],
+  "documentation_reporting": [
+    {
+      "document_id": "DOC_001",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "document_type": "Project Charter",
+      "title": "Building Automation System - Project Charter",
+      "created_date": "2024-02-15",
+      "author": "Sarah Johnson",
+      "status": "Approved",
+      "storage_location": "Project Repository/Documents/Charter",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Project charter approved by management"
+    },
+    {
+      "document_id": "DOC_002",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "document_type": "Technical Specification",
+      "title": "Automation System Technical Specifications",
+      "created_date": "2024-03-15",
+      "author": "Mike Chen",
+      "status": "Approved",
+      "storage_location": "Project Repository/Documents/Technical",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Technical specifications completed and approved"
+    },
+    {
+      "document_id": "DOC_003",
+      "project_id": "PROJ_002",
+      "project_name": "Building Automation System Implementation",
+      "document_type": "Progress Report",
+      "title": "Monthly Progress Report - March 2024",
+      "created_date": "2024-04-01",
+      "author": "Sarah Johnson",
+      "status": "Draft",
+      "storage_location": "Project Repository/Reports/Monthly",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Monthly progress report in preparation"
+    }
+  ],
+  "project_closure": {
+    "closure_id": "CLOSE_001",
+    "project_id": "PROJ_002",
+    "project_name": "Building Automation System Implementation",
+    "completion_date": "2024-06-15",
+    "final_budget": 4850000.00,
+    "deliverables": [
+      "Fully operational building automation system",
+      "System documentation and user manuals",
+      "Training materials and completed training sessions",
+      "Warranty and maintenance contracts",
+      "Performance test reports"
+    ],
+    "lessons_learned": "Early stakeholder engagement and detailed planning were crucial for project success",
+    "status": "Planned",
+    "project_manager": "Sarah Johnson",
+    "remarks": "Project closure planned for June 15, 2024"
+  },
+  "depreciation_replacement": [
+    {
+      "depreciation_id": "DEP_001",
+      "project_id": "PROJ_002",
+      "asset_id": "ASSET_001",
+      "asset_name": "Automation Control Panel",
+      "purchase_date": "2024-04-01",
+      "purchase_cost": 150000.00,
+      "depreciation_method": "Straight Line",
+      "annual_depreciation": 15000.00,
+      "current_value": 135000.00,
+      "replacement_date": "2034-04-01",
+      "status": "Active",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Main control panel with 10-year useful life"
+    },
+    {
+      "depreciation_id": "DEP_002",
+      "project_id": "PROJ_002",
+      "asset_id": "ASSET_002",
+      "asset_name": "Network Infrastructure Equipment",
+      "purchase_date": "2024-04-01",
+      "purchase_cost": 75000.00,
+      "depreciation_method": "Straight Line",
+      "annual_depreciation": 7500.00,
+      "current_value": 67500.00,
+      "replacement_date": "2034-04-01",
+      "status": "Active",
+      "project_manager": "Sarah Johnson",
+      "remarks": "Network switches and routers for system connectivity"
+    }
+  ]
+} 

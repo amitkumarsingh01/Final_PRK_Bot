@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends, Query, status, BackgroundTasks, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Literal, Dict, Any
-from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean, Text, ForeignKey, Float
+from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean, Text, ForeignKey, Float, JSON
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from datetime import datetime
 import uuid
@@ -16,6 +16,7 @@ from reportlab.lib.pagesizes import A4
 import shutil
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.types import JSON as SAJSON
+
 
 
 app = FastAPI(title="PRK Tech India")
@@ -123,6 +124,53 @@ class DailyTaskChecklistResponse(DailyTaskChecklistBase):
     class Config:
         from_attributes = True
 
+# Define Asset class BEFORE Property to avoid circular dependency
+class Asset(Base):
+    __tablename__ = "assets"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    property_id = Column(String, ForeignKey("properties.id"))
+    asset_category = Column(String)
+    asset_name = Column(String)
+    tag_number = Column(String, unique=True)
+    additional_info = Column(Text, nullable=True)
+    location = Column(String)
+    vendor_name = Column(String)
+    purchase_date = Column(DateTime)
+    asset_cost = Column(Float)
+    warranty_date = Column(DateTime, nullable=True)
+    depreciation_value = Column(Float)  # Depreciation in percent
+    qr_code_url = Column(String)
+    
+    # Relationship
+    property = relationship("Property", back_populates="assets")
+
+class Inventory(Base):
+    __tablename__ = "inventories"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    property_id = Column(String, ForeignKey("properties.id"))
+    stock_name = Column(String)
+    department = Column(String)
+    stock_id = Column(String, unique=True)
+    inventory_subledger = Column(String)
+    units = Column(Integer)
+    units_of_measurement = Column(String)
+    date_of_purchase = Column(DateTime)
+    custodian = Column(String)
+    location = Column(String)
+    opening_balance = Column(Integer)
+    issued = Column(Integer)
+    closing_balance = Column(Integer)
+    description = Column(Text, nullable=True)
+    qr_code_url = Column(String, nullable=True)
+    
+    # Relationship
+    property = relationship("Property", back_populates="inventories")
+
 class Property(Base):
     __tablename__ = "properties"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -211,53 +259,7 @@ Base.metadata.create_all(bind=engine)
 
 # --- Schemas ---
 
-class Asset(Base):
-    __tablename__ = "assets"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    property_id = Column(String, ForeignKey("properties.id"))
-    asset_category = Column(String)
-    asset_name = Column(String)
-    tag_number = Column(String, unique=True)
-    additional_info = Column(Text, nullable=True)
-    location = Column(String)
-    vendor_name = Column(String)
-    purchase_date = Column(DateTime)
-    asset_cost = Column(Float)
-    warranty_date = Column(DateTime, nullable=True)
-    depreciation_value = Column(Float)  # Depreciation in percent
-    qr_code_url = Column(String)
-    
-    # Relationship
-    property = relationship("Property", back_populates="assets")
-
 # Pydantic models for request/response
-
-class Inventory(Base):
-    __tablename__ = "inventories"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    property_id = Column(String, ForeignKey("properties.id"))
-    stock_name = Column(String)
-    department = Column(String)
-    stock_id = Column(String, unique=True)
-    inventory_subledger = Column(String)
-    units = Column(Integer)
-    units_of_measurement = Column(String)
-    date_of_purchase = Column(DateTime)
-    custodian = Column(String)
-    location = Column(String)
-    opening_balance = Column(Integer)
-    issued = Column(Integer)
-    closing_balance = Column(Integer)
-    description = Column(Text, nullable=True)
-    qr_code_url = Column(String, nullable=True)
-    
-    # Relationship
-    property = relationship("Property", back_populates="inventories")
 
 # Pydantic models for request/response
 class PropertyBase(BaseModel):
@@ -3344,7 +3346,7 @@ class UtilityPanel(Base):
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationship with checkpoints
     checkpoints = relationship("UtilityPanelCheckPoint", backref="utility_panel", cascade="all, delete-orphan")
 
@@ -4385,3 +4387,7456 @@ def create_bulk_work_schedule_items(work_schedule_id: str, items: List[WorkSched
         raise HTTPException(status_code=500, detail=f"Error creating bulk work schedule items: {str(e)}")
 
 # ... existing code ...
+
+# --- Incident Report Models, Schemas, and Endpoints ---
+
+class IncidentReport(Base):
+    __tablename__ = "incident_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    organization = Column(String, nullable=False)
+    date_of_report = Column(String, nullable=False)
+    incident_id = Column(String, nullable=False, unique=True)
+    incident_description = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    site_details = relationship("IncidentSiteDetails", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    personnel_involved = relationship("IncidentPersonnel", backref="incident_report", cascade="all, delete-orphan")
+    evidence_attachments = relationship("IncidentEvidence", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    root_cause_analysis = relationship("IncidentRootCause", backref="incident_report", cascade="all, delete-orphan")
+    immediate_actions = relationship("IncidentImmediateAction", backref="incident_report", cascade="all, delete-orphan")
+    corrective_actions = relationship("IncidentCorrectiveAction", backref="incident_report", cascade="all, delete-orphan")
+    incident_classification = relationship("IncidentClassification", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    client_communication = relationship("IncidentClientCommunication", backref="incident_report", uselist=False, cascade="all, delete-orphan")
+    approvals_signatures = relationship("IncidentApproval", backref="incident_report", cascade="all, delete-orphan")
+
+class IncidentSiteDetails(Base):
+    __tablename__ = "incident_site_details"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    site_name = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    date_time_of_incident = Column(String, nullable=False)
+    reported_by = Column(String, nullable=False)
+    reported_to = Column(String, nullable=False)
+    department_involved = Column(String, nullable=False)
+    incident_type = Column(String, nullable=False)
+
+class IncidentPersonnel(Base):
+    __tablename__ = "incident_personnel"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    name = Column(String, nullable=False)
+    designation = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+    role_in_incident = Column(String, nullable=False)
+
+class IncidentEvidence(Base):
+    __tablename__ = "incident_evidence"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    cctv_footage = Column(String, nullable=True)
+    visitor_entry_logs = Column(String, nullable=True)
+    photographs = Column(String, nullable=True)
+    site_map = Column(String, nullable=True)
+
+class IncidentRootCause(Base):
+    __tablename__ = "incident_root_causes"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    cause_description = Column(Text, nullable=False)
+
+class IncidentImmediateAction(Base):
+    __tablename__ = "incident_immediate_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    by_whom = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+
+class IncidentCorrectiveAction(Base):
+    __tablename__ = "incident_corrective_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    responsible = Column(String, nullable=False)
+    deadline = Column(String, nullable=False)
+    status = Column(String, nullable=False)  # In progress, Completed, Scheduled, Pending
+
+class IncidentClassification(Base):
+    __tablename__ = "incident_classifications"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    risk_level = Column(String, nullable=False)  # Low, Medium, High, Critical
+    report_severity = Column(String, nullable=False)  # Minor, Major, Critical
+
+class IncidentClientCommunication(Base):
+    __tablename__ = "incident_client_communications"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    client_contacted = Column(String, nullable=False)
+    mode = Column(String, nullable=False)  # Phone, Email, In Person
+    date_time = Column(String, nullable=False)
+    response_summary = Column(Text, nullable=False)
+
+class IncidentApproval(Base):
+    __tablename__ = "incident_approvals"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_report_id = Column(String, ForeignKey("incident_reports.id"), nullable=False)
+    approval_type = Column(String, nullable=False)  # prepared_by, reviewed_by_ops, client_acknowledgment
+    name = Column(String, nullable=False)
+    signature = Column(String, nullable=True)
+    date = Column(String, nullable=False)
+
+# Create the tables if not exists
+IncidentReport.__table__.create(bind=engine, checkfirst=True)
+IncidentSiteDetails.__table__.create(bind=engine, checkfirst=True)
+IncidentPersonnel.__table__.create(bind=engine, checkfirst=True)
+IncidentEvidence.__table__.create(bind=engine, checkfirst=True)
+IncidentRootCause.__table__.create(bind=engine, checkfirst=True)
+IncidentImmediateAction.__table__.create(bind=engine, checkfirst=True)
+IncidentCorrectiveAction.__table__.create(bind=engine, checkfirst=True)
+IncidentClassification.__table__.create(bind=engine, checkfirst=True)
+IncidentClientCommunication.__table__.create(bind=engine, checkfirst=True)
+IncidentApproval.__table__.create(bind=engine, checkfirst=True)
+
+# Pydantic schemas for Incident Report
+class SiteDetailsSchema(BaseModel):
+    site_name: str
+    location: str
+    date_time_of_incident: str
+    reported_by: str
+    reported_to: str
+    department_involved: str
+    incident_type: str
+
+class PersonnelSchema(BaseModel):
+    name: str
+    designation: str
+    department: str
+    role_in_incident: str
+
+class EvidenceSchema(BaseModel):
+    cctv_footage: Optional[str] = None
+    visitor_entry_logs: Optional[str] = None
+    photographs: Optional[str] = None
+    site_map: Optional[str] = None
+
+class RootCauseSchema(BaseModel):
+    cause_description: str
+
+class ImmediateActionSchema(BaseModel):
+    action: str
+    by_whom: str
+    time: str
+
+class CorrectiveActionSchema(BaseModel):
+    action: str
+    responsible: str
+    deadline: str
+    status: str
+
+class ClassificationSchema(BaseModel):
+    risk_level: str
+    report_severity: str
+
+class ClientCommunicationSchema(BaseModel):
+    client_contacted: str
+    mode: str
+    date_time: str
+    response_summary: str
+
+class ApprovalSchema(BaseModel):
+    approval_type: str  # prepared_by, reviewed_by_ops, client_acknowledgment
+    name: str
+    signature: Optional[str] = None
+    date: str
+
+# Create schemas
+class IncidentReportCreate(BaseModel):
+    property_id: str
+    prepared_by: str
+    organization: str
+    date_of_report: str
+    incident_id: str
+    incident_description: str
+    site_details: SiteDetailsSchema
+    personnel_involved: List[PersonnelSchema]
+    evidence_attachments: EvidenceSchema
+    root_cause_analysis: List[RootCauseSchema]
+    immediate_actions: List[ImmediateActionSchema]
+    corrective_preventive_actions: List[CorrectiveActionSchema]
+    incident_classification: ClassificationSchema
+    client_communication: ClientCommunicationSchema
+    approvals_signatures: List[ApprovalSchema]
+
+class IncidentReportUpdate(BaseModel):
+    prepared_by: Optional[str] = None
+    organization: Optional[str] = None
+    date_of_report: Optional[str] = None
+    incident_description: Optional[str] = None
+    site_details: Optional[SiteDetailsSchema] = None
+    personnel_involved: Optional[List[PersonnelSchema]] = None
+    evidence_attachments: Optional[EvidenceSchema] = None
+    root_cause_analysis: Optional[List[RootCauseSchema]] = None
+    immediate_actions: Optional[List[ImmediateActionSchema]] = None
+    corrective_preventive_actions: Optional[List[CorrectiveActionSchema]] = None
+    incident_classification: Optional[ClassificationSchema] = None
+    client_communication: Optional[ClientCommunicationSchema] = None
+    approvals_signatures: Optional[List[ApprovalSchema]] = None
+
+# Response schemas
+class SiteDetailsResponse(SiteDetailsSchema):
+    id: str
+    incident_report_id: str
+
+class PersonnelResponse(PersonnelSchema):
+    id: str
+    incident_report_id: str
+
+class EvidenceResponse(EvidenceSchema):
+    id: str
+    incident_report_id: str
+
+class RootCauseResponse(RootCauseSchema):
+    id: str
+    incident_report_id: str
+
+class ImmediateActionResponse(ImmediateActionSchema):
+    id: str
+    incident_report_id: str
+
+class CorrectiveActionResponse(CorrectiveActionSchema):
+    id: str
+    incident_report_id: str
+
+class ClassificationResponse(ClassificationSchema):
+    id: str
+    incident_report_id: str
+
+class ClientCommunicationResponse(ClientCommunicationSchema):
+    id: str
+    incident_report_id: str
+
+class ApprovalResponse(ApprovalSchema):
+    id: str
+    incident_report_id: str
+
+class IncidentReportResponse(BaseModel):
+    id: str
+    property_id: str
+    prepared_by: str
+    organization: str
+    date_of_report: str
+    incident_id: str
+    incident_description: str
+    site_details: Optional[SiteDetailsResponse] = None
+    personnel_involved: List[PersonnelResponse] = []
+    evidence_attachments: Optional[EvidenceResponse] = None
+    root_cause_analysis: List[RootCauseResponse] = []
+    immediate_actions: List[ImmediateActionResponse] = []
+    corrective_preventive_actions: List[CorrectiveActionResponse] = []
+    incident_classification: Optional[ClassificationResponse] = None
+    client_communication: Optional[ClientCommunicationResponse] = None
+    approvals_signatures: List[ApprovalResponse] = []
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Incident Report API Endpoints
+
+@app.post("/incident-reports/", response_model=IncidentReportResponse, status_code=status.HTTP_201_CREATED, tags=["Incident Report"])
+def create_incident_report(incident_report: IncidentReportCreate, db: Session = Depends(get_db)):
+    """Create a new incident report with all related data"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == incident_report.property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        # Check if incident_id already exists
+        existing_incident = db.query(IncidentReport).filter(IncidentReport.incident_id == incident_report.incident_id).first()
+        if existing_incident:
+            raise HTTPException(status_code=400, detail="Incident ID already exists")
+        
+        # Create incident report
+        db_incident_report = IncidentReport(
+            property_id=incident_report.property_id,
+            prepared_by=incident_report.prepared_by,
+            organization=incident_report.organization,
+            date_of_report=incident_report.date_of_report,
+            incident_id=incident_report.incident_id,
+            incident_description=incident_report.incident_description
+        )
+        
+        db.add(db_incident_report)
+        db.flush()  # Get the ID without committing
+        
+        # Create site details
+        db_site_details = IncidentSiteDetails(
+            incident_report_id=db_incident_report.id,
+            site_name=incident_report.site_details.site_name,
+            location=incident_report.site_details.location,
+            date_time_of_incident=incident_report.site_details.date_time_of_incident,
+            reported_by=incident_report.site_details.reported_by,
+            reported_to=incident_report.site_details.reported_to,
+            department_involved=incident_report.site_details.department_involved,
+            incident_type=incident_report.site_details.incident_type
+        )
+        db.add(db_site_details)
+        
+        # Create personnel involved
+        for personnel_data in incident_report.personnel_involved:
+            db_personnel = IncidentPersonnel(
+                incident_report_id=db_incident_report.id,
+                name=personnel_data.name,
+                designation=personnel_data.designation,
+                department=personnel_data.department,
+                role_in_incident=personnel_data.role_in_incident
+            )
+            db.add(db_personnel)
+        
+        # Create evidence attachments
+        db_evidence = IncidentEvidence(
+            incident_report_id=db_incident_report.id,
+            cctv_footage=incident_report.evidence_attachments.cctv_footage,
+            visitor_entry_logs=incident_report.evidence_attachments.visitor_entry_logs,
+            photographs=incident_report.evidence_attachments.photographs,
+            site_map=incident_report.evidence_attachments.site_map
+        )
+        db.add(db_evidence)
+        
+        # Create root cause analysis
+        for root_cause_data in incident_report.root_cause_analysis:
+            db_root_cause = IncidentRootCause(
+                incident_report_id=db_incident_report.id,
+                cause_description=root_cause_data.cause_description
+            )
+            db.add(db_root_cause)
+        
+        # Create immediate actions
+        for action_data in incident_report.immediate_actions:
+            db_action = IncidentImmediateAction(
+                incident_report_id=db_incident_report.id,
+                action=action_data.action,
+                by_whom=action_data.by_whom,
+                time=action_data.time
+            )
+            db.add(db_action)
+        
+        # Create corrective actions
+        for corrective_data in incident_report.corrective_preventive_actions:
+            db_corrective = IncidentCorrectiveAction(
+                incident_report_id=db_incident_report.id,
+                action=corrective_data.action,
+                responsible=corrective_data.responsible,
+                deadline=corrective_data.deadline,
+                status=corrective_data.status
+            )
+            db.add(db_corrective)
+        
+        # Create incident classification
+        db_classification = IncidentClassification(
+            incident_report_id=db_incident_report.id,
+            risk_level=incident_report.incident_classification.risk_level,
+            report_severity=incident_report.incident_classification.report_severity
+        )
+        db.add(db_classification)
+        
+        # Create client communication
+        db_client_comm = IncidentClientCommunication(
+            incident_report_id=db_incident_report.id,
+            client_contacted=incident_report.client_communication.client_contacted,
+            mode=incident_report.client_communication.mode,
+            date_time=incident_report.client_communication.date_time,
+            response_summary=incident_report.client_communication.response_summary
+        )
+        db.add(db_client_comm)
+        
+        # Create approvals signatures
+        for approval_data in incident_report.approvals_signatures:
+            db_approval = IncidentApproval(
+                incident_report_id=db_incident_report.id,
+                approval_type=approval_data.approval_type,
+                name=approval_data.name,
+                signature=approval_data.signature,
+                date=approval_data.date
+            )
+            db.add(db_approval)
+        
+        db.commit()
+        db.refresh(db_incident_report)
+        return db_incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating incident report: {str(e)}")
+
+@app.get("/incident-reports/", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_all_incident_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    incident_type: Optional[str] = None,
+    risk_level: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all incident reports with optional filtering"""
+    try:
+        query = db.query(IncidentReport)
+        
+        if property_id:
+            query = query.filter(IncidentReport.property_id == property_id)
+        
+        if date_from:
+            query = query.filter(IncidentReport.date_of_report >= date_from)
+        
+        if date_to:
+            query = query.filter(IncidentReport.date_of_report <= date_to)
+        
+        incident_reports = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters if needed
+        if incident_type or risk_level:
+            filtered_reports = []
+            for report in incident_reports:
+                include_report = True
+                
+                if incident_type and hasattr(report, 'site_details') and report.site_details and report.site_details.incident_type != incident_type:
+                    include_report = False
+                
+                if risk_level and hasattr(report, 'incident_classification') and report.incident_classification and report.incident_classification.risk_level != risk_level:
+                    include_report = False
+                
+                if include_report:
+                    filtered_reports.append(report)
+            
+            return filtered_reports
+        
+        return incident_reports
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/{incident_report_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def get_incident_report_by_id(incident_report_id: str, db: Session = Depends(get_db)):
+    """Get a specific incident report by ID"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Ensure all relationships are loaded
+        if incident_report.site_details is None:
+            incident_report.site_details = db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.personnel_involved:
+            incident_report.personnel_involved = db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report_id
+            ).all()
+        
+        if incident_report.evidence_attachments is None:
+            incident_report.evidence_attachments = db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.root_cause_analysis:
+            incident_report.root_cause_analysis = db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report_id
+            ).all()
+        
+        if not incident_report.immediate_actions:
+            incident_report.immediate_actions = db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report_id
+            ).all()
+        
+        if not incident_report.corrective_actions:
+            incident_report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report_id
+            ).all()
+        
+        if incident_report.incident_classification is None:
+            incident_report.incident_classification = db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report_id
+            ).first()
+        
+        if incident_report.client_communication is None:
+            incident_report.client_communication = db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report_id
+            ).first()
+        
+        if not incident_report.approvals_signatures:
+            incident_report.approvals_signatures = db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report_id
+            ).all()
+        
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report: {str(e)}")
+
+@app.get("/incident-reports/incident-id/{incident_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def get_incident_report_by_incident_id(incident_id: str, db: Session = Depends(get_db)):
+    """Get a specific incident report by incident ID"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.incident_id == incident_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Ensure all relationships are loaded
+        if incident_report.site_details is None:
+            incident_report.site_details = db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.personnel_involved:
+            incident_report.personnel_involved = db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report.id
+            ).all()
+        
+        if incident_report.evidence_attachments is None:
+            incident_report.evidence_attachments = db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.root_cause_analysis:
+            incident_report.root_cause_analysis = db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report.id
+            ).all()
+        
+        if not incident_report.immediate_actions:
+            incident_report.immediate_actions = db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report.id
+            ).all()
+        
+        if not incident_report.corrective_actions:
+            incident_report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report.id
+            ).all()
+        
+        if incident_report.incident_classification is None:
+            incident_report.incident_classification = db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report.id
+            ).first()
+        
+        if incident_report.client_communication is None:
+            incident_report.client_communication = db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report.id
+            ).first()
+        
+        if not incident_report.approvals_signatures:
+            incident_report.approvals_signatures = db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report.id
+            ).all()
+        
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report: {str(e)}")
+
+@app.put("/incident-reports/{incident_report_id}", response_model=IncidentReportResponse, tags=["Incident Report"])
+def update_incident_report(incident_report_id: str, incident_report_update: IncidentReportUpdate, db: Session = Depends(get_db)):
+    """Update an existing incident report"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        # Update main incident report fields
+        update_data = incident_report_update.dict(exclude_unset=True, exclude={
+            "site_details", "personnel_involved", "evidence_attachments", "root_cause_analysis",
+            "immediate_actions", "corrective_preventive_actions", "incident_classification",
+            "client_communication", "approvals_signatures"
+        })
+        
+        for key, value in update_data.items():
+            setattr(incident_report, key, value)
+        
+        # Update related data if provided
+        if incident_report_update.site_details:
+            # Delete existing site details
+            db.query(IncidentSiteDetails).filter(
+                IncidentSiteDetails.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new site details
+            db_site_details = IncidentSiteDetails(
+                incident_report_id=incident_report_id,
+                **incident_report_update.site_details.dict()
+            )
+            db.add(db_site_details)
+        
+        if incident_report_update.personnel_involved is not None:
+            # Delete existing personnel
+            db.query(IncidentPersonnel).filter(
+                IncidentPersonnel.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new personnel
+            for personnel_data in incident_report_update.personnel_involved:
+                db_personnel = IncidentPersonnel(
+                    incident_report_id=incident_report_id,
+                    **personnel_data.dict()
+                )
+                db.add(db_personnel)
+        
+        if incident_report_update.evidence_attachments:
+            # Delete existing evidence
+            db.query(IncidentEvidence).filter(
+                IncidentEvidence.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new evidence
+            db_evidence = IncidentEvidence(
+                incident_report_id=incident_report_id,
+                **incident_report_update.evidence_attachments.dict()
+            )
+            db.add(db_evidence)
+        
+        if incident_report_update.root_cause_analysis is not None:
+            # Delete existing root causes
+            db.query(IncidentRootCause).filter(
+                IncidentRootCause.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new root causes
+            for root_cause_data in incident_report_update.root_cause_analysis:
+                db_root_cause = IncidentRootCause(
+                    incident_report_id=incident_report_id,
+                    **root_cause_data.dict()
+                )
+                db.add(db_root_cause)
+        
+        if incident_report_update.immediate_actions is not None:
+            # Delete existing immediate actions
+            db.query(IncidentImmediateAction).filter(
+                IncidentImmediateAction.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new immediate actions
+            for action_data in incident_report_update.immediate_actions:
+                db_action = IncidentImmediateAction(
+                    incident_report_id=incident_report_id,
+                    **action_data.dict()
+                )
+                db.add(db_action)
+        
+        if incident_report_update.corrective_preventive_actions is not None:
+            # Delete existing corrective actions
+            db.query(IncidentCorrectiveAction).filter(
+                IncidentCorrectiveAction.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new corrective actions
+            for corrective_data in incident_report_update.corrective_preventive_actions:
+                db_corrective = IncidentCorrectiveAction(
+                    incident_report_id=incident_report_id,
+                    **corrective_data.dict()
+                )
+                db.add(db_corrective)
+        
+        if incident_report_update.incident_classification:
+            # Delete existing classification
+            db.query(IncidentClassification).filter(
+                IncidentClassification.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new classification
+            db_classification = IncidentClassification(
+                incident_report_id=incident_report_id,
+                **incident_report_update.incident_classification.dict()
+            )
+            db.add(db_classification)
+        
+        if incident_report_update.client_communication:
+            # Delete existing client communication
+            db.query(IncidentClientCommunication).filter(
+                IncidentClientCommunication.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new client communication
+            db_client_comm = IncidentClientCommunication(
+                incident_report_id=incident_report_id,
+                **incident_report_update.client_communication.dict()
+            )
+            db.add(db_client_comm)
+        
+        if incident_report_update.approvals_signatures is not None:
+            # Delete existing approvals
+            db.query(IncidentApproval).filter(
+                IncidentApproval.incident_report_id == incident_report_id
+            ).delete()
+            
+            # Create new approvals
+            for approval_data in incident_report_update.approvals_signatures:
+                db_approval = IncidentApproval(
+                    incident_report_id=incident_report_id,
+                    **approval_data.dict()
+                )
+                db.add(db_approval)
+        
+        incident_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(incident_report)
+        return incident_report
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating incident report: {str(e)}")
+
+@app.delete("/incident-reports/{incident_report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Incident Report"])
+def delete_incident_report(incident_report_id: str, db: Session = Depends(get_db)):
+    """Delete an incident report and all its related data"""
+    try:
+        incident_report = db.query(IncidentReport).filter(IncidentReport.id == incident_report_id).first()
+        if not incident_report:
+            raise HTTPException(status_code=404, detail="Incident report not found")
+        
+        db.delete(incident_report)
+        db.commit()
+        return None
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting incident report: {str(e)}")
+
+# Property-specific incident report endpoints
+
+@app.get("/incident-reports/property/{property_id}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    incident_type: Optional[str] = None,
+    risk_level: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all incident reports for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        query = db.query(IncidentReport).filter(IncidentReport.property_id == property_id)
+        
+        if date_from:
+            query = query.filter(IncidentReport.date_of_report >= date_from)
+        
+        if date_to:
+            query = query.filter(IncidentReport.date_of_report <= date_to)
+        
+        incident_reports = query.offset(skip).limit(limit).all()
+        
+        # Apply additional filters if needed
+        if incident_type or risk_level:
+            filtered_reports = []
+            for report in incident_reports:
+                include_report = True
+                
+                # Load site details if needed
+                if incident_type and (report.site_details is None or not hasattr(report, 'site_details')):
+                    report.site_details = db.query(IncidentSiteDetails).filter(
+                        IncidentSiteDetails.incident_report_id == report.id
+                    ).first()
+                
+                if incident_type and report.site_details and report.site_details.incident_type != incident_type:
+                    include_report = False
+                
+                # Load classification if needed
+                if risk_level and (report.incident_classification is None or not hasattr(report, 'incident_classification')):
+                    report.incident_classification = db.query(IncidentClassification).filter(
+                        IncidentClassification.incident_report_id == report.id
+                    ).first()
+                
+                if risk_level and report.incident_classification and report.incident_classification.risk_level != risk_level:
+                    include_report = False
+                
+                if include_report:
+                    filtered_reports.append(report)
+            
+            return filtered_reports
+        
+        return incident_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports for property: {str(e)}")
+
+@app.delete("/incident-reports/property/{property_id}", tags=["Incident Report"])
+def delete_incident_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    """Delete all incident reports for a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        count = len(incident_reports)
+        
+        for incident_report in incident_reports:
+            db.delete(incident_report)
+        
+        db.commit()
+        return {"message": f"Deleted {count} incident reports for property {property_id}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting incident reports for property: {str(e)}")
+
+# Additional filtering endpoints
+
+@app.get("/incident-reports/property/{property_id}/incident-type/{incident_type}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_type(property_id: str, incident_type: str, db: Session = Depends(get_db)):
+    """Get incident reports for a specific property and incident type"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Filter by incident type
+        filtered_reports = []
+        for report in incident_reports:
+            # Load site details if needed
+            if report.site_details is None:
+                report.site_details = db.query(IncidentSiteDetails).filter(
+                    IncidentSiteDetails.incident_report_id == report.id
+                ).first()
+            
+            if report.site_details and report.site_details.incident_type == incident_type:
+                filtered_reports.append(report)
+        
+        return filtered_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/property/{property_id}/risk-level/{risk_level}", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_risk_level(property_id: str, risk_level: str, db: Session = Depends(get_db)):
+    """Get incident reports for a specific property and risk level"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Filter by risk level
+        filtered_reports = []
+        for report in incident_reports:
+            # Load classification if needed
+            if report.incident_classification is None:
+                report.incident_classification = db.query(IncidentClassification).filter(
+                    IncidentClassification.incident_report_id == report.id
+                ).first()
+            
+            if report.incident_classification and report.incident_classification.risk_level == risk_level:
+                filtered_reports.append(report)
+        
+        return filtered_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+@app.get("/incident-reports/property/{property_id}/date-range", response_model=List[IncidentReportResponse], tags=["Incident Report"])
+def get_incident_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    """Get incident reports for a specific property within a date range"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(
+            IncidentReport.property_id == property_id,
+            IncidentReport.date_of_report >= date_from,
+            IncidentReport.date_of_report <= date_to
+        ).all()
+        
+        return incident_reports
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident reports: {str(e)}")
+
+# Statistics endpoints
+
+@app.get("/incident-reports/property/{property_id}/statistics", tags=["Incident Report"])
+def get_incident_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    """Get statistics for incident reports of a specific property"""
+    try:
+        # Check if property exists
+        property_exists = db.query(Property).filter(Property.id == property_id).first()
+        if not property_exists:
+            raise HTTPException(status_code=404, detail="Property not found")
+        
+        incident_reports = db.query(IncidentReport).filter(IncidentReport.property_id == property_id).all()
+        
+        # Calculate statistics
+        total_incidents = len(incident_reports)
+        
+        # Count by incident type
+        incident_types = {}
+        for report in incident_reports:
+            # Load site details if needed
+            if report.site_details is None:
+                report.site_details = db.query(IncidentSiteDetails).filter(
+                    IncidentSiteDetails.incident_report_id == report.id
+                ).first()
+            
+            if report.site_details:
+                incident_type = report.site_details.incident_type
+                incident_types[incident_type] = incident_types.get(incident_type, 0) + 1
+        
+        # Count by risk level
+        risk_levels = {}
+        for report in incident_reports:
+            # Load classification if needed
+            if report.incident_classification is None:
+                report.incident_classification = db.query(IncidentClassification).filter(
+                    IncidentClassification.incident_report_id == report.id
+                ).first()
+            
+            if report.incident_classification:
+                risk_level = report.incident_classification.risk_level
+                risk_levels[risk_level] = risk_levels.get(risk_level, 0) + 1
+        
+        # Count by severity
+        severities = {}
+        for report in incident_reports:
+            if report.incident_classification:
+                severity = report.incident_classification.report_severity
+                severities[severity] = severities.get(severity, 0) + 1
+        
+        # Count by status (corrective actions)
+        action_statuses = {}
+        for report in incident_reports:
+            # Load corrective actions if needed
+            if not report.corrective_actions:
+                report.corrective_actions = db.query(IncidentCorrectiveAction).filter(
+                    IncidentCorrectiveAction.incident_report_id == report.id
+                ).all()
+            
+            for action in report.corrective_actions:
+                status = action.status
+                action_statuses[status] = action_statuses.get(status, 0) + 1
+        
+        return {
+            "property_id": property_id,
+            "total_incidents": total_incidents,
+            "incident_types": incident_types,
+            "risk_levels": risk_levels,
+            "severities": severities,
+            "corrective_action_statuses": action_statuses
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching incident report statistics: {str(e)}")
+
+
+# Security Patrolling Report Models
+class SecurityPatrollingReport(Base):
+    __tablename__ = "security_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    site_info = relationship("SecuritySiteInfo", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    patrolling_schedule_summary = relationship("SecurityPatrollingScheduleSummary", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    area_wise_patrolling_logs = relationship("SecurityAreaWisePatrollingLog", backref="security_patrolling_report", cascade="all, delete-orphan")
+    key_observations_violations = relationship("SecurityKeyObservationViolation", backref="security_patrolling_report", cascade="all, delete-orphan")
+    immediate_actions_taken = relationship("SecurityImmediateAction", backref="security_patrolling_report", cascade="all, delete-orphan")
+    supervisor_comments = relationship("SecuritySupervisorComment", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    photo_evidence = relationship("SecurityPhotoEvidence", backref="security_patrolling_report", cascade="all, delete-orphan")
+    sign_off = relationship("SecuritySignOff", backref="security_patrolling_report", uselist=False, cascade="all, delete-orphan")
+
+class SecuritySiteInfo(Base):
+    __tablename__ = "security_site_info"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    site_name = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    date = Column(String, nullable=False)
+    shift = Column(String, nullable=False)
+    prepared_by = Column(String, nullable=False)
+    report_id = Column(String, nullable=False)
+
+class SecurityPatrollingScheduleSummary(Base):
+    __tablename__ = "security_patrolling_schedule_summaries"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    total_rounds_planned = Column(Integer, nullable=False)
+    completed = Column(Integer, nullable=False)
+    missed = Column(Integer, nullable=False)
+    reason_for_missed_rounds = Column(String, nullable=True)
+
+class SecurityAreaWisePatrollingLog(Base):
+    __tablename__ = "security_area_wise_patrolling_logs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    time = Column(String, nullable=False)
+    location_checkpoint = Column(String, nullable=False)
+    observation = Column(Text, nullable=False)
+    status = Column(String, nullable=False)
+    remarks = Column(String, nullable=True)
+
+class SecurityKeyObservationViolation(Base):
+    __tablename__ = "security_key_observations_violations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    observation_violation = Column(Text, nullable=False)
+
+class SecurityImmediateAction(Base):
+    __tablename__ = "security_immediate_actions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    action = Column(Text, nullable=False)
+    by_whom = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+
+class SecuritySupervisorComment(Base):
+    __tablename__ = "security_supervisor_comments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    comment = Column(Text, nullable=False)
+
+class SecurityPhotoEvidence(Base):
+    __tablename__ = "security_photo_evidence"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    photo_description = Column(Text, nullable=False)
+
+class SecuritySignOff(Base):
+    __tablename__ = "security_sign_offs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    security_patrolling_report_id = Column(String, ForeignKey("security_patrolling_reports.id"), nullable=False)
+    patrolling_guard_signature = Column(String, nullable=True)
+    security_supervisor_signature = Column(String, nullable=True)
+    client_acknowledgment_signature = Column(String, nullable=True)
+
+# Security Patrolling Report Schemas
+class SecuritySiteInfoSchema(BaseModel):
+    site_name: str
+    location: str
+    date: str
+    shift: str
+    prepared_by: str
+    report_id: str
+
+class SecurityPatrollingScheduleSummarySchema(BaseModel):
+    total_rounds_planned: int
+    completed: int
+    missed: int
+    reason_for_missed_rounds: Optional[str] = None
+
+class SecurityAreaWisePatrollingLogSchema(BaseModel):
+    time: str
+    location_checkpoint: str
+    observation: str
+    status: str
+    remarks: Optional[str] = None
+
+class SecurityKeyObservationViolationSchema(BaseModel):
+    observation_violation: str
+
+class SecurityImmediateActionSchema(BaseModel):
+    action: str
+    by_whom: str
+    time: str
+
+class SecuritySupervisorCommentSchema(BaseModel):
+    comment: str
+
+class SecurityPhotoEvidenceSchema(BaseModel):
+    photo_description: str
+
+class SecuritySignOffSchema(BaseModel):
+    patrolling_guard_signature: Optional[str] = None
+    security_supervisor_signature: Optional[str] = None
+    client_acknowledgment_signature: Optional[str] = None
+
+class SecurityPatrollingReportCreate(BaseModel):
+    property_id: str
+    site_info: SecuritySiteInfoSchema
+    patrolling_schedule_summary: SecurityPatrollingScheduleSummarySchema
+    area_wise_patrolling_log: List[SecurityAreaWisePatrollingLogSchema]
+    key_observations_or_violations: List[SecurityKeyObservationViolationSchema]
+    immediate_actions_taken: List[SecurityImmediateActionSchema]
+    supervisor_comments: SecuritySupervisorCommentSchema
+    photo_evidence: List[SecurityPhotoEvidenceSchema]
+    sign_off: SecuritySignOffSchema
+
+class SecurityPatrollingReportUpdate(BaseModel):
+    site_info: Optional[SecuritySiteInfoSchema] = None
+    patrolling_schedule_summary: Optional[SecurityPatrollingScheduleSummarySchema] = None
+    area_wise_patrolling_log: Optional[List[SecurityAreaWisePatrollingLogSchema]] = None
+    key_observations_or_violations: Optional[List[SecurityKeyObservationViolationSchema]] = None
+    immediate_actions_taken: Optional[List[SecurityImmediateActionSchema]] = None
+    supervisor_comments: Optional[SecuritySupervisorCommentSchema] = None
+    photo_evidence: Optional[List[SecurityPhotoEvidenceSchema]] = None
+    sign_off: Optional[SecuritySignOffSchema] = None
+
+class SecuritySiteInfoResponse(SecuritySiteInfoSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPatrollingScheduleSummaryResponse(SecurityPatrollingScheduleSummarySchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityAreaWisePatrollingLogResponse(SecurityAreaWisePatrollingLogSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityKeyObservationViolationResponse(SecurityKeyObservationViolationSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityImmediateActionResponse(SecurityImmediateActionSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecuritySupervisorCommentResponse(SecuritySupervisorCommentSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPhotoEvidenceResponse(SecurityPhotoEvidenceSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecuritySignOffResponse(SecuritySignOffSchema):
+    id: str
+    security_patrolling_report_id: str
+
+class SecurityPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    site_info: Optional[SecuritySiteInfoResponse] = None
+    patrolling_schedule_summary: Optional[SecurityPatrollingScheduleSummaryResponse] = None
+    area_wise_patrolling_log: List[SecurityAreaWisePatrollingLogResponse] = []
+    key_observations_or_violations: List[SecurityKeyObservationViolationResponse] = []
+    immediate_actions_taken: List[SecurityImmediateActionResponse] = []
+    supervisor_comments: Optional[SecuritySupervisorCommentResponse] = None
+    photo_evidence: List[SecurityPhotoEvidenceResponse] = []
+    sign_off: Optional[SecuritySignOffResponse] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+SecurityPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+SecurityAreaWisePatrollingLog.__table__.create(bind=engine, checkfirst=True)
+SecurityKeyObservationViolation.__table__.create(bind=engine, checkfirst=True)
+SecurityImmediateAction.__table__.create(bind=engine, checkfirst=True)
+SecuritySupervisorComment.__table__.create(bind=engine, checkfirst=True)
+SecurityPhotoEvidence.__table__.create(bind=engine, checkfirst=True)
+SecuritySignOff.__table__.create(bind=engine, checkfirst=True)
+SecurityPatrollingScheduleSummary.__table__.create(bind=engine, checkfirst=True)
+SecuritySiteInfo.__table__.create(bind=engine, checkfirst=True)
+
+# Security Patrolling Report API Endpoints
+@app.post("/security-patrolling-reports/", response_model=SecurityPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Security Patrolling Report"])
+def create_security_patrolling_report(security_patrolling_report: SecurityPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = SecurityPatrollingReport(
+            property_id=security_patrolling_report.property_id
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create site info
+        if security_patrolling_report.site_info:
+            db_site_info = SecuritySiteInfo(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.site_info.dict()
+            )
+            db.add(db_site_info)
+
+        # Create patrolling schedule summary
+        if security_patrolling_report.patrolling_schedule_summary:
+            db_schedule_summary = SecurityPatrollingScheduleSummary(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.patrolling_schedule_summary.dict()
+            )
+            db.add(db_schedule_summary)
+
+        # Create area wise patrolling logs
+        for log in security_patrolling_report.area_wise_patrolling_log:
+            db_log = SecurityAreaWisePatrollingLog(
+                security_patrolling_report_id=db_report.id,
+                **log.dict()
+            )
+            db.add(db_log)
+
+        # Create key observations/violations
+        for observation in security_patrolling_report.key_observations_or_violations:
+            db_observation = SecurityKeyObservationViolation(
+                security_patrolling_report_id=db_report.id,
+                **observation.dict()
+            )
+            db.add(db_observation)
+
+        # Create immediate actions
+        for action in security_patrolling_report.immediate_actions_taken:
+            db_action = SecurityImmediateAction(
+                security_patrolling_report_id=db_report.id,
+                **action.dict()
+            )
+            db.add(db_action)
+
+        # Create supervisor comments
+        if security_patrolling_report.supervisor_comments:
+            db_supervisor_comment = SecuritySupervisorComment(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.supervisor_comments.dict()
+            )
+            db.add(db_supervisor_comment)
+
+        # Create photo evidence
+        for photo in security_patrolling_report.photo_evidence:
+            db_photo = SecurityPhotoEvidence(
+                security_patrolling_report_id=db_report.id,
+                **photo.dict()
+            )
+            db.add(db_photo)
+
+        # Create sign off
+        if security_patrolling_report.sign_off:
+            db_sign_off = SecuritySignOff(
+                security_patrolling_report_id=db_report.id,
+                **security_patrolling_report.sign_off.dict()
+            )
+            db.add(db_sign_off)
+
+        db.commit()
+        db.refresh(db_report)
+
+        # Load all related data
+        db.refresh(db_report)
+        if db_report.site_info:
+            db.refresh(db_report.site_info)
+        if db_report.patrolling_schedule_summary:
+            db.refresh(db_report.patrolling_schedule_summary)
+        if db_report.supervisor_comments:
+            db.refresh(db_report.supervisor_comments)
+        if db_report.sign_off:
+            db.refresh(db_report.sign_off)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_all_security_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    shift: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(SecurityPatrollingReport)
+
+        if property_id:
+            query = query.filter(SecurityPatrollingReport.property_id == property_id)
+
+        if shift:
+            query = query.join(SecuritySiteInfo).filter(SecuritySiteInfo.shift == shift)
+
+        if date_from or date_to:
+            query = query.join(SecuritySiteInfo)
+            if date_from:
+                query = query.filter(SecuritySiteInfo.date >= date_from)
+            if date_to:
+                query = query.filter(SecuritySiteInfo.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def get_security_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/report-id/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def get_security_patrolling_report_by_report_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        # Find by the report_id field in site_info
+        report = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(SecuritySiteInfo.report_id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report: {str(e)}")
+
+@app.put("/security-patrolling-reports/{report_id}", response_model=SecurityPatrollingReportResponse, tags=["Security Patrolling Report"])
+def update_security_patrolling_report(report_id: str, report_update: SecurityPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        # Update site info
+        if report_update.site_info:
+            if report.site_info:
+                for key, value in report_update.site_info.dict(exclude_unset=True).items():
+                    setattr(report.site_info, key, value)
+            else:
+                db_site_info = SecuritySiteInfo(
+                    security_patrolling_report_id=report.id,
+                    **report_update.site_info.dict()
+                )
+                db.add(db_site_info)
+
+        # Update patrolling schedule summary
+        if report_update.patrolling_schedule_summary:
+            if report.patrolling_schedule_summary:
+                for key, value in report_update.patrolling_schedule_summary.dict(exclude_unset=True).items():
+                    setattr(report.patrolling_schedule_summary, key, value)
+            else:
+                db_schedule_summary = SecurityPatrollingScheduleSummary(
+                    security_patrolling_report_id=report.id,
+                    **report_update.patrolling_schedule_summary.dict()
+                )
+                db.add(db_schedule_summary)
+
+        # Update area wise patrolling logs
+        if report_update.area_wise_patrolling_log is not None:
+            # Delete existing logs
+            db.query(SecurityAreaWisePatrollingLog).filter(
+                SecurityAreaWisePatrollingLog.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new logs
+            for log in report_update.area_wise_patrolling_log:
+                db_log = SecurityAreaWisePatrollingLog(
+                    security_patrolling_report_id=report.id,
+                    **log.dict()
+                )
+                db.add(db_log)
+
+        # Update key observations/violations
+        if report_update.key_observations_or_violations is not None:
+            # Delete existing observations
+            db.query(SecurityKeyObservationViolation).filter(
+                SecurityKeyObservationViolation.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new observations
+            for observation in report_update.key_observations_or_violations:
+                db_observation = SecurityKeyObservationViolation(
+                    security_patrolling_report_id=report.id,
+                    **observation.dict()
+                )
+                db.add(db_observation)
+
+        # Update immediate actions
+        if report_update.immediate_actions_taken is not None:
+            # Delete existing actions
+            db.query(SecurityImmediateAction).filter(
+                SecurityImmediateAction.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new actions
+            for action in report_update.immediate_actions_taken:
+                db_action = SecurityImmediateAction(
+                    security_patrolling_report_id=report.id,
+                    **action.dict()
+                )
+                db.add(db_action)
+
+        # Update supervisor comments
+        if report_update.supervisor_comments:
+            if report.supervisor_comments:
+                for key, value in report_update.supervisor_comments.dict(exclude_unset=True).items():
+                    setattr(report.supervisor_comments, key, value)
+            else:
+                db_supervisor_comment = SecuritySupervisorComment(
+                    security_patrolling_report_id=report.id,
+                    **report_update.supervisor_comments.dict()
+                )
+                db.add(db_supervisor_comment)
+
+        # Update photo evidence
+        if report_update.photo_evidence is not None:
+            # Delete existing photos
+            db.query(SecurityPhotoEvidence).filter(
+                SecurityPhotoEvidence.security_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new photos
+            for photo in report_update.photo_evidence:
+                db_photo = SecurityPhotoEvidence(
+                    security_patrolling_report_id=report.id,
+                    **photo.dict()
+                )
+                db.add(db_photo)
+
+        # Update sign off
+        if report_update.sign_off:
+            if report.sign_off:
+                for key, value in report_update.sign_off.dict(exclude_unset=True).items():
+                    setattr(report.sign_off, key, value)
+            else:
+                db_sign_off = SecuritySignOff(
+                    security_patrolling_report_id=report.id,
+                    **report_update.sign_off.dict()
+                )
+                db.add(db_sign_off)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Load all related data
+        db.refresh(report)
+        if report.site_info:
+            db.refresh(report.site_info)
+        if report.patrolling_schedule_summary:
+            db.refresh(report.patrolling_schedule_summary)
+        if report.supervisor_comments:
+            db.refresh(report.supervisor_comments)
+        if report.sign_off:
+            db.refresh(report.sign_off)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating security patrolling report: {str(e)}")
+
+@app.delete("/security-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Security Patrolling Report"])
+def delete_security_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Security patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting security patrolling report: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    shift: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.property_id == property_id)
+
+        if shift:
+            query = query.join(SecuritySiteInfo).filter(SecuritySiteInfo.shift == shift)
+
+        if date_from or date_to:
+            query = query.join(SecuritySiteInfo)
+            if date_from:
+                query = query.filter(SecuritySiteInfo.date >= date_from)
+            if date_to:
+                query = query.filter(SecuritySiteInfo.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.delete("/security-patrolling-reports/property/{property_id}", tags=["Security Patrolling Report"])
+def delete_security_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(SecurityPatrollingReport).filter(SecurityPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} security patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/shift/{shift}", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property_and_shift(property_id: str, shift: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(
+            SecurityPatrollingReport.property_id == property_id,
+            SecuritySiteInfo.shift == shift
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/date-range", response_model=List[SecurityPatrollingReportResponse], tags=["Security Patrolling Report"])
+def get_security_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(SecurityPatrollingReport).join(SecuritySiteInfo).filter(
+            SecurityPatrollingReport.property_id == property_id,
+            SecuritySiteInfo.date >= date_from,
+            SecuritySiteInfo.date <= date_to
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.site_info:
+                db.refresh(report.site_info)
+            if report.patrolling_schedule_summary:
+                db.refresh(report.patrolling_schedule_summary)
+            if report.supervisor_comments:
+                db.refresh(report.supervisor_comments)
+            if report.sign_off:
+                db.refresh(report.sign_off)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling reports: {str(e)}")
+
+@app.get("/security-patrolling-reports/property/{property_id}/statistics", tags=["Security Patrolling Report"])
+def get_security_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get shift-wise statistics
+        shift_stats = db.query(
+            SecuritySiteInfo.shift,
+            func.count(SecuritySiteInfo.id).label('count')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).group_by(SecuritySiteInfo.shift).all()
+
+        # Get completion statistics
+        completion_stats = db.query(
+            func.sum(SecurityPatrollingScheduleSummary.total_rounds_planned).label('total_planned'),
+            func.sum(SecurityPatrollingScheduleSummary.completed).label('total_completed'),
+            func.sum(SecurityPatrollingScheduleSummary.missed).label('total_missed')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).first()
+
+        # Get status statistics from patrolling logs
+        status_stats = db.query(
+            SecurityAreaWisePatrollingLog.status,
+            func.count(SecurityAreaWisePatrollingLog.id).label('count')
+        ).join(SecurityPatrollingReport).filter(
+            SecurityPatrollingReport.property_id == property_id
+        ).group_by(SecurityAreaWisePatrollingLog.status).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "shift_statistics": {shift: count for shift, count in shift_stats},
+            "completion_statistics": {
+                "total_rounds_planned": completion_stats.total_planned or 0,
+                "total_rounds_completed": completion_stats.total_completed or 0,
+                "total_rounds_missed": completion_stats.total_missed or 0,
+                "completion_rate": round((completion_stats.total_completed or 0) / (completion_stats.total_planned or 1) * 100, 2)
+            },
+            "status_statistics": {status: count for status, count in status_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching security patrolling report statistics: {str(e)}")
+
+# Facility Technical Patrolling Report Models
+class FacilityTechnicalPatrollingReport(Base):
+    __tablename__ = "facility_technical_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    report_date = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with entries
+    entries = relationship("FacilityTechnicalPatrollingEntry", backref="facility_technical_patrolling_report", cascade="all, delete-orphan")
+
+class FacilityTechnicalPatrollingEntry(Base):
+    __tablename__ = "facility_technical_patrolling_entries"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    facility_technical_patrolling_report_id = Column(String, ForeignKey("facility_technical_patrolling_reports.id"), nullable=False)
+    sl_no = Column(Integer, nullable=False)
+    date = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+    location_area_covered = Column(String, nullable=False)
+    equipment_asset_checked = Column(String, nullable=False)
+    observation_issue_found = Column(String, nullable=False)
+    action_taken = Column(String, nullable=False)
+    remarks = Column(String, nullable=True)
+    checked_by = Column(String, nullable=False)
+
+# Facility Technical Patrolling Report Schemas
+class FacilityTechnicalPatrollingEntrySchema(BaseModel):
+    sl_no: int
+    date: str
+    time: str
+    location_area_covered: str
+    equipment_asset_checked: str
+    observation_issue_found: str
+    action_taken: str
+    remarks: Optional[str] = None
+    checked_by: str
+
+class FacilityTechnicalPatrollingReportCreate(BaseModel):
+    property_id: str
+    report_date: str
+    entries: List[FacilityTechnicalPatrollingEntrySchema]
+
+class FacilityTechnicalPatrollingReportUpdate(BaseModel):
+    report_date: Optional[str] = None
+    entries: Optional[List[FacilityTechnicalPatrollingEntrySchema]] = None
+
+class FacilityTechnicalPatrollingEntryResponse(FacilityTechnicalPatrollingEntrySchema):
+    id: str
+    facility_technical_patrolling_report_id: str
+
+class FacilityTechnicalPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    report_date: str
+    entries: List[FacilityTechnicalPatrollingEntryResponse] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Create tables
+FacilityTechnicalPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+FacilityTechnicalPatrollingEntry.__table__.create(bind=engine, checkfirst=True)
+
+# Facility Technical Patrolling Report API Endpoints
+@app.post("/facility-technical-patrolling-reports/", response_model=FacilityTechnicalPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Facility Technical Patrolling Report"])
+def create_facility_technical_patrolling_report(report: FacilityTechnicalPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = FacilityTechnicalPatrollingReport(
+            property_id=report.property_id,
+            report_date=report.report_date
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create entries
+        for entry in report.entries:
+            db_entry = FacilityTechnicalPatrollingEntry(
+                facility_technical_patrolling_report_id=db_report.id,
+                **entry.dict()
+            )
+            db.add(db_entry)
+
+        db.commit()
+        db.refresh(db_report)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating facility technical patrolling report: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_all_facility_technical_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    report_date: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(FacilityTechnicalPatrollingReport)
+
+        if property_id:
+            query = query.filter(FacilityTechnicalPatrollingReport.property_id == property_id)
+
+        if report_date:
+            query = query.filter(FacilityTechnicalPatrollingReport.report_date == report_date)
+
+        if date_from or date_to:
+            if date_from:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date >= date_from)
+            if date_to:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/{report_id}", response_model=FacilityTechnicalPatrollingReportResponse, tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling report: {str(e)}")
+
+@app.put("/facility-technical-patrolling-reports/{report_id}", response_model=FacilityTechnicalPatrollingReportResponse, tags=["Facility Technical Patrolling Report"])
+def update_facility_technical_patrolling_report(report_id: str, report_update: FacilityTechnicalPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        # Update report date
+        if report_update.report_date:
+            report.report_date = report_update.report_date
+
+        # Update entries
+        if report_update.entries is not None:
+            # Delete existing entries
+            db.query(FacilityTechnicalPatrollingEntry).filter(
+                FacilityTechnicalPatrollingEntry.facility_technical_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new entries
+            for entry in report_update.entries:
+                db_entry = FacilityTechnicalPatrollingEntry(
+                    facility_technical_patrolling_report_id=report.id,
+                    **entry.dict()
+                )
+                db.add(db_entry)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(report)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating facility technical patrolling report: {str(e)}")
+
+@app.delete("/facility-technical-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Facility Technical Patrolling Report"])
+def delete_facility_technical_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Facility technical patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting facility technical patrolling report: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    report_date: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.property_id == property_id)
+
+        if report_date:
+            query = query.filter(FacilityTechnicalPatrollingReport.report_date == report_date)
+
+        if date_from or date_to:
+            if date_from:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date >= date_from)
+            if date_to:
+                query = query.filter(FacilityTechnicalPatrollingReport.report_date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.delete("/facility-technical-patrolling-reports/property/{property_id}", tags=["Facility Technical Patrolling Report"])
+def delete_facility_technical_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(FacilityTechnicalPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} facility technical patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/date/{report_date}", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property_and_date(property_id: str, report_date: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id,
+            FacilityTechnicalPatrollingReport.report_date == report_date
+        ).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/date-range", response_model=List[FacilityTechnicalPatrollingReportResponse], tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id,
+            FacilityTechnicalPatrollingReport.report_date >= date_from,
+            FacilityTechnicalPatrollingReport.report_date <= date_to
+        ).all()
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling reports: {str(e)}")
+
+@app.get("/facility-technical-patrolling-reports/property/{property_id}/statistics", tags=["Facility Technical Patrolling Report"])
+def get_facility_technical_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get total entries
+        total_entries = db.query(FacilityTechnicalPatrollingEntry).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get issue statistics
+        issue_stats = db.query(
+            FacilityTechnicalPatrollingEntry.observation_issue_found,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.observation_issue_found).all()
+
+        # Get equipment statistics
+        equipment_stats = db.query(
+            FacilityTechnicalPatrollingEntry.equipment_asset_checked,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.equipment_asset_checked).all()
+
+        # Get location statistics
+        location_stats = db.query(
+            FacilityTechnicalPatrollingEntry.location_area_covered,
+            func.count(FacilityTechnicalPatrollingEntry.id).label('count')
+        ).join(FacilityTechnicalPatrollingReport).filter(
+            FacilityTechnicalPatrollingReport.property_id == property_id
+        ).group_by(FacilityTechnicalPatrollingEntry.location_area_covered).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "total_entries": total_entries,
+            "issue_statistics": {issue: count for issue, count in issue_stats},
+            "equipment_statistics": {equipment: count for equipment, count in equipment_stats},
+            "location_statistics": {location: count for location, count in location_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching facility technical patrolling report statistics: {str(e)}")
+
+# Night Patrolling Report Models
+class NightPatrollingReport(Base):
+    __tablename__ = "night_patrolling_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship with general report details and observations
+    general_report_details = relationship("NightPatrollingGeneralReportDetails", backref="night_patrolling_report", uselist=False, cascade="all, delete-orphan")
+    observations = relationship("NightPatrollingObservation", backref="night_patrolling_report", cascade="all, delete-orphan")
+    officer_signature = relationship("NightPatrollingOfficerSignature", backref="night_patrolling_report", uselist=False, cascade="all, delete-orphan")
+
+class NightPatrollingGeneralReportDetails(Base):
+    __tablename__ = "night_patrolling_general_report_details"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    date = Column(String, nullable=False)
+    patrolling_officer = Column(String, nullable=False)
+    site_name = Column(String, nullable=False)
+    shift = Column(String, nullable=False)
+    total_guards_on_duty = Column(Integer, nullable=False)
+    vehicle_used = Column(String, nullable=False)
+    weather_condition = Column(String, nullable=False)
+
+class NightPatrollingObservation(Base):
+    __tablename__ = "night_patrolling_observations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    sl_no = Column(Integer, nullable=False)
+    time_of_visit = Column(String, nullable=False)
+    location_visited = Column(String, nullable=False)
+    guard_on_duty = Column(String, nullable=False)
+    photo_of_staff = Column(String, nullable=True)
+    uniform_and_alertness = Column(String, nullable=False)
+    logbook_entry = Column(String, nullable=False)
+    issues_observed = Column(String, nullable=False)
+    action_taken = Column(String, nullable=False)
+    patrolling_officer_sign = Column(String, nullable=True)
+
+class NightPatrollingOfficerSignature(Base):
+    __tablename__ = "night_patrolling_officer_signatures"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    night_patrolling_report_id = Column(String, ForeignKey("night_patrolling_reports.id"), nullable=False)
+    signature = Column(String, nullable=True)
+
+# Night Patrolling Report Schemas
+class NightPatrollingGeneralReportDetailsSchema(BaseModel):
+    date: str
+    patrolling_officer: str
+    site_name: str
+    shift: str
+    total_guards_on_duty: int
+    vehicle_used: str
+    weather_condition: str
+
+class NightPatrollingObservationSchema(BaseModel):
+    sl_no: int
+    time_of_visit: str
+    location_visited: str
+    guard_on_duty: str
+    photo_of_staff: Optional[str] = None
+    uniform_and_alertness: str
+    logbook_entry: str
+    issues_observed: str
+    action_taken: str
+    patrolling_officer_sign: Optional[str] = None
+
+class NightPatrollingOfficerSignatureSchema(BaseModel):
+    signature: Optional[str] = None
+
+class NightPatrollingReportCreate(BaseModel):
+    property_id: str
+    general_report_details: NightPatrollingGeneralReportDetailsSchema
+    observations: List[NightPatrollingObservationSchema]
+    officer_signature: NightPatrollingOfficerSignatureSchema
+
+class NightPatrollingReportUpdate(BaseModel):
+    general_report_details: Optional[NightPatrollingGeneralReportDetailsSchema] = None
+    observations: Optional[List[NightPatrollingObservationSchema]] = None
+    officer_signature: Optional[NightPatrollingOfficerSignatureSchema] = None
+
+class NightPatrollingGeneralReportDetailsResponse(NightPatrollingGeneralReportDetailsSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingObservationResponse(NightPatrollingObservationSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingOfficerSignatureResponse(NightPatrollingOfficerSignatureSchema):
+    id: str
+    night_patrolling_report_id: str
+
+class NightPatrollingReportResponse(BaseModel):
+    id: str
+    property_id: str
+    general_report_details: Optional[NightPatrollingGeneralReportDetailsResponse] = None
+    observations: List[NightPatrollingObservationResponse] = []
+    officer_signature: Optional[NightPatrollingOfficerSignatureResponse] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Create tables
+NightPatrollingReport.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingGeneralReportDetails.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingObservation.__table__.create(bind=engine, checkfirst=True)
+NightPatrollingOfficerSignature.__table__.create(bind=engine, checkfirst=True)
+
+# Night Patrolling Report API Endpoints
+@app.post("/night-patrolling-reports/", response_model=NightPatrollingReportResponse, status_code=status.HTTP_201_CREATED, tags=["Night Patrolling Report"])
+def create_night_patrolling_report(report: NightPatrollingReportCreate, db: Session = Depends(get_db)):
+    try:
+        # Create main report
+        db_report = NightPatrollingReport(
+            property_id=report.property_id
+        )
+        db.add(db_report)
+        db.flush()  # Get the ID without committing
+
+        # Create general report details
+        if report.general_report_details:
+            db_general_details = NightPatrollingGeneralReportDetails(
+                night_patrolling_report_id=db_report.id,
+                **report.general_report_details.dict()
+            )
+            db.add(db_general_details)
+
+        # Create observations
+        for observation in report.observations:
+            db_observation = NightPatrollingObservation(
+                night_patrolling_report_id=db_report.id,
+                **observation.dict()
+            )
+            db.add(db_observation)
+
+        # Create officer signature
+        if report.officer_signature:
+            db_officer_signature = NightPatrollingOfficerSignature(
+                night_patrolling_report_id=db_report.id,
+                **report.officer_signature.dict()
+            )
+            db.add(db_officer_signature)
+
+        db.commit()
+        db.refresh(db_report)
+
+        # Load all related data
+        db.refresh(db_report)
+        if db_report.general_report_details:
+            db.refresh(db_report.general_report_details)
+        if db_report.officer_signature:
+            db.refresh(db_report.officer_signature)
+
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating night patrolling report: {str(e)}")
+
+@app.get("/night-patrolling-reports/", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_all_night_patrolling_reports(
+    skip: int = 0,
+    limit: int = 100,
+    property_id: Optional[str] = None,
+    date: Optional[str] = None,
+    patrolling_officer: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(NightPatrollingReport)
+
+        if property_id:
+            query = query.filter(NightPatrollingReport.property_id == property_id)
+
+        if date or patrolling_officer or date_from or date_to:
+            query = query.join(NightPatrollingGeneralReportDetails)
+            
+            if date:
+                query = query.filter(NightPatrollingGeneralReportDetails.date == date)
+            
+            if patrolling_officer:
+                query = query.filter(NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer)
+            
+            if date_from:
+                query = query.filter(NightPatrollingGeneralReportDetails.date >= date_from)
+            
+            if date_to:
+                query = query.filter(NightPatrollingGeneralReportDetails.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/{report_id}", response_model=NightPatrollingReportResponse, tags=["Night Patrolling Report"])
+def get_night_patrolling_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        # Load all related data
+        db.refresh(report)
+        if report.general_report_details:
+            db.refresh(report.general_report_details)
+        if report.officer_signature:
+            db.refresh(report.officer_signature)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling report: {str(e)}")
+
+@app.put("/night-patrolling-reports/{report_id}", response_model=NightPatrollingReportResponse, tags=["Night Patrolling Report"])
+def update_night_patrolling_report(report_id: str, report_update: NightPatrollingReportUpdate, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        # Update general report details
+        if report_update.general_report_details:
+            if report.general_report_details:
+                for key, value in report_update.general_report_details.dict(exclude_unset=True).items():
+                    setattr(report.general_report_details, key, value)
+            else:
+                db_general_details = NightPatrollingGeneralReportDetails(
+                    night_patrolling_report_id=report.id,
+                    **report_update.general_report_details.dict()
+                )
+                db.add(db_general_details)
+
+        # Update observations
+        if report_update.observations is not None:
+            # Delete existing observations
+            db.query(NightPatrollingObservation).filter(
+                NightPatrollingObservation.night_patrolling_report_id == report.id
+            ).delete()
+            
+            # Create new observations
+            for observation in report_update.observations:
+                db_observation = NightPatrollingObservation(
+                    night_patrolling_report_id=report.id,
+                    **observation.dict()
+                )
+                db.add(db_observation)
+
+        # Update officer signature
+        if report_update.officer_signature:
+            if report.officer_signature:
+                for key, value in report_update.officer_signature.dict(exclude_unset=True).items():
+                    setattr(report.officer_signature, key, value)
+            else:
+                db_officer_signature = NightPatrollingOfficerSignature(
+                    night_patrolling_report_id=report.id,
+                    **report_update.officer_signature.dict()
+                )
+                db.add(db_officer_signature)
+
+        report.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Load all related data
+        db.refresh(report)
+        if report.general_report_details:
+            db.refresh(report.general_report_details)
+        if report.officer_signature:
+            db.refresh(report.officer_signature)
+
+        return report
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating night patrolling report: {str(e)}")
+
+@app.delete("/night-patrolling-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Night Patrolling Report"])
+def delete_night_patrolling_report(report_id: str, db: Session = Depends(get_db)):
+    try:
+        report = db.query(NightPatrollingReport).filter(NightPatrollingReport.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail="Night patrolling report not found")
+
+        db.delete(report)
+        db.commit()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting night patrolling report: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property(
+    property_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    date: Optional[str] = None,
+    patrolling_officer: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(NightPatrollingReport).filter(NightPatrollingReport.property_id == property_id)
+
+        if date or patrolling_officer or date_from or date_to:
+            query = query.join(NightPatrollingGeneralReportDetails)
+            
+            if date:
+                query = query.filter(NightPatrollingGeneralReportDetails.date == date)
+            
+            if patrolling_officer:
+                query = query.filter(NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer)
+            
+            if date_from:
+                query = query.filter(NightPatrollingGeneralReportDetails.date >= date_from)
+            
+            if date_to:
+                query = query.filter(NightPatrollingGeneralReportDetails.date <= date_to)
+
+        reports = query.offset(skip).limit(limit).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.delete("/night-patrolling-reports/property/{property_id}", tags=["Night Patrolling Report"])
+def delete_night_patrolling_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).filter(NightPatrollingReport.property_id == property_id).all()
+        
+        for report in reports:
+            db.delete(report)
+        
+        db.commit()
+        
+        return {"message": f"Deleted {len(reports)} night patrolling reports for property {property_id}"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/date/{date}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_date(property_id: str, date: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.date == date
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/officer/{patrolling_officer}", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_officer(property_id: str, patrolling_officer: str, db: Session = Depends(get_db)):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.patrolling_officer == patrolling_officer
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/date-range", response_model=List[NightPatrollingReportResponse], tags=["Night Patrolling Report"])
+def get_night_patrolling_reports_by_property_and_date_range(
+    property_id: str,
+    date_from: str,
+    date_to: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        reports = db.query(NightPatrollingReport).join(NightPatrollingGeneralReportDetails).filter(
+            NightPatrollingReport.property_id == property_id,
+            NightPatrollingGeneralReportDetails.date >= date_from,
+            NightPatrollingGeneralReportDetails.date <= date_to
+        ).all()
+
+        # Load all related data for each report
+        for report in reports:
+            db.refresh(report)
+            if report.general_report_details:
+                db.refresh(report.general_report_details)
+            if report.officer_signature:
+                db.refresh(report.officer_signature)
+
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling reports: {str(e)}")
+
+@app.get("/night-patrolling-reports/property/{property_id}/statistics", tags=["Night Patrolling Report"])
+def get_night_patrolling_report_statistics(property_id: str, db: Session = Depends(get_db)):
+    try:
+        # Get total reports
+        total_reports = db.query(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get total observations
+        total_observations = db.query(NightPatrollingObservation).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).count()
+
+        # Get uniform and alertness statistics
+        alertness_stats = db.query(
+            NightPatrollingObservation.uniform_and_alertness,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.uniform_and_alertness).all()
+
+        # Get logbook entry statistics
+        logbook_stats = db.query(
+            NightPatrollingObservation.logbook_entry,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.logbook_entry).all()
+
+        # Get location statistics
+        location_stats = db.query(
+            NightPatrollingObservation.location_visited,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.location_visited).all()
+
+        # Get issues statistics
+        issues_stats = db.query(
+            NightPatrollingObservation.issues_observed,
+            func.count(NightPatrollingObservation.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingObservation.issues_observed).all()
+
+        # Get weather condition statistics
+        weather_stats = db.query(
+            NightPatrollingGeneralReportDetails.weather_condition,
+            func.count(NightPatrollingGeneralReportDetails.id).label('count')
+        ).join(NightPatrollingReport).filter(
+            NightPatrollingReport.property_id == property_id
+        ).group_by(NightPatrollingGeneralReportDetails.weather_condition).all()
+
+        return {
+            "property_id": property_id,
+            "total_reports": total_reports,
+            "total_observations": total_observations,
+            "alertness_statistics": {alertness: count for alertness, count in alertness_stats},
+            "logbook_entry_statistics": {logbook: count for logbook, count in logbook_stats},
+            "location_statistics": {location: count for location, count in location_stats},
+            "issues_statistics": {issue: count for issue, count in issues_stats},
+            "weather_statistics": {weather: count for weather, count in weather_stats}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching night patrolling report statistics: {str(e)}")
+
+# ... existing code ...
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Dependency to get a DB session for each request.
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# ==============================================================================
+# 2. SQLAlchemy MODELS (Database Tables)
+# ==============================================================================
+
+# --- Main Parent Model ---
+class VisitorManagementReport(Base):
+    """The main report that acts as a container for all individual entries."""
+    __tablename__ = "visitor_management_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-many relationships to all child entry tables
+    inward_non_returnable = relationship("InwardNonReturnable", backref="report", cascade="all, delete-orphan")
+    inward_returnable = relationship("InwardReturnable", backref="report", cascade="all, delete-orphan")
+    outward_non_returnable = relationship("OutwardNonReturnable", backref="report", cascade="all, delete-orphan")
+    outward_returnable = relationship("OutwardReturnable", backref="report", cascade="all, delete-orphan")
+    move_in = relationship("MoveIn", backref="report", cascade="all, delete-orphan")
+    move_out = relationship("MoveOut", backref="report", cascade="all, delete-orphan")
+    interior_work_tracking = relationship("InteriorWorkTracking", backref="report", cascade="all, delete-orphan")
+    work_permit_issuance = relationship("WorkPermitIssuance", backref="report", cascade="all, delete-orphan")
+    gate_pass_management = relationship("GatePassManagement", backref="report", cascade="all, delete-orphan")
+    blocklist_management = relationship("BlocklistManagement", backref="report", cascade="all, delete-orphan")
+    daily_entry_details = relationship("DailyEntryDetails", backref="report", cascade="all, delete-orphan")
+    water_tanker_management = relationship("WaterTankerManagement", backref="report", cascade="all, delete-orphan")
+    vendor_entry_management = relationship("VendorEntryManagement", backref="report", cascade="all, delete-orphan")
+    staff_entry_management = relationship("StaffEntryManagement", backref="report", cascade="all, delete-orphan")
+    emergency_contact_details = relationship("EmergencyContactDetails", backref="report", cascade="all, delete-orphan")
+    visitor_management_log = relationship("VisitorManagementLog", backref="report", cascade="all, delete-orphan")
+
+
+# --- Child Entry Models ---
+class InwardNonReturnable(Base):
+    __tablename__ = 'inward_non_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); supplier_name = Column(String, nullable=False); supplier_contact = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class InwardReturnable(Base):
+    __tablename__ = 'inward_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); supplier_name = Column(String, nullable=False); supplier_contact = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); expected_return_date = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class OutwardNonReturnable(Base):
+    __tablename__ = 'outward_non_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); recipient_name = Column(String, nullable=False); recipient_contact = Column(String, nullable=False); outward_date = Column(String, nullable=False); outward_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class OutwardReturnable(Base):
+    __tablename__ = 'outward_returnable'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    item_id = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); recipient_name = Column(String, nullable=False); recipient_contact = Column(String, nullable=False); outward_date = Column(String, nullable=False); outward_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); expected_return_date = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class MoveIn(Base):
+    __tablename__ = 'move_in'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    move_in_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); move_in_date = Column(String, nullable=False); move_in_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); no_of_persons = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class MoveOut(Base):
+    __tablename__ = 'move_out'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    move_out_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); move_out_date = Column(String, nullable=False); move_out_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); no_of_persons = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class InteriorWorkTracking(Base):
+    __tablename__ = 'interior_work_tracking'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    work_id = Column(String, nullable=False); resident_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); address = Column(String, nullable=False); work_description = Column(String, nullable=False); start_date = Column(String, nullable=False); end_date = Column(String, nullable=False); contractor_name = Column(String, nullable=False); contractor_contact = Column(String, nullable=False); no_of_workers = Column(Integer, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class WorkPermitIssuance(Base):
+    __tablename__ = 'work_permit_issuance'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    permit_id = Column(String, nullable=False); worker_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); company_name = Column(String, nullable=False); work_type = Column(String, nullable=False); permit_issue_date = Column(String, nullable=False); permit_expiry_date = Column(String, nullable=False); address = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class GatePassManagement(Base):
+    __tablename__ = 'gate_pass_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    pass_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_date = Column(String, nullable=True); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class BlocklistManagement(Base):
+    __tablename__ = 'blocklist_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    blocklist_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); reason_for_block = Column(String, nullable=False); date_added = Column(String, nullable=False); added_by = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class DailyEntryDetails(Base):
+    __tablename__ = 'daily_entry_details'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    entry_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class WaterTankerManagement(Base):
+    __tablename__ = 'water_tanker_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    tanker_id = Column(String, nullable=False); supplier_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); capacity_liters = Column(Integer, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class VendorEntryManagement(Base):
+    __tablename__ = 'vendor_entry_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    vendor_id = Column(String, nullable=False); vendor_name = Column(String, nullable=False); contact_number = Column(String, nullable=False); company_name = Column(String, nullable=False); purpose = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class StaffEntryManagement(Base):
+    __tablename__ = 'staff_entry_management'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    staff_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); department = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class EmergencyContactDetails(Base):
+    __tablename__ = 'emergency_contact_details'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    contact_id = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); relation = Column(String, nullable=False); address = Column(String, nullable=False); emergency_type = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+class VisitorManagementLog(Base):
+    __tablename__ = 'visitor_management_log'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("visitor_management_reports.id"), nullable=False)
+    record_id = Column(String, nullable=False); type = Column(String, nullable=False); name = Column(String, nullable=False); contact_number = Column(String, nullable=False); purpose = Column(String, nullable=False); company_supplier = Column(String, nullable=False); item_description = Column(String, nullable=False); quantity = Column(Integer, nullable=False); vehicle_no = Column(String, nullable=False); driver_name = Column(String, nullable=False); entry_date = Column(String, nullable=False); entry_time = Column(String, nullable=False); exit_date = Column(String, nullable=True); exit_time = Column(String, nullable=True); gate_no = Column(String, nullable=False); expected_return_date = Column(String, nullable=True); blocklist_status = Column(String, nullable=False); security_officer = Column(String, nullable=False); remarks = Column(String, nullable=False)
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas for individual entries ---
+class InwardNonReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; supplier_name: str; supplier_contact: str; entry_date: str; entry_time: str; gate_no: str; vehicle_no: str; driver_name: str; security_officer: str; remarks: str
+class InwardReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; supplier_name: str; supplier_contact: str; entry_date: str; entry_time: str; gate_no: str; vehicle_no: str; driver_name: str; expected_return_date: str; security_officer: str; remarks: str
+class OutwardNonReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; recipient_name: str; recipient_contact: str; outward_date: str; outward_time: str; gate_no: str; vehicle_no: str; driver_name: str; security_officer: str; remarks: str
+class OutwardReturnableSchema(BaseModel):
+    item_id: str; item_description: str; quantity: int; recipient_name: str; recipient_contact: str; outward_date: str; outward_time: str; gate_no: str; vehicle_no: str; driver_name: str; expected_return_date: str; security_officer: str; remarks: str
+class MoveInSchema(BaseModel):
+    move_in_id: str; name: str; contact_number: str; address: str; move_in_date: str; move_in_time: str; gate_no: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class MoveOutSchema(BaseModel):
+    move_out_id: str; name: str; contact_number: str; address: str; move_out_date: str; move_out_time: str; gate_no: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class InteriorWorkTrackingSchema(BaseModel):
+    work_id: str; resident_name: str; contact_number: str; address: str; work_description: str; start_date: str; end_date: str; contractor_name: str; contractor_contact: str; no_of_workers: int; security_officer: str; remarks: str
+class WorkPermitIssuanceSchema(BaseModel):
+    permit_id: str; worker_name: str; contact_number: str; company_name: str; work_type: str; permit_issue_date: str; permit_expiry_date: str; address: str; security_officer: str; remarks: str
+class GatePassManagementSchema(BaseModel):
+    pass_id: str; name: str; contact_number: str; purpose: str; entry_date: str; entry_time: str; exit_date: Optional[str] = None; exit_time: Optional[str] = None; gate_no: str; vehicle_no: str; security_officer: str; remarks: str
+class BlocklistManagementSchema(BaseModel):
+    blocklist_id: str; name: str; contact_number: str; reason_for_block: str; date_added: str; added_by: str; remarks: str
+class DailyEntryDetailsSchema(BaseModel):
+    entry_id: str; name: str; contact_number: str; purpose: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; vehicle_no: str; security_officer: str; remarks: str
+class WaterTankerManagementSchema(BaseModel):
+    tanker_id: str; supplier_name: str; contact_number: str; vehicle_no: str; driver_name: str; capacity_liters: int; entry_date: str; entry_time: str; gate_no: str; security_officer: str; remarks: str
+class VendorEntryManagementSchema(BaseModel):
+    vendor_id: str; vendor_name: str; contact_number: str; company_name: str; purpose: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; security_officer: str; remarks: str
+class StaffEntryManagementSchema(BaseModel):
+    staff_id: str; name: str; contact_number: str; department: str; entry_date: str; entry_time: str; exit_time: Optional[str] = None; gate_no: str; security_officer: str; remarks: str
+class EmergencyContactDetailsSchema(BaseModel):
+    contact_id: str; name: str; contact_number: str; relation: str; address: str; emergency_type: str; security_officer: str; remarks: str
+class VisitorManagementLogSchema(BaseModel):
+    record_id: str; type: str; name: str; contact_number: str; purpose: str; company_supplier: str; item_description: str; quantity: int; vehicle_no: str; driver_name: str; entry_date: str; entry_time: str; exit_date: Optional[str] = None; exit_time: Optional[str] = None; gate_no: str; expected_return_date: Optional[str] = None; blocklist_status: str; security_officer: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class VisitorManagementReportCreate(BaseModel):
+    property_id: str
+    inward_non_returnable: List[InwardNonReturnableSchema] = []
+    inward_returnable: List[InwardReturnableSchema] = []
+    outward_non_returnable: List[OutwardNonReturnableSchema] = []
+    outward_returnable: List[OutwardReturnableSchema] = []
+    move_in: List[MoveInSchema] = []
+    move_out: List[MoveOutSchema] = []
+    interior_work_tracking: List[InteriorWorkTrackingSchema] = []
+    work_permit_issuance: List[WorkPermitIssuanceSchema] = []
+    gate_pass_management: List[GatePassManagementSchema] = []
+    blocklist_management: List[BlocklistManagementSchema] = []
+    daily_entry_details: List[DailyEntryDetailsSchema] = []
+    water_tanker_management: List[WaterTankerManagementSchema] = []
+    vendor_entry_management: List[VendorEntryManagementSchema] = []
+    staff_entry_management: List[StaffEntryManagementSchema] = []
+    emergency_contact_details: List[EmergencyContactDetailsSchema] = []
+    visitor_management_log: List[VisitorManagementLogSchema] = []
+
+class VisitorManagementReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    inward_non_returnable: Optional[List[InwardNonReturnableSchema]] = None
+    inward_returnable: Optional[List[InwardReturnableSchema]] = None
+    outward_non_returnable: Optional[List[OutwardNonReturnableSchema]] = None
+    outward_returnable: Optional[List[OutwardReturnableSchema]] = None
+    move_in: Optional[List[MoveInSchema]] = None
+    move_out: Optional[List[MoveOutSchema]] = None
+    interior_work_tracking: Optional[List[InteriorWorkTrackingSchema]] = None
+    work_permit_issuance: Optional[List[WorkPermitIssuanceSchema]] = None
+    gate_pass_management: Optional[List[GatePassManagementSchema]] = None
+    blocklist_management: Optional[List[BlocklistManagementSchema]] = None
+    daily_entry_details: Optional[List[DailyEntryDetailsSchema]] = None
+    water_tanker_management: Optional[List[WaterTankerManagementSchema]] = None
+    vendor_entry_management: Optional[List[VendorEntryManagementSchema]] = None
+    staff_entry_management: Optional[List[StaffEntryManagementSchema]] = None
+    emergency_contact_details: Optional[List[EmergencyContactDetailsSchema]] = None
+    visitor_management_log: Optional[List[VisitorManagementLogSchema]] = None
+
+# --- Response Schemas (include DB-generated fields like id) ---
+class InwardNonReturnableResponse(InwardNonReturnableSchema): id: str; report_id: str
+class InwardReturnableResponse(InwardReturnableSchema): id: str; report_id: str
+class OutwardNonReturnableResponse(OutwardNonReturnableSchema): id: str; report_id: str
+class OutwardReturnableResponse(OutwardReturnableSchema): id: str; report_id: str
+class MoveInResponse(MoveInSchema): id: str; report_id: str
+class MoveOutResponse(MoveOutSchema): id: str; report_id: str
+class InteriorWorkTrackingResponse(InteriorWorkTrackingSchema): id: str; report_id: str
+class WorkPermitIssuanceResponse(WorkPermitIssuanceSchema): id: str; report_id: str
+class GatePassManagementResponse(GatePassManagementSchema): id: str; report_id: str
+class BlocklistManagementResponse(BlocklistManagementSchema): id: str; report_id: str
+class DailyEntryDetailsResponse(DailyEntryDetailsSchema): id: str; report_id: str
+class WaterTankerManagementResponse(WaterTankerManagementSchema): id: str; report_id: str
+class VendorEntryManagementResponse(VendorEntryManagementSchema): id: str; report_id: str
+class StaffEntryManagementResponse(StaffEntryManagementSchema): id: str; report_id: str
+class EmergencyContactDetailsResponse(EmergencyContactDetailsSchema): id: str; report_id: str
+class VisitorManagementLogResponse(VisitorManagementLogSchema): id: str; report_id: str
+
+class VisitorManagementReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    inward_non_returnable: List[InwardNonReturnableResponse] = []
+    inward_returnable: List[InwardReturnableResponse] = []
+    outward_non_returnable: List[OutwardNonReturnableResponse] = []
+    outward_returnable: List[OutwardReturnableResponse] = []
+    move_in: List[MoveInResponse] = []
+    move_out: List[MoveOutResponse] = []
+    interior_work_tracking: List[InteriorWorkTrackingResponse] = []
+    work_permit_issuance: List[WorkPermitIssuanceResponse] = []
+    gate_pass_management: List[GatePassManagementResponse] = []
+    blocklist_management: List[BlocklistManagementResponse] = []
+    daily_entry_details: List[DailyEntryDetailsResponse] = []
+    water_tanker_management: List[WaterTankerManagementResponse] = []
+    vendor_entry_management: List[VendorEntryManagementResponse] = []
+    staff_entry_management: List[StaffEntryManagementResponse] = []
+    emergency_contact_details: List[EmergencyContactDetailsResponse] = []
+    visitor_management_log: List[VisitorManagementLogResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+
+# This command creates all the database tables defined in the models.
+# It's good practice to run this once when you first set up your application.
+# You can also manage migrations with a tool like Alembic.
+Base.metadata.create_all(bind=engine)
+
+# Helper dictionary to map schema field names to their corresponding SQLAlchemy models.
+MODEL_MAP = {
+    "inward_non_returnable": InwardNonReturnable,
+    "inward_returnable": InwardReturnable,
+    "outward_non_returnable": OutwardNonReturnable,
+    "outward_returnable": OutwardReturnable,
+    "move_in": MoveIn,
+    "move_out": MoveOut,
+    "interior_work_tracking": InteriorWorkTracking,
+    "work_permit_issuance": WorkPermitIssuance,
+    "gate_pass_management": GatePassManagement,
+    "blocklist_management": BlocklistManagement,
+    "daily_entry_details": DailyEntryDetails,
+    "water_tanker_management": WaterTankerManagement,
+    "vendor_entry_management": VendorEntryManagement,
+    "staff_entry_management": StaffEntryManagement,
+    "emergency_contact_details": EmergencyContactDetails,
+    "visitor_management_log": VisitorManagementLog,
+}
+
+# --- API Endpoints ---
+@app.post("/visitor-management-reports/", response_model=VisitorManagementReportResponse, status_code=status.HTTP_201_CREATED, tags=["Visitor Management Report"])
+def create_visitor_management_report(report: VisitorManagementReportCreate, db: Session = Depends(get_db)):
+    """
+    Create a new visitor management report with all its associated entries.
+    """
+    try:
+        db_report = VisitorManagementReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()  # Use flush to get the report's generated ID before commit.
+
+        # Iterate through the model map to create all child entries from the payload.
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+
+@app.get("/visitor-management-reports/", response_model=List[VisitorManagementReportResponse], tags=["Visitor Management Report"])
+def get_all_visitor_management_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """
+    Retrieve all visitor management reports, with optional filtering by property_id.
+    """
+    try:
+        query = db.query(VisitorManagementReport)
+        if property_id:
+            query = query.filter(VisitorManagementReport.property_id == property_id)
+        
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+
+@app.get("/visitor-management-reports/{report_id}", response_model=VisitorManagementReportResponse, tags=["Visitor Management Report"])
+def get_visitor_management_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a single visitor management report by its ID.
+    """
+    report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
+@app.put("/visitor-management-reports/{report_id}", response_model=VisitorManagementReportResponse, tags=["Visitor Management Report"])
+def update_visitor_management_report(report_id: str, report_update: VisitorManagementReportUpdate, db: Session = Depends(get_db)):
+    """
+    Update a visitor management report.
+    For lists of entries (e.g., move_in), this replaces the entire existing list with the new one.
+    """
+    db_report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    try:
+        # Update property_id if provided in the payload.
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        # Use the "delete and replace" strategy for updating child entries.
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                # Delete all existing entries of this type for the report.
+                db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                # Create the new entries from the payload.
+                for entry_data in update_entries:
+                    db_entry = model(report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+
+@app.delete("/visitor-management-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Visitor Management Report"])
+def delete_visitor_management_report(report_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a visitor management report and all its associated entries.
+    """
+    report = db.query(VisitorManagementReport).filter(VisitorManagementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    try:
+        db.delete(report)  # The 'cascade="all, delete-orphan"' setting handles deleting all children.
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+@app.get("/visitor-management-reports/property/{property_id}", response_model=List[VisitorManagementReportResponse], tags=["Visitor Management Report"])
+def get_reports_by_property(property_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Retrieve all reports associated with a specific property ID.
+    """
+    return get_all_visitor_management_reports(skip=skip, limit=limit, property_id=property_id, db=db)
+
+
+@app.delete("/visitor-management-reports/property/{property_id}", tags=["Visitor Management Report"])
+def delete_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Delete all reports (and their child entries) associated with a specific property ID.
+    """
+    try:
+        # We must fetch the reports first to trigger the ORM's cascade delete mechanism.
+        reports_to_delete = db.query(VisitorManagementReport).filter(VisitorManagementReport.property_id == property_id).all()
+        if not reports_to_delete:
+            raise HTTPException(status_code=404, detail=f"No reports found for property ID {property_id}")
+        
+        count = len(reports_to_delete)
+        for report in reports_to_delete:
+            db.delete(report)
+            
+        db.commit()
+        return {"message": f"Successfully deleted {count} reports for property {property_id}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting reports by property: {str(e)}")
+
+
+class CommunityReport(Base):
+    __tablename__ = "community_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    tickets = relationship("Ticket", backref="report", cascade="all, delete-orphan")
+    ticket_assignments = relationship("TicketAssignment", backref="report", cascade="all, delete-orphan")
+    notices = relationship("Notice", backref="report", cascade="all, delete-orphan")
+    parking_stickers = relationship("ParkingSticker", backref="report", cascade="all, delete-orphan")
+    announcements = relationship("Announcement", backref="report", cascade="all, delete-orphan")
+    move_in_coordinations = relationship("MoveInCoordination", backref="report", cascade="all, delete-orphan")
+    move_out_coordinations = relationship("MoveOutCoordination", backref="report", cascade="all, delete-orphan")
+    interior_work_approvals = relationship("InteriorWorkApproval", backref="report", cascade="all, delete-orphan")
+    work_permit_trackings = relationship("WorkPermitTracking", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class Ticket(Base):
+    __tablename__ = 'tickets'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    ticket_id = Column(String); resident_name = Column(String); contact_number = Column(String); address = Column(String); issue_type = Column(String); description = Column(String); priority = Column(String); status = Column(String); reported_date = Column(String); reported_time = Column(String); resolution_date = Column(String, nullable=True); resolution_time = Column(String, nullable=True); assigned_team = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class TicketAssignment(Base):
+    __tablename__ = 'ticket_assignments'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    assignment_id = Column(String); ticket_id = Column(String); assigned_to = Column(String); department = Column(String); assignment_date = Column(String); assignment_time = Column(String); priority = Column(String); status = Column(String); expected_resolution_date = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class Notice(Base):
+    __tablename__ = 'notices'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    notice_id = Column(String); title = Column(String); description = Column(String); target_audience = Column(String); issue_date = Column(String); expiry_date = Column(String); issued_by = Column(String); communication_channel = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class ParkingSticker(Base):
+    __tablename__ = 'parking_stickers'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    sticker_id = Column(String); resident_name = Column(String); contact_number = Column(String); vehicle_no = Column(String); vehicle_type = Column(String); sticker_issue_date = Column(String); sticker_expiry_date = Column(String); address = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class Announcement(Base):
+    __tablename__ = 'announcements'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    communication_id = Column(String); title = Column(String); description = Column(String); target_audience = Column(String); sent_date = Column(String); sent_time = Column(String); sent_by = Column(String); channel = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class MoveInCoordination(Base):
+    __tablename__ = 'move_in_coordinations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    move_in_id = Column(String); name = Column(String); contact_number = Column(String); address = Column(String); move_in_date = Column(String); move_in_time = Column(String); vehicle_no = Column(String); driver_name = Column(String); no_of_persons = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class MoveOutCoordination(Base):
+    __tablename__ = 'move_out_coordinations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    move_out_id = Column(String); name = Column(String); contact_number = Column(String); address = Column(String); move_out_date = Column(String); move_out_time = Column(String); vehicle_no = Column(String); driver_name = Column(String); no_of_persons = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class InteriorWorkApproval(Base):
+    __tablename__ = 'interior_work_approvals'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    approval_id = Column(String); resident_name = Column(String); contact_number = Column(String); address = Column(String); work_description = Column(String); approval_status = Column(String); approval_date = Column(String); start_date = Column(String); end_date = Column(String); contractor_name = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class WorkPermitTracking(Base):
+    __tablename__ = 'work_permit_trackings'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    community_report_id = Column(String, ForeignKey("community_reports.id"), nullable=False)
+    permit_id = Column(String); worker_name = Column(String); contact_number = Column(String); company_name = Column(String); work_type = Column(String); permit_issue_date = Column(String); permit_expiry_date = Column(String); address = Column(String); status = Column(String); security_officer = Column(String); remarks = Column(String)
+
+class TicketSchema(BaseModel):
+    ticket_id: str; resident_name: str; contact_number: str; address: str; issue_type: str; description: str; priority: str; status: str; reported_date: str; reported_time: str; resolution_date: Optional[str] = None; resolution_time: Optional[str] = None; assigned_team: str; security_officer: str; remarks: str
+class TicketAssignmentSchema(BaseModel):
+    assignment_id: str; ticket_id: str; assigned_to: str; department: str; assignment_date: str; assignment_time: str; priority: str; status: str; expected_resolution_date: str; security_officer: str; remarks: str
+class NoticeSchema(BaseModel):
+    notice_id: str; title: str; description: str; target_audience: str; issue_date: str; expiry_date: str; issued_by: str; communication_channel: str; status: str; security_officer: str; remarks: str
+class ParkingStickerSchema(BaseModel):
+    sticker_id: str; resident_name: str; contact_number: str; vehicle_no: str; vehicle_type: str; sticker_issue_date: str; sticker_expiry_date: str; address: str; status: str; security_officer: str; remarks: str
+class AnnouncementSchema(BaseModel):
+    communication_id: str; title: str; description: str; target_audience: str; sent_date: str; sent_time: str; sent_by: str; channel: str; status: str; security_officer: str; remarks: str
+class MoveInCoordinationSchema(BaseModel):
+    move_in_id: str; name: str; contact_number: str; address: str; move_in_date: str; move_in_time: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class MoveOutCoordinationSchema(BaseModel):
+    move_out_id: str; name: str; contact_number: str; address: str; move_out_date: str; move_out_time: str; vehicle_no: str; driver_name: str; no_of_persons: int; security_officer: str; remarks: str
+class InteriorWorkApprovalSchema(BaseModel):
+    approval_id: str; resident_name: str; contact_number: str; address: str; work_description: str; approval_status: str; approval_date: str; start_date: str; end_date: str; contractor_name: str; security_officer: str; remarks: str
+class WorkPermitTrackingSchema(BaseModel):
+    permit_id: str; worker_name: str; contact_number: str; company_name: str; work_type: str; permit_issue_date: str; permit_expiry_date: str; address: str; status: str; security_officer: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class CommunityReportCreate(BaseModel):
+    property_id: str
+    tickets: List[TicketSchema] = []
+    ticket_assignments: List[TicketAssignmentSchema] = []
+    notices: List[NoticeSchema] = []
+    parking_stickers: List[ParkingStickerSchema] = []
+    announcements: List[AnnouncementSchema] = []
+    move_in_coordinations: List[MoveInCoordinationSchema] = []
+    move_out_coordinations: List[MoveOutCoordinationSchema] = []
+    interior_work_approvals: List[InteriorWorkApprovalSchema] = []
+    work_permit_trackings: List[WorkPermitTrackingSchema] = []
+
+class CommunityReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    tickets: Optional[List[TicketSchema]] = None
+    ticket_assignments: Optional[List[TicketAssignmentSchema]] = None
+    notices: Optional[List[NoticeSchema]] = None
+    parking_stickers: Optional[List[ParkingStickerSchema]] = None
+    announcements: Optional[List[AnnouncementSchema]] = None
+    move_in_coordinations: Optional[List[MoveInCoordinationSchema]] = None
+    move_out_coordinations: Optional[List[MoveOutCoordinationSchema]] = None
+    interior_work_approvals: Optional[List[InteriorWorkApprovalSchema]] = None
+    work_permit_trackings: Optional[List[WorkPermitTrackingSchema]] = None
+
+# --- Response Schemas ---
+class TicketResponse(TicketSchema): id: str; community_report_id: str
+class TicketAssignmentResponse(TicketAssignmentSchema): id: str; community_report_id: str
+class NoticeResponse(NoticeSchema): id: str; community_report_id: str
+class ParkingStickerResponse(ParkingStickerSchema): id: str; community_report_id: str
+class AnnouncementResponse(AnnouncementSchema): id: str; community_report_id: str
+class MoveInCoordinationResponse(MoveInCoordinationSchema): id: str; community_report_id: str
+class MoveOutCoordinationResponse(MoveOutCoordinationSchema): id: str; community_report_id: str
+class InteriorWorkApprovalResponse(InteriorWorkApprovalSchema): id: str; community_report_id: str
+class WorkPermitTrackingResponse(WorkPermitTrackingSchema): id: str; community_report_id: str
+
+class CommunityReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    tickets: List[TicketResponse] = []
+    ticket_assignments: List[TicketAssignmentResponse] = []
+    notices: List[NoticeResponse] = []
+    parking_stickers: List[ParkingStickerResponse] = []
+    announcements: List[AnnouncementResponse] = []
+    move_in_coordinations: List[MoveInCoordinationResponse] = []
+    move_out_coordinations: List[MoveOutCoordinationResponse] = []
+    interior_work_approvals: List[InteriorWorkApprovalResponse] = []
+    work_permit_trackings: List[WorkPermitTrackingResponse] = []
+
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "tickets": Ticket,
+    "ticket_assignments": TicketAssignment,
+    "notices": Notice,
+    "parking_stickers": ParkingSticker,
+    "announcements": Announcement,
+    "move_in_coordinations": MoveInCoordination,
+    "move_out_coordinations": MoveOutCoordination,
+    "interior_work_approvals": InteriorWorkApproval,
+    "work_permit_trackings": WorkPermitTracking,
+}
+
+@app.post("/community-reports/", response_model=CommunityReportResponse, status_code=status.HTTP_201_CREATED, tags=["Community Management Report"])
+def create_community_report(report: CommunityReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = CommunityReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(community_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/community-reports/", response_model=List[CommunityReportResponse], tags=["Community Management Report"])
+def get_all_community_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(CommunityReport)
+        if property_id:
+            query = query.filter(CommunityReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/community-reports/{report_id}", response_model=CommunityReportResponse, tags=["Community Management Report"])
+def get_community_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+    return report
+
+@app.put("/community-reports/{report_id}", response_model=CommunityReportResponse, tags=["Community Management Report"])
+def update_community_report(report_id: str, report_update: CommunityReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.community_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(community_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/community-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Community Management Report"])
+def delete_community_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CommunityReport).filter(CommunityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Community report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+@app.get("/community-reports/property/{property_id}", response_model=List[CommunityReportResponse], tags=["Community Management Report"])
+def get_reports_by_property(property_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return get_all_community_reports(skip=skip, limit=limit, property_id=property_id, db=db)
+
+@app.delete("/community-reports/property/{property_id}", tags=["Community Management Report"])
+def delete_reports_by_property(property_id: str, db: Session = Depends(get_db)):
+    try:
+        reports_to_delete = db.query(CommunityReport).filter(CommunityReport.property_id == property_id).all()
+        if not reports_to_delete:
+            raise HTTPException(status_code=404, detail=f"No reports found for property ID {property_id}")
+        
+        count = len(reports_to_delete)
+        for report in reports_to_delete:
+            db.delete(report)
+            
+        db.commit()
+        return {"message": f"Successfully deleted {count} reports for property {property_id}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting reports by property: {str(e)}")
+
+# --- Main Parent Model ---
+class InventoryReport(Base):
+    __tablename__ = "inventory_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    inventory_items = relationship("InventoryItem", backref="report", cascade="all, delete-orphan")
+    stock_transactions = relationship("StockTransaction", backref="report", cascade="all, delete-orphan")
+    min_max_levels = relationship("MinMaxLevel", backref="report", cascade="all, delete-orphan")
+    consumption_reports = relationship("ConsumptionReport", backref="report", cascade="all, delete-orphan")
+    expiry_damage_logs = relationship("ExpiryDamageLog", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class InventoryItem(Base):
+    __tablename__ = 'inventory_items'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    item_id = Column(String); item_name = Column(String); category = Column(String); current_stock = Column(Integer); unit = Column(String); location = Column(String); last_updated = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class StockTransaction(Base):
+    __tablename__ = 'stock_transactions'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    transaction_id = Column(String); item_id = Column(String); item_name = Column(String); transaction_type = Column(String); quantity = Column(Integer); unit = Column(String); date = Column(String); time = Column(String); supplier_recipient = Column(String); vehicle_no = Column(String, nullable=True); responsible_person = Column(String); remarks = Column(String)
+
+class MinMaxLevel(Base):
+    __tablename__ = 'min_max_levels'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    item_id = Column(String); item_name = Column(String); category = Column(String); current_stock = Column(Integer); minimum_level = Column(Integer); maximum_level = Column(Integer); status = Column(String); last_checked = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class ConsumptionReport(Base):
+    __tablename__ = 'consumption_reports'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    report_id = Column(String); item_id = Column(String); item_name = Column(String); category = Column(String); quantity_consumed = Column(Integer); unit = Column(String); period_start = Column(String); period_end = Column(String); consumed_by = Column(String); purpose = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class ExpiryDamageLog(Base):
+    __tablename__ = 'expiry_damage_logs'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    inventory_report_id = Column(String, ForeignKey("inventory_reports.id"), nullable=False)
+    log_id = Column(String); item_id = Column(String); item_name = Column(String); category = Column(String); quantity = Column(Integer); unit = Column(String); status = Column(String); date_recorded = Column(String); expiry_date = Column(String, nullable=True); reason = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas for individual entries ---
+class InventoryItemSchema(BaseModel):
+    item_id: str; item_name: str; category: str; current_stock: int; unit: str; location: str; last_updated: str; responsible_person: str; remarks: str
+class StockTransactionSchema(BaseModel):
+    transaction_id: str; item_id: str; item_name: str; transaction_type: str; quantity: int; unit: str; date: str; time: str; supplier_recipient: str; vehicle_no: Optional[str] = None; responsible_person: str; remarks: str
+class MinMaxLevelSchema(BaseModel):
+    item_id: str; item_name: str; category: str; current_stock: int; minimum_level: int; maximum_level: int; status: str; last_checked: str; responsible_person: str; remarks: str
+class ConsumptionReportSchema(BaseModel):
+    report_id: str; item_id: str; item_name: str; category: str; quantity_consumed: int; unit: str; period_start: str; period_end: str; consumed_by: str; purpose: str; responsible_person: str; remarks: str
+class ExpiryDamageLogSchema(BaseModel):
+    log_id: str; item_id: str; item_name: str; category: str; quantity: int; unit: str; status: str; date_recorded: str; expiry_date: Optional[str] = None; reason: str; responsible_person: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class InventoryReportCreate(BaseModel):
+    property_id: str
+    inventory_items: List[InventoryItemSchema] = []
+    stock_transactions: List[StockTransactionSchema] = []
+    min_max_levels: List[MinMaxLevelSchema] = []
+    consumption_reports: List[ConsumptionReportSchema] = []
+    expiry_damage_logs: List[ExpiryDamageLogSchema] = []
+
+class InventoryReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    inventory_items: Optional[List[InventoryItemSchema]] = None
+    stock_transactions: Optional[List[StockTransactionSchema]] = None
+    min_max_levels: Optional[List[MinMaxLevelSchema]] = None
+    consumption_reports: Optional[List[ConsumptionReportSchema]] = None
+    expiry_damage_logs: Optional[List[ExpiryDamageLogSchema]] = None
+
+# --- Response Schemas ---
+class InventoryItemResponse(InventoryItemSchema): id: str; inventory_report_id: str
+class StockTransactionResponse(StockTransactionSchema): id: str; inventory_report_id: str
+class MinMaxLevelResponse(MinMaxLevelSchema): id: str; inventory_report_id: str
+class ConsumptionReportResponse(ConsumptionReportSchema): id: str; inventory_report_id: str
+class ExpiryDamageLogResponse(ExpiryDamageLogSchema): id: str; inventory_report_id: str
+
+class InventoryReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    inventory_items: List[InventoryItemResponse] = []
+    stock_transactions: List[StockTransactionResponse] = []
+    min_max_levels: List[MinMaxLevelResponse] = []
+    consumption_reports: List[ConsumptionReportResponse] = []
+    expiry_damage_logs: List[ExpiryDamageLogResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "inventory_items": InventoryItem,
+    "stock_transactions": StockTransaction,
+    "min_max_levels": MinMaxLevel,
+    "consumption_reports": ConsumptionReport,
+    "expiry_damage_logs": ExpiryDamageLog,
+}
+
+@app.post("/inventory-reports/", response_model=InventoryReportResponse, status_code=status.HTTP_201_CREATED, tags=["Inventory Management Report"])
+def create_inventory_report(report: InventoryReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = InventoryReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(inventory_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/inventory-reports/", response_model=List[InventoryReportResponse], tags=["Inventory Management Report"])
+def get_all_inventory_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(InventoryReport)
+        if property_id:
+            query = query.filter(InventoryReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/inventory-reports/{report_id}", response_model=InventoryReportResponse, tags=["Inventory Management Report"])
+def get_inventory_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+    return report
+
+@app.put("/inventory-reports/{report_id}", response_model=InventoryReportResponse, tags=["Inventory Management Report"])
+def update_inventory_report(report_id: str, report_update: InventoryReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.inventory_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(inventory_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/inventory-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Inventory Management Report"])
+def delete_inventory_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(InventoryReport).filter(InventoryReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Inventory report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+# --- Main Parent Model ---
+class AssetReport(Base):
+    __tablename__ = "asset_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    assets = relationship("Asset", backref="report", cascade="all, delete-orphan")
+    movement_logs = relationship("AssetMovementLog", backref="report", cascade="all, delete-orphan")
+    amc_warranties = relationship("AmcWarranty", backref="report", cascade="all, delete-orphan")
+    maintenance_schedules = relationship("MaintenanceSchedule", backref="report", cascade="all, delete-orphan")
+    audits = relationship("AssetAudit", backref="report", cascade="all, delete-orphan")
+    depreciations = relationship("Depreciation", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class Asset(Base):
+    __tablename__ = 'assets_main'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    asset_id = Column(String); asset_name = Column(String); category = Column(String); tag_barcode = Column(String); location = Column(String); purchase_date = Column(String); cost = Column(Float); status = Column(String); assigned_to = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class AssetMovementLog(Base):
+    __tablename__ = 'asset_movement_logs'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    movement_id = Column(String); asset_id = Column(String); asset_name = Column(String); from_location = Column(String); to_location = Column(String); movement_date = Column(String); movement_time = Column(String); purpose = Column(String); transported_by = Column(String); vehicle_no = Column(String, nullable=True); responsible_person = Column(String); remarks = Column(String)
+
+class AmcWarranty(Base):
+    __tablename__ = 'amc_warranties'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    amc_warranty_id = Column(String); asset_id = Column(String); asset_name = Column(String); contract_type = Column(String); provider = Column(String); start_date = Column(String); end_date = Column(String); cost = Column(Float); coverage_details = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class MaintenanceSchedule(Base):
+    __tablename__ = 'asset_maintenance_schedules'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    maintenance_id = Column(String); asset_id = Column(String); asset_name = Column(String); maintenance_type = Column(String); scheduled_date = Column(String); actual_date = Column(String, nullable=True); status = Column(String); technician = Column(String); cost = Column(Float); responsible_person = Column(String); remarks = Column(String)
+
+class AssetAudit(Base):
+    __tablename__ = 'asset_audits'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    audit_id = Column(String); asset_id = Column(String); asset_name = Column(String); audit_date = Column(String); location = Column(String); condition = Column(String); status = Column(String); auditor = Column(String); discrepancies = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class Depreciation(Base):
+    __tablename__ = 'depreciations'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_report_id = Column(String, ForeignKey("asset_reports.id"), nullable=False)
+    depreciation_id = Column(String); asset_id = Column(String); asset_name = Column(String); purchase_date = Column(String); purchase_cost = Column(Float); depreciation_method = Column(String); annual_depreciation = Column(Float); current_value = Column(Float); replacement_date = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+
+# --- Base Schemas for individual entries ---
+class AssetSchema(BaseModel):
+    asset_id: str; asset_name: str; category: str; tag_barcode: str; location: str; purchase_date: str; cost: float; status: str; assigned_to: str; responsible_person: str; remarks: str
+class AssetMovementLogSchema(BaseModel):
+    movement_id: str; asset_id: str; asset_name: str; from_location: str; to_location: str; movement_date: str; movement_time: str; purpose: str; transported_by: str; vehicle_no: Optional[str] = None; responsible_person: str; remarks: str
+class AmcWarrantySchema(BaseModel):
+    amc_warranty_id: str; asset_id: str; asset_name: str; contract_type: str; provider: str; start_date: str; end_date: str; cost: float; coverage_details: str; status: str; responsible_person: str; remarks: str
+class MaintenanceScheduleSchema(BaseModel):
+    maintenance_id: str; asset_id: str; asset_name: str; maintenance_type: str; scheduled_date: str; actual_date: Optional[str] = None; status: str; technician: str; cost: float; responsible_person: str; remarks: str
+class AssetAuditSchema(BaseModel):
+    audit_id: str; asset_id: str; asset_name: str; audit_date: str; location: str; condition: str; status: str; auditor: str; discrepancies: str; responsible_person: str; remarks: str
+class DepreciationSchema(BaseModel):
+    depreciation_id: str; asset_id: str; asset_name: str; purchase_date: str; purchase_cost: float; depreciation_method: str; annual_depreciation: float; current_value: float; replacement_date: str; status: str; responsible_person: str; remarks: str
+
+# --- Schemas for Create and Update Payloads ---
+class AssetReportCreate(BaseModel):
+    property_id: str
+    assets: List[AssetSchema] = []
+    movement_logs: List[AssetMovementLogSchema] = []
+    amc_warranties: List[AmcWarrantySchema] = []
+    maintenance_schedules: List[MaintenanceScheduleSchema] = []
+    audits: List[AssetAuditSchema] = []
+    depreciations: List[DepreciationSchema] = []
+
+class AssetReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    assets: Optional[List[AssetSchema]] = None
+    movement_logs: Optional[List[AssetMovementLogSchema]] = None
+    amc_warranties: Optional[List[AmcWarrantySchema]] = None
+    maintenance_schedules: Optional[List[MaintenanceScheduleSchema]] = None
+    audits: Optional[List[AssetAuditSchema]] = None
+    depreciations: Optional[List[DepreciationSchema]] = None
+
+# --- Response Schemas ---
+class AssetResponse(AssetSchema): id: str; asset_report_id: str
+class AssetMovementLogResponse(AssetMovementLogSchema): id: str; asset_report_id: str
+class AmcWarrantyResponse(AmcWarrantySchema): id: str; asset_report_id: str
+class MaintenanceScheduleResponse(MaintenanceScheduleSchema): id: str; asset_report_id: str
+class AssetAuditResponse(AssetAuditSchema): id: str; asset_report_id: str
+class DepreciationResponse(DepreciationSchema): id: str; asset_report_id: str
+
+class AssetReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    assets: List[AssetResponse] = []
+    movement_logs: List[AssetMovementLogResponse] = []
+    amc_warranties: List[AmcWarrantyResponse] = []
+    maintenance_schedules: List[MaintenanceScheduleResponse] = []
+    audits: List[AssetAuditResponse] = []
+    depreciations: List[DepreciationResponse] = []
+
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "assets": Asset,
+    "movement_logs": AssetMovementLog,
+    "amc_warranties": AmcWarranty,
+    "maintenance_schedules": MaintenanceSchedule,
+    "audits": AssetAudit,
+    "depreciations": Depreciation,
+}
+
+@app.post("/asset-reports/", response_model=AssetReportResponse, status_code=status.HTTP_201_CREATED, tags=["Asset Management Report"])
+def create_asset_report(report: AssetReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = AssetReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(asset_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/asset-reports/", response_model=List[AssetReportResponse], tags=["Asset Management Report"])
+def get_all_asset_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(AssetReport)
+        if property_id:
+            query = query.filter(AssetReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/asset-reports/{report_id}", response_model=AssetReportResponse, tags=["Asset Management Report"])
+def get_asset_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+    return report
+
+@app.put("/asset-reports/{report_id}", response_model=AssetReportResponse, tags=["Asset Management Report"])
+def update_asset_report(report_id: str, report_update: AssetReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.asset_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(asset_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/asset-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Asset Management Report"])
+def delete_asset_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AssetReport).filter(AssetReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Asset report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+# --- Main Parent Model ---
+class QualityReport(Base):
+    __tablename__ = "quality_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    quality_plans = relationship("QualityPlan", backref="report", cascade="all, delete-orphan")
+    process_setups = relationship("ProcessSetup", backref="report", cascade="all, delete-orphan")
+    quality_assurance_activities = relationship("QualityAssurance", backref="report", cascade="all, delete-orphan")
+    quality_control_checks = relationship("QualityControl", backref="report", cascade="all, delete-orphan")
+    performance_monitors = relationship("PerformanceMonitor", backref="report", cascade="all, delete-orphan")
+    documents = relationship("QualityDocument", backref="report", cascade="all, delete-orphan")
+
+# --- Child Entry Models ---
+class QualityPlan(Base):
+    __tablename__ = 'quality_plans'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    plan_id = Column(String); project_process_name = Column(String); objective = Column(String); standards = Column(String); start_date = Column(String); end_date = Column(String); responsible_person = Column(String); status = Column(String); remarks = Column(String)
+
+class ProcessSetup(Base):
+    __tablename__ = 'process_setups'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    process_id = Column(String); process_name = Column(String); description = Column(String); inputs = Column(String); outputs = Column(String); owner = Column(String); tools_methods = Column(String); status = Column(String); last_updated = Column(String); remarks = Column(String)
+
+class QualityAssurance(Base):
+    __tablename__ = 'quality_assurance_activities'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    qa_id = Column(String); project_process_id = Column(String); activity = Column(String); standard = Column(String); execution_date = Column(String); responsible_person = Column(String); compliance_status = Column(String); evidence = Column(String); remarks = Column(String)
+
+class QualityControl(Base):
+    __tablename__ = 'quality_control_checks'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    qc_id = Column(String); project_process_id = Column(String); item_output = Column(String); specification = Column(String); inspection_date = Column(String); inspection_time = Column(String); result = Column(String); inspector = Column(String); corrective_action = Column(String); remarks = Column(String)
+
+class PerformanceMonitor(Base):
+    __tablename__ = 'performance_monitors'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    monitor_id = Column(String); project_process_id = Column(String); metric = Column(String); target = Column(String); actual = Column(String); variance = Column(String); date_checked = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+class QualityDocument(Base):
+    __tablename__ = 'quality_documents'
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    quality_report_id = Column(String, ForeignKey("quality_reports.id"), nullable=False)
+    document_id = Column(String); project_process_id = Column(String); document_type = Column(String); title = Column(String); created_date = Column(String); author = Column(String); status = Column(String); storage_location = Column(String); responsible_person = Column(String); remarks = Column(String)
+
+# ==============================================================================
+# 3. Pydantic SCHEMAS (Data Validation)
+# ==============================================================================
+
+# --- Base Schemas ---
+class QualityPlanSchema(BaseModel):
+    plan_id: str; project_process_name: str; objective: str; standards: str; start_date: str; end_date: str; responsible_person: str; status: str; remarks: str
+class ProcessSetupSchema(BaseModel):
+    process_id: str; process_name: str; description: str; inputs: str; outputs: str; owner: str; tools_methods: str; status: str; last_updated: str; remarks: str
+class QualityAssuranceSchema(BaseModel):
+    qa_id: str; project_process_id: str; activity: str; standard: str; execution_date: str; responsible_person: str; compliance_status: str; evidence: str; remarks: str
+class QualityControlSchema(BaseModel):
+    qc_id: str; project_process_id: str; item_output: str; specification: str; inspection_date: str; inspection_time: str; result: str; inspector: str; corrective_action: str; remarks: str
+class PerformanceMonitorSchema(BaseModel):
+    monitor_id: str; project_process_id: str; metric: str; target: str; actual: str; variance: str; date_checked: str; status: str; responsible_person: str; remarks: str
+class QualityDocumentSchema(BaseModel):
+    document_id: str; project_process_id: str; document_type: str; title: str; created_date: str; author: str; status: str; storage_location: str; responsible_person: str; remarks: str
+
+# --- Create and Update Schemas ---
+class QualityReportCreate(BaseModel):
+    property_id: str
+    quality_plans: List[QualityPlanSchema] = []
+    process_setups: List[ProcessSetupSchema] = []
+    quality_assurance_activities: List[QualityAssuranceSchema] = []
+    quality_control_checks: List[QualityControlSchema] = []
+    performance_monitors: List[PerformanceMonitorSchema] = []
+    documents: List[QualityDocumentSchema] = []
+
+class QualityReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    quality_plans: Optional[List[QualityPlanSchema]] = None
+    process_setups: Optional[List[ProcessSetupSchema]] = None
+    quality_assurance_activities: Optional[List[QualityAssuranceSchema]] = None
+    quality_control_checks: Optional[List[QualityControlSchema]] = None
+    performance_monitors: Optional[List[PerformanceMonitorSchema]] = None
+    documents: Optional[List[QualityDocumentSchema]] = None
+
+# --- Response Schemas ---
+class QualityPlanResponse(QualityPlanSchema): id: str; quality_report_id: str
+class ProcessSetupResponse(ProcessSetupSchema): id: str; quality_report_id: str
+class QualityAssuranceResponse(QualityAssuranceSchema): id: str; quality_report_id: str
+class QualityControlResponse(QualityControlSchema): id: str; quality_report_id: str
+class PerformanceMonitorResponse(PerformanceMonitorSchema): id: str; quality_report_id: str
+class QualityDocumentResponse(QualityDocumentSchema): id: str; quality_report_id: str
+
+class QualityReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    quality_plans: List[QualityPlanResponse] = []
+    process_setups: List[ProcessSetupResponse] = []
+    quality_assurance_activities: List[QualityAssuranceResponse] = []
+    quality_control_checks: List[QualityControlResponse] = []
+    performance_monitors: List[PerformanceMonitorResponse] = []
+    documents: List[QualityDocumentResponse] = []
+
+    class Config:
+        from_attributes = True
+
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "quality_plans": QualityPlan,
+    "process_setups": ProcessSetup,
+    "quality_assurance_activities": QualityAssurance,
+    "quality_control_checks": QualityControl,
+    "performance_monitors": PerformanceMonitor,
+    "documents": QualityDocument,
+}
+
+@app.post("/quality-reports/", response_model=QualityReportResponse, status_code=status.HTTP_201_CREATED, tags=["Quality Management Report"])
+def create_quality_report(report: QualityReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = QualityReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(report, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(quality_report_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/quality-reports/", response_model=List[QualityReportResponse], tags=["Quality Management Report"])
+def get_all_quality_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(QualityReport)
+        if property_id:
+            query = query.filter(QualityReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/quality-reports/{report_id}", response_model=QualityReportResponse, tags=["Quality Management Report"])
+def get_quality_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+    return report
+
+@app.put("/quality-reports/{report_id}", response_model=QualityReportResponse, tags=["Quality Management Report"])
+def update_quality_report(report_id: str, report_update: QualityReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, model in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.quality_report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(quality_report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/quality-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Quality Management Report"])
+def delete_quality_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(QualityReport).filter(QualityReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Quality report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+# Main Report Table
+class CctvAuditReport(Base):
+    __tablename__ = "cctv_audit_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships (deletes children when parent is deleted)
+    site_assessments = relationship("SiteAssessmentFormat", back_populates="report", cascade="all, delete-orphan")
+    installation_checklists = relationship("InstallationChecklist", back_populates="report", cascade="all, delete-orphan")
+    configuration_checklists = relationship("ConfigurationTestingChecklist", back_populates="report", cascade="all, delete-orphan")
+    daily_operations = relationship("DailyOperationsMonitoring", back_populates="report", cascade="all, delete-orphan")
+    maintenance_schedules = relationship("CctvMaintenanceSchedule", back_populates="report", cascade="all, delete-orphan")
+    amc_compliance_formats = relationship("AmcComplianceFormat", back_populates="report", cascade="all, delete-orphan")
+    site_information = relationship("SiteInformation", uselist=False, back_populates="report", cascade="all, delete-orphan")
+    camera_inventory_logs = relationship("CameraInventoryLog", back_populates="report", cascade="all, delete-orphan")
+
+# Child Tables
+class SiteAssessmentFormat(Base):
+    __tablename__ = "site_assessment_formats"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Description = Column(String)
+    Checklist_Points = Column(String)
+    Checked_Status = Column(String)
+    Observations = Column(String)
+    Suggestions_Actions = Column(String)
+    Responsibility = Column(String)
+    Target_Date = Column(String, nullable=True)
+    Photo_Insert = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="site_assessments")
+
+class InstallationChecklist(Base):
+    __tablename__ = "installation_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Category = Column(String)
+    Checklist_Point = Column(String)
+    Checked = Column(String)
+    Observations = Column(String)
+    Remarks_Action_Required = Column(String)
+    Responsibility = Column(String)
+    Target_Completion_Date = Column(String, nullable=True)
+    Photo_Insert = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="installation_checklists")
+
+class ConfigurationTestingChecklist(Base):
+    __tablename__ = "configuration_testing_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Category = Column(String)
+    Checklist_Point = Column(String)
+    Checked = Column(String)
+    Observations = Column(String)
+    Suggestions_Action_Required = Column(String)
+    Responsibility = Column(String)
+    Target_Completion_Date = Column(String, nullable=True)
+    Photo_Screenshot = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="configuration_checklists")
+
+class DailyOperationsMonitoring(Base):
+    __tablename__ = "daily_operations_monitorings"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Category = Column(String)
+    Checklist_Point = Column(String)
+    Checked = Column(String)
+    Observations = Column(String)
+    Actions_Required = Column(String)
+    Responsibility = Column(String)
+    Time_Checked = Column(String)
+    Photo_Screenshot = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="daily_operations")
+
+class CctvMaintenanceSchedule(Base):
+    __tablename__ = "cctv_maintenance_schedules"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Maintenance_Type = Column(String)
+    Checklist_Point_Task = Column(String)
+    Frequency = Column(String)
+    Last_Maintenance_Date = Column(String, nullable=True)
+    Next_Due_Date = Column(String, nullable=True)
+    Status = Column(String)
+    Observations_Issues = Column(String)
+    Action_Taken_Required = Column(String)
+    Responsible = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="maintenance_schedules")
+
+class AmcComplianceFormat(Base):
+    __tablename__ = "amc_compliance_formats"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    SL_No = Column(Integer)
+    Category = Column(String)
+    Checklist_Description = Column(String)
+    Details_Status = Column(String)
+    Last_Updated = Column(String, nullable=True)
+    Next_Due_Date = Column(String, nullable=True)
+    Observations_Non_Compliance = Column(String)
+    Action_Taken_Required = Column(String)
+    Responsible = Column(String)
+    Remarks = Column(String)
+    report = relationship("CctvAuditReport", back_populates="amc_compliance_formats")
+
+class SiteInformation(Base):
+    __tablename__ = "site_information"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    Site_Name_Code = Column(String)
+    Address = Column(String)
+    Contact_Person_Site_Incharge = Column(String)
+    CCTV_Install_Date = Column(String)
+    report = relationship("CctvAuditReport", back_populates="site_information")
+
+class CameraInventoryLog(Base):
+    __tablename__ = "camera_inventory_logs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    cctv_audit_id = Column(String, ForeignKey("cctv_audit_reports.id"), nullable=False)
+    Camera_ID_Name = Column(String)
+    Camera_Type = Column(String)
+    Brand_Model_No = Column(String)
+    Resolution_MP = Column(String)
+    Location_Installed = Column(String)
+    Indoor_Outdoor = Column(String)
+    Working_Status = Column(String)
+    report = relationship("CctvAuditReport", back_populates="camera_inventory_logs")
+
+
+# --- Pydantic Schemas ---
+
+# Base schemas for individual items
+class SiteAssessmentFormatSchema(BaseModel):
+    SL_No: int
+    Description: str
+    Checklist_Points: str
+    Checked_Status: str
+    Observations: str
+    Suggestions_Actions: str
+    Responsibility: str
+    Target_Date: Optional[str] = None
+    Photo_Insert: str
+    Remarks: str
+    class Config: from_attributes = True
+
+class InstallationChecklistSchema(BaseModel):
+    SL_No: int
+    Category: str
+    Checklist_Point: str
+    Checked: str
+    Observations: str
+    Remarks_Action_Required: str
+    Responsibility: str
+    Target_Completion_Date: Optional[str] = None
+    Photo_Insert: str
+    Remarks: str
+    class Config: from_attributes = True
+
+class ConfigurationTestingChecklistSchema(BaseModel):
+    SL_No: int
+    Category: str
+    Checklist_Point: str
+    Checked: str
+    Observations: str
+    Suggestions_Action_Required: str
+    Responsibility: str
+    Target_Completion_Date: Optional[str] = None
+    Photo_Screenshot: str
+    Remarks: str
+    class Config: from_attributes = True
+
+class DailyOperationsMonitoringSchema(BaseModel):
+    SL_No: int
+    Category: str
+    Checklist_Point: str
+    Checked: str
+    Observations: str
+    Actions_Required: str
+    Responsibility: str
+    Time_Checked: str
+    Photo_Screenshot: str
+    Remarks: str
+    class Config: from_attributes = True
+
+class CctvMaintenanceScheduleSchema(BaseModel):
+    SL_No: int
+    Maintenance_Type: str
+    Checklist_Point_Task: str
+    Frequency: str
+    Last_Maintenance_Date: Optional[str] = None
+    Next_Due_Date: Optional[str] = None
+    Status: str
+    Observations_Issues: str
+    Action_Taken_Required: str
+    Responsible: str
+    Remarks: str
+    class Config: from_attributes = True
+    
+class AmcComplianceFormatSchema(BaseModel):
+    SL_No: int
+    Category: str
+    Checklist_Description: str
+    Details_Status: str
+    Last_Updated: Optional[str] = None
+    Next_Due_Date: Optional[str] = None
+    Observations_Non_Compliance: str
+    Action_Taken_Required: str
+    Responsible: str
+    Remarks: str
+    class Config: from_attributes = True
+
+class SiteInformationSchema(BaseModel):
+    Site_Name_Code: str
+    Address: str
+    Contact_Person_Site_Incharge: str
+    CCTV_Install_Date: str
+    class Config: from_attributes = True
+
+class CameraInventoryLogSchema(BaseModel):
+    Camera_ID_Name: str
+    Camera_Type: str
+    Brand_Model_No: str
+    Resolution_MP: str
+    Location_Installed: str
+    Indoor_Outdoor: str
+    Working_Status: str
+    class Config: from_attributes = True
+
+class DocumentationFormatSchema(BaseModel):
+    Site_Information: SiteInformationSchema
+    Camera_Inventory_Log: List[CameraInventoryLogSchema] = []
+
+# Schemas for Create/Update operations
+class CctvAuditData(BaseModel):
+    Site_Assessment_Format: List[SiteAssessmentFormatSchema] = []
+    Installation_Checklist: List[InstallationChecklistSchema] = []
+    Configuration_Testing_Checklist: List[ConfigurationTestingChecklistSchema] = []
+    Daily_Operations_Monitoring: List[DailyOperationsMonitoringSchema] = []
+    Maintenance_Schedule: List[CctvMaintenanceScheduleSchema] = []
+    Documentation_Format: DocumentationFormatSchema
+    AMC_Compliance_Format: List[AmcComplianceFormatSchema] = []
+
+class CctvAuditReportCreate(BaseModel):
+    property_id: str
+    CCTV_Audit: CctvAuditData
+
+class CctvAuditReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    CCTV_Audit: Optional[CctvAuditData] = None
+
+# Schemas for Response models (including generated IDs)
+class SiteAssessmentFormatResponse(SiteAssessmentFormatSchema): id: str; cctv_audit_id: str
+class InstallationChecklistResponse(InstallationChecklistSchema): id: str; cctv_audit_id: str
+class ConfigurationTestingChecklistResponse(ConfigurationTestingChecklistSchema): id: str; cctv_audit_id: str
+class DailyOperationsMonitoringResponse(DailyOperationsMonitoringSchema): id: str; cctv_audit_id: str
+class MaintenanceScheduleResponse(CctvMaintenanceScheduleSchema): id: str; cctv_audit_id: str
+class AmcComplianceFormatResponse(AmcComplianceFormatSchema): id: str; cctv_audit_id: str
+class SiteInformationResponse(SiteInformationSchema): id: str; cctv_audit_id: str
+class CameraInventoryLogResponse(CameraInventoryLogSchema): id: str; cctv_audit_id: str
+
+class DocumentationFormatResponse(BaseModel):
+    Site_Information: SiteInformationResponse
+    Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
+
+class CctvAuditReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    Site_Assessment_Format: List[SiteAssessmentFormatResponse] = []
+    Installation_Checklist: List[InstallationChecklistResponse] = []
+    Configuration_Testing_Checklist: List[ConfigurationTestingChecklistResponse] = []
+    Daily_Operations_Monitoring: List[DailyOperationsMonitoringResponse] = []
+    Maintenance_Schedule: List[MaintenanceScheduleResponse] = []
+    AMC_Compliance_Format: List[AmcComplianceFormatResponse] = []
+    Site_Information: Optional[SiteInformationResponse] = None
+    Camera_Inventory_Log: List[CameraInventoryLogResponse] = []
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+    @classmethod
+    def model_validate(cls, obj):
+        # Create a copy of the object to avoid modifying the original
+        data = {
+            'id': obj.id,
+            'property_id': obj.property_id,
+            'created_at': obj.created_at,
+            'updated_at': obj.updated_at,
+            'Site_Assessment_Format': [SiteAssessmentFormatResponse.model_validate(item) for item in obj.site_assessments],
+            'Installation_Checklist': [InstallationChecklistResponse.model_validate(item) for item in obj.installation_checklists],
+            'Configuration_Testing_Checklist': [ConfigurationTestingChecklistResponse.model_validate(item) for item in obj.configuration_checklists],
+            'Daily_Operations_Monitoring': [DailyOperationsMonitoringResponse.model_validate(item) for item in obj.daily_operations],
+            'Maintenance_Schedule': [MaintenanceScheduleResponse.model_validate(item) for item in obj.maintenance_schedules],
+            'AMC_Compliance_Format': [AmcComplianceFormatResponse.model_validate(item) for item in obj.amc_compliance_formats],
+            'Site_Information': SiteInformationResponse.model_validate(obj.site_information) if obj.site_information else None,
+            'Camera_Inventory_Log': [CameraInventoryLogResponse.model_validate(item) for item in obj.camera_inventory_logs]
+        }
+        return cls(**data)
+
+# Create database tables on startup
+Base.metadata.create_all(bind=engine)
+
+# Map JSON field names to SQLAlchemy models
+MODEL_MAP = {
+    "Site_Assessment_Format": (SiteAssessmentFormat, "site_assessments"),
+    "Installation_Checklist": (InstallationChecklist, "installation_checklists"),
+    "Configuration_Testing_Checklist": (ConfigurationTestingChecklist, "configuration_checklists"),
+    "Daily_Operations_Monitoring": (DailyOperationsMonitoring, "daily_operations"),
+    "Maintenance_Schedule": (CctvMaintenanceSchedule, "maintenance_schedules"),
+    "AMC_Compliance_Format": (AmcComplianceFormat, "amc_compliance_formats"),
+}
+
+@app.post("/cctv-audits/", response_model=CctvAuditReportResponse, status_code=status.HTTP_201_CREATED, tags=["CCTV Audit Report"])
+def create_cctv_audit_report(report: CctvAuditReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = CctvAuditReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush() # Flush to get the db_report.id
+
+        audit_data = report.CCTV_Audit
+
+        # Handle nested list entries
+        for field, (model, _) in MODEL_MAP.items():
+            entries = getattr(audit_data, field, [])
+            if entries:
+                for entry_data in entries:
+                    db_entry = model(cctv_audit_id=db_report.id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        # Handle Documentation_Format separately
+        doc_format = audit_data.Documentation_Format
+        if doc_format.Site_Information:
+            db_site_info = SiteInformation(cctv_audit_id=db_report.id, **doc_format.Site_Information.dict())
+            db.add(db_site_info)
+        
+        for log_data in doc_format.Camera_Inventory_Log:
+            db_log = CameraInventoryLog(cctv_audit_id=db_report.id, **log_data.dict())
+            db.add(db_log)
+
+        db.commit()
+        db.refresh(db_report)
+        return CctvAuditReportResponse.model_validate(db_report) # Use model_validate for complex nested models
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating CCTV audit report: {str(e)}")
+
+@app.get("/cctv-audits/", response_model=List[CctvAuditReportResponse], tags=["CCTV Audit Report"])
+def get_all_cctv_audit_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(CctvAuditReport)
+        if property_id:
+            query = query.filter(CctvAuditReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return [CctvAuditReportResponse.model_validate(r) for r in reports]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching CCTV audit reports: {str(e)}")
+
+@app.get("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
+def get_cctv_audit_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="CCTV audit report not found")
+    return CctvAuditReportResponse.model_validate(report)
+
+@app.put("/cctv-audits/{report_id}", response_model=CctvAuditReportResponse, tags=["CCTV Audit Report"])
+def update_cctv_audit_report(report_id: str, report_update: CctvAuditReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="CCTV audit report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        if report_update.CCTV_Audit:
+            audit_data = report_update.CCTV_Audit
+            # Handle list updates (delete old, create new)
+            for field, (model, rel_name) in MODEL_MAP.items():
+                update_entries = getattr(audit_data, field, None)
+                if update_entries is not None:
+                    # Delete existing
+                    db.query(model).filter(model.cctv_audit_id == report_id).delete(synchronize_session=False)
+                    # Add new
+                    for entry_data in update_entries:
+                        db_entry = model(cctv_audit_id=report_id, **entry_data.dict())
+                        db.add(db_entry)
+            
+            # Handle Documentation_Format update
+            doc_format_update = getattr(audit_data, 'Documentation_Format', None)
+            if doc_format_update:
+                # Update SiteInformation
+                if doc_format_update.Site_Information:
+                    db.query(SiteInformation).filter(SiteInformation.cctv_audit_id == report_id).delete(synchronize_session=False)
+                    db_site_info = SiteInformation(cctv_audit_id=report_id, **doc_format_update.Site_Information.dict())
+                    db.add(db_site_info)
+                # Update CameraInventoryLog
+                if doc_format_update.Camera_Inventory_Log is not None:
+                    db.query(CameraInventoryLog).filter(CameraInventoryLog.cctv_audit_id == report_id).delete(synchronize_session=False)
+                    for log_data in doc_format_update.Camera_Inventory_Log:
+                        db_log = CameraInventoryLog(cctv_audit_id=report_id, **log_data.dict())
+                        db.add(db_log)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return CctvAuditReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating CCTV audit report: {str(e)}")
+
+@app.delete("/cctv-audits/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["CCTV Audit Report"])
+def delete_cctv_audit_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(CctvAuditReport).filter(CctvAuditReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="CCTV audit report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting CCTV audit report: {str(e)}")
+
+# Main Report Table
+class FireSafetyReport(Base):
+    __tablename__ = "fire_safety_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships (deletes children when parent is deleted)
+    site_assessments = relationship("SiteAssessmentAndPlanning", back_populates="report", cascade="all, delete-orphan")
+    installations = relationship("InstallationAndEquipmentSetup", back_populates="report", cascade="all, delete-orphan")
+    documents = relationship("FireSafetyDocument", back_populates="report", cascade="all, delete-orphan")
+    compliance_reports = relationship("ComplianceReport", back_populates="report", cascade="all, delete-orphan")
+    trainings = relationship("FireAndSafetyTraining", back_populates="report", cascade="all, delete-orphan")
+    daily_checklists = relationship("DailyChecklist", back_populates="report", cascade="all, delete-orphan")
+    weekly_checklists = relationship("WeeklyChecklist", back_populates="report", cascade="all, delete-orphan")
+    monthly_checklists = relationship("MonthlyChecklist", back_populates="report", cascade="all, delete-orphan")
+    quarterly_checklists = relationship("QuarterlyChecklist", back_populates="report", cascade="all, delete-orphan")
+    emergency_plans = relationship("EmergencyPreparednessPlan", back_populates="report", cascade="all, delete-orphan")
+    records = relationship("RecordKeeping", back_populates="report", cascade="all, delete-orphan")
+
+# Child Tables
+class SiteAssessmentAndPlanning(Base):
+    __tablename__ = "site_assessments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Assessment_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Location = Column(String)
+    Assessment_Date = Column(String)
+    Assessor = Column(String)
+    Risk_Areas = Column(String)
+    Fire_Hazards_Identified = Column(String)
+    Recommendations = Column(String)
+    Compliance_Standards = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="site_assessments")
+
+class InstallationAndEquipmentSetup(Base):
+    __tablename__ = "installations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Installation_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Equipment_ID = Column(String)
+    Equipment_Type = Column(String)
+    Location = Column(String)
+    Installation_Date = Column(String)
+    Installer = Column(String)
+    Status = Column(String)
+    Checklist_Items = Column(String)
+    Compliance_Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="installations")
+
+class FireSafetyDocument(Base):
+    __tablename__ = "fire_safety_documents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Document_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Document_Type = Column(String)
+    Title = Column(String)
+    Created_Date = Column(String)
+    Author = Column(String)
+    Status = Column(String)
+    Storage_Location = Column(String)
+    Compliance_Standards = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="documents")
+
+class ComplianceReport(Base):
+    __tablename__ = "compliance_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Compliance_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Regulation = Column(String)
+    Audit_Date = Column(String)
+    Auditor = Column(String)
+    Findings = Column(String)
+    Compliance_Status = Column(String)
+    Corrective_Actions = Column(String)
+    Next_Audit_Date = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="compliance_reports")
+
+class FireAndSafetyTraining(Base):
+    __tablename__ = "trainings"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Training_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Training_Type = Column(String)
+    Date = Column(String)
+    Time = Column(String)
+    Trainer = Column(String)
+    Participants = Column(String)
+    Duration = Column(String)
+    Topics_Covered = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="trainings")
+
+class DailyChecklist(Base):
+    __tablename__ = "daily_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Checklist_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Date = Column(String)
+    Time = Column(String)
+    Inspector = Column(String)
+    Equipment_Area_Checked = Column(String)
+    Status = Column(String)
+    Issues_Found = Column(String)
+    Corrective_Actions = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="daily_checklists")
+
+class WeeklyChecklist(Base):
+    __tablename__ = "weekly_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Checklist_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Date = Column(String)
+    Inspector = Column(String)
+    Equipment_Area_Checked = Column(String)
+    Status = Column(String)
+    Issues_Found = Column(String)
+    Corrective_Actions = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="weekly_checklists")
+
+class MonthlyChecklist(Base):
+    __tablename__ = "monthly_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Checklist_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Date = Column(String)
+    Inspector = Column(String)
+    Equipment_Area_Checked = Column(String)
+    Status = Column(String)
+    Issues_Found = Column(String)
+    Corrective_Actions = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="monthly_checklists")
+
+class QuarterlyChecklist(Base):
+    __tablename__ = "quarterly_checklists"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Checklist_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Date = Column(String)
+    Inspector = Column(String)
+    Equipment_Area_Checked = Column(String)
+    Status = Column(String)
+    Issues_Found = Column(String)
+    Corrective_Actions = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="quarterly_checklists")
+
+class EmergencyPreparednessPlan(Base):
+    __tablename__ = "emergency_plans"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Plan_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Plan_Type = Column(String)
+    Created_Date = Column(String)
+    Last_Updated = Column(String)
+    Responsible_Person = Column(String)
+    Key_Components = Column(String)
+    Status = Column(String)
+    Next_Review_Date = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="emergency_plans")
+
+class RecordKeeping(Base):
+    __tablename__ = "records"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("fire_safety_reports.id"), nullable=False)
+    Record_ID = Column(String, index=True)
+    Site_Name = Column(String)
+    Record_Type = Column(String)
+    Title = Column(String)
+    Created_Date = Column(String)
+    Author = Column(String)
+    Storage_Location = Column(String)
+    Retention_Period = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("FireSafetyReport", back_populates="records")
+
+# --- Pydantic Schemas ---
+
+# Base schemas for individual items
+class SiteAssessmentAndPlanningSchema(BaseModel):
+    Assessment_ID: str; Site_Name: str; Location: str; Assessment_Date: str; Assessor: str; Risk_Areas: str; Fire_Hazards_Identified: str; Recommendations: str; Compliance_Standards: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+class InstallationAndEquipmentSetupSchema(BaseModel):
+    Installation_ID: str; Site_Name: str; Equipment_ID: str; Equipment_Type: str; Location: str; Installation_Date: str; Installer: str; Status: str; Checklist_Items: str; Compliance_Status: str; Remarks: str
+    class Config: from_attributes = True
+
+class FireSafetyDocumentSchema(BaseModel):
+    Document_ID: str; Site_Name: str; Document_Type: str; Title: str; Created_Date: str; Author: str; Status: str; Storage_Location: str; Compliance_Standards: str; Remarks: str
+    class Config: from_attributes = True
+
+class ComplianceReportSchema(BaseModel):
+    Compliance_ID: str; Site_Name: str; Regulation: str; Audit_Date: str; Auditor: str; Findings: str; Compliance_Status: str; Corrective_Actions: str; Next_Audit_Date: str; Remarks: str
+    class Config: from_attributes = True
+
+class FireAndSafetyTrainingSchema(BaseModel):
+    Training_ID: str; Site_Name: str; Training_Type: str; Date: str; Time: str; Trainer: str; Participants: str; Duration: str; Topics_Covered: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+class DailyChecklistSchema(BaseModel):
+    Checklist_ID: str; Site_Name: str; Date: str; Time: str; Inspector: str; Equipment_Area_Checked: str; Status: str; Issues_Found: str; Corrective_Actions: str; Remarks: str
+    class Config: from_attributes = True
+
+class WeeklyChecklistSchema(BaseModel):
+    Checklist_ID: str; Site_Name: str; Date: str; Inspector: str; Equipment_Area_Checked: str; Status: str; Issues_Found: str; Corrective_Actions: str; Remarks: str
+    class Config: from_attributes = True
+
+class MonthlyChecklistSchema(BaseModel):
+    Checklist_ID: str; Site_Name: str; Date: str; Inspector: str; Equipment_Area_Checked: str; Status: str; Issues_Found: str; Corrective_Actions: str; Remarks: str
+    class Config: from_attributes = True
+
+class QuarterlyChecklistSchema(BaseModel):
+    Checklist_ID: str; Site_Name: str; Date: str; Inspector: str; Equipment_Area_Checked: str; Status: str; Issues_Found: str; Corrective_Actions: str; Remarks: str
+    class Config: from_attributes = True
+    
+class EmergencyPreparednessPlanSchema(BaseModel):
+    Plan_ID: str; Site_Name: str; Plan_Type: str; Created_Date: str; Last_Updated: str; Responsible_Person: str; Key_Components: str; Status: str; Next_Review_Date: str; Remarks: str
+    class Config: from_attributes = True
+
+class RecordKeepingSchema(BaseModel):
+    Record_ID: str; Site_Name: str; Record_Type: str; Title: str; Created_Date: str; Author: str; Storage_Location: str; Retention_Period: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+# Schema for the nested Fire_Safety_Management object
+class FireSafetyData(BaseModel):
+    Site_Assessment_and_Planning: List[SiteAssessmentAndPlanningSchema] = []
+    Installation_and_Equipment_Setup: List[InstallationAndEquipmentSetupSchema] = []
+    Fire_Safety_Documents: List[FireSafetyDocumentSchema] = []
+    Compliance_Reports: List[ComplianceReportSchema] = []
+    Fire_and_Safety_Training: List[FireAndSafetyTrainingSchema] = []
+    Daily_Checklist: List[DailyChecklistSchema] = []
+    Weekly_Checklist: List[WeeklyChecklistSchema] = []
+    Monthly_Checklist: List[MonthlyChecklistSchema] = []
+    Quarterly_Checklist: List[QuarterlyChecklistSchema] = []
+    Emergency_Preparedness_Plan: List[EmergencyPreparednessPlanSchema] = []
+    Record_Keeping: List[RecordKeepingSchema] = []
+
+# Schemas for Create/Update operations
+class FireSafetyReportCreate(BaseModel):
+    property_id: str
+    Fire_Safety_Management: FireSafetyData
+
+class FireSafetyReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    Fire_Safety_Management: Optional[FireSafetyData] = None
+
+# Schemas for Response models (including generated IDs)
+class SiteAssessmentAndPlanningResponse(SiteAssessmentAndPlanningSchema): id: str; report_id: str
+class InstallationAndEquipmentSetupResponse(InstallationAndEquipmentSetupSchema): id: str; report_id: str
+class FireSafetyDocumentResponse(FireSafetyDocumentSchema): id: str; report_id: str
+class ComplianceReportResponse(ComplianceReportSchema): id: str; report_id: str
+class FireAndSafetyTrainingResponse(FireAndSafetyTrainingSchema): id: str; report_id: str
+class DailyChecklistResponse(DailyChecklistSchema): id: str; report_id: str
+class WeeklyChecklistResponse(WeeklyChecklistSchema): id: str; report_id: str
+class MonthlyChecklistResponse(MonthlyChecklistSchema): id: str; report_id: str
+class QuarterlyChecklistResponse(QuarterlyChecklistSchema): id: str; report_id: str
+class EmergencyPreparednessPlanResponse(EmergencyPreparednessPlanSchema): id: str; report_id: str
+class RecordKeepingResponse(RecordKeepingSchema): id: str; report_id: str
+
+class FireSafetyReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    Site_Assessment_and_Planning: List[SiteAssessmentAndPlanningResponse] = Field(..., alias="site_assessments")
+    Installation_and_Equipment_Setup: List[InstallationAndEquipmentSetupResponse] = Field(..., alias="installations")
+    Fire_Safety_Documents: List[FireSafetyDocumentResponse] = Field(..., alias="documents")
+    Compliance_Reports: List[ComplianceReportResponse] = Field(..., alias="compliance_reports")
+    Fire_and_Safety_Training: List[FireAndSafetyTrainingResponse] = Field(..., alias="trainings")
+    Daily_Checklist: List[DailyChecklistResponse] = Field(..., alias="daily_checklists")
+    Weekly_Checklist: List[WeeklyChecklistResponse] = Field(..., alias="weekly_checklists")
+    Monthly_Checklist: List[MonthlyChecklistResponse] = Field(..., alias="monthly_checklists")
+    Quarterly_Checklist: List[QuarterlyChecklistResponse] = Field(..., alias="quarterly_checklists")
+    Emergency_Preparedness_Plan: List[EmergencyPreparednessPlanResponse] = Field(..., alias="emergency_plans")
+    Record_Keeping: List[RecordKeepingResponse] = Field(..., alias="records")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+# Create database tables on startup
+Base.metadata.create_all(bind=engine)
+
+# Map JSON field names to SQLAlchemy models and response aliases
+MODEL_MAP = {
+    "Site_Assessment_and_Planning": (SiteAssessmentAndPlanning, "site_assessments"),
+    "Installation_and_Equipment_Setup": (InstallationAndEquipmentSetup, "installations"),
+    "Fire_Safety_Documents": (FireSafetyDocument, "documents"),
+    "Compliance_Reports": (ComplianceReport, "compliance_reports"),
+    "Fire_and_Safety_Training": (FireAndSafetyTraining, "trainings"),
+    "Daily_Checklist": (DailyChecklist, "daily_checklists"),
+    "Weekly_Checklist": (WeeklyChecklist, "weekly_checklists"),
+    "Monthly_Checklist": (MonthlyChecklist, "monthly_checklists"),
+    "Quarterly_Checklist": (QuarterlyChecklist, "quarterly_checklists"),
+    "Emergency_Preparedness_Plan": (EmergencyPreparednessPlan, "emergency_plans"),
+    "Record_Keeping": (RecordKeeping, "records"),
+}
+
+@app.post("/fire-safety-reports/", response_model=FireSafetyReportResponse, status_code=status.HTTP_201_CREATED, tags=["Fire Safety Report"])
+def create_fire_safety_report(report: FireSafetyReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = FireSafetyReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        report_data = report.Fire_Safety_Management
+
+        for field, (model, _) in MODEL_MAP.items():
+            entries = getattr(report_data, field, [])
+            for entry_data in entries:
+                db_entry = model(report_id=db_report.id, **entry_data.dict())
+                db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return FireSafetyReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/fire-safety-reports/", response_model=List[FireSafetyReportResponse], tags=["Fire Safety Report"])
+def get_all_fire_safety_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(FireSafetyReport)
+        if property_id:
+            query = query.filter(FireSafetyReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return [FireSafetyReportResponse.model_validate(r) for r in reports]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/fire-safety-reports/{report_id}", response_model=FireSafetyReportResponse, tags=["Fire Safety Report"])
+def get_fire_safety_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(FireSafetyReport).filter(FireSafetyReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Fire Safety report not found")
+    return FireSafetyReportResponse.model_validate(report)
+
+@app.put("/fire-safety-reports/{report_id}", response_model=FireSafetyReportResponse, tags=["Fire Safety Report"])
+def update_fire_safety_report(report_id: str, report_update: FireSafetyReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(FireSafetyReport).filter(FireSafetyReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Fire Safety report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        if report_update.Fire_Safety_Management:
+            update_data = report_update.Fire_Safety_Management
+            for field, (model, _) in MODEL_MAP.items():
+                update_entries = getattr(update_data, field, None)
+                if update_entries is not None:
+                    db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                    for entry_data in update_entries:
+                        db_entry = model(report_id=report_id, **entry_data.dict())
+                        db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return FireSafetyReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/fire-safety-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Fire Safety Report"])
+def delete_fire_safety_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(FireSafetyReport).filter(FireSafetyReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Fire Safety report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+# Main Report Table
+class ProcurementReport(Base):
+    __tablename__ = "procurement_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    procurement_plans = relationship("ProcurementPlanning", back_populates="report", cascade="all, delete-orphan")
+    vendors = relationship("VendorManagement", back_populates="report", cascade="all, delete-orphan")
+    purchase_orders = relationship("PurchaseRequisitionToOrder", back_populates="report", cascade="all, delete-orphan")
+    goods_receipts = relationship("GoodsReceiptAndInspection", back_populates="report", cascade="all, delete-orphan")
+    procurement_inventory_items = relationship("InventoryAndStockManagement", back_populates="report", cascade="all, delete-orphan")
+    payments = relationship("PaymentTracking", back_populates="report", cascade="all, delete-orphan")
+    documents = relationship("ProcurementDocumentation", back_populates="report", cascade="all, delete-orphan")
+    compliances = relationship("ComplianceAndPolicy", back_populates="report", cascade="all, delete-orphan")
+    analysis_reports = relationship("ReportingAndAnalysis", back_populates="report", cascade="all, delete-orphan")
+    procurement_categories = relationship("ProcurementCategory", back_populates="report", cascade="all, delete-orphan")
+
+
+# Child Tables (Nested objects are flattened into columns)
+class ProcurementPlanning(Base):
+    __tablename__ = "procurement_plans"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Plan_ID = Column(String)
+    Project_Department = Column(String)
+    Item_Service = Column(String)
+    Quantity = Column(Integer)
+    Estimated_Cost = Column(Float)
+    Timeline_Start = Column(String)
+    Timeline_End = Column(String)
+    Priority = Column(String)
+    Responsible_Person = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="procurement_plans")
+
+class VendorManagement(Base):
+    __tablename__ = "procurement_vendors"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Vendor_ID = Column(String, index=True)
+    Vendor_Name = Column(String)
+    Contact_Phone = Column(String)
+    Contact_Email = Column(String)
+    Category = Column(String)
+    Contract_Start_Date = Column(String)
+    Contract_End_Date = Column(String)
+    Performance_Rating = Column(Integer)
+    Status = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="vendors")
+
+class PurchaseRequisitionToOrder(Base):
+    __tablename__ = "purchase_orders"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    PR_PO_ID = Column(String, index=True)
+    Requisitioner = Column(String)
+    Item_Service = Column(String)
+    Quantity = Column(Integer)
+    Requested_Date = Column(String)
+    Approved_Date = Column(String)
+    Purchase_Order_Date = Column(String)
+    Vendor_ID = Column(String)
+    Total_Cost = Column(Float)
+    Status = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="purchase_orders")
+
+class GoodsReceiptAndInspection(Base):
+    __tablename__ = "goods_receipts"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Receipt_ID = Column(String)
+    PO_ID = Column(String)
+    Item_Service = Column(String)
+    Quantity_Received = Column(Integer)
+    Receipt_Date = Column(String)
+    Inspection_Date = Column(String)
+    Inspection_Result = Column(String)
+    Inspector = Column(String)
+    Storage_Location = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="goods_receipts")
+
+class InventoryAndStockManagement(Base):
+    __tablename__ = "procurement_inventory_items"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Inventory_ID = Column(String)
+    Item_ID = Column(String)
+    Item_Name = Column(String)
+    Category = Column(String)
+    Current_Stock = Column(Integer)
+    Unit = Column(String)
+    Location = Column(String)
+    Last_Updated = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="procurement_inventory_items")
+
+class PaymentTracking(Base):
+    __tablename__ = "payments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Payment_ID = Column(String)
+    PO_ID = Column(String)
+    Vendor_ID = Column(String)
+    Invoice_Number = Column(String)
+    Invoice_Amount = Column(Float)
+    Payment_Due_Date = Column(String)
+    Payment_Date = Column(String)
+    Payment_Status = Column(String)
+    Payment_Method = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="payments")
+
+class ProcurementDocumentation(Base):
+    __tablename__ = "procurement_documents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Document_ID = Column(String)
+    Project_PO_ID = Column(String)
+    Document_Type = Column(String)
+    Title = Column(String)
+    Created_Date = Column(String)
+    Author = Column(String)
+    Status = Column(String)
+    Storage_Location = Column(String)
+    Responsible_Person = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="documents")
+
+class ComplianceAndPolicy(Base):
+    __tablename__ = "compliances"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Compliance_ID = Column(String)
+    Project_PO_ID = Column(String)
+    Policy_Regulation = Column(String)
+    Audit_Date = Column(String)
+    Auditor = Column(String)
+    Findings = Column(String)
+    Compliance_Status = Column(String)
+    Corrective_Actions = Column(String)
+    Next_Audit_Date = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="compliances")
+    
+class ReportingAndAnalysis(Base):
+    __tablename__ = "analysis_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Analysis_Report_ID = Column(String)
+    Report_Type = Column(String)
+    Period_Start = Column(String)
+    Period_End = Column(String)
+    Metrics = Column(String)
+    Findings = Column(String)
+    Generated_Date = Column(String)
+    Responsible_Person = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="analysis_reports")
+
+class ProcurementCategory(Base):
+    __tablename__ = "procurement_categories"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("procurement_reports.id"), nullable=False)
+    Category_ID = Column(String)
+    Category_Name = Column(String)
+    Description = Column(String)
+    Budget_Allocation = Column(Float)
+    Items_Services = Column(String)
+    Responsible_Person = Column(String)
+    Status = Column(String)
+    Remarks = Column(String)
+    report = relationship("ProcurementReport", back_populates="procurement_categories")
+
+
+# --- Pydantic Schemas ---
+
+# Schemas for nested objects
+class TimelineSchema(BaseModel):
+    Start: str
+    End: str
+
+class ContactDetailsSchema(BaseModel):
+    Phone: str
+    Email: EmailStr
+
+class PeriodSchema(BaseModel):
+    Start: str
+    End: str
+
+# Base Schemas for each list item
+class ProcurementPlanningSchema(BaseModel):
+    Plan_ID: str; Project_Department: str; Item_Service: str; Quantity: int; Estimated_Cost: float; Timeline: TimelineSchema; Priority: str; Responsible_Person: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+class VendorManagementSchema(BaseModel):
+    Vendor_ID: str; Vendor_Name: str; Contact_Details: ContactDetailsSchema; Category: str; Contract_Start_Date: str; Contract_End_Date: str; Performance_Rating: int; Status: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class PurchaseRequisitionToOrderSchema(BaseModel):
+    PR_PO_ID: str; Requisitioner: str; Item_Service: str; Quantity: int; Requested_Date: str; Approved_Date: str; Purchase_Order_Date: str; Vendor_ID: str; Total_Cost: float; Status: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class GoodsReceiptAndInspectionSchema(BaseModel):
+    Receipt_ID: str; PO_ID: str; Item_Service: str; Quantity_Received: int; Receipt_Date: str; Inspection_Date: str; Inspection_Result: str; Inspector: str; Storage_Location: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class InventoryAndStockManagementSchema(BaseModel):
+    Inventory_ID: str; Item_ID: str; Item_Name: str; Category: str; Current_Stock: int; Unit: str; Location: str; Last_Updated: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class PaymentTrackingSchema(BaseModel):
+    Payment_ID: str; PO_ID: str; Vendor_ID: str; Invoice_Number: str; Invoice_Amount: float; Payment_Due_Date: str; Payment_Date: str; Payment_Status: str; Payment_Method: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class ProcurementDocumentationSchema(BaseModel):
+    Document_ID: str; Project_PO_ID: str; Document_Type: str; Title: str; Created_Date: str; Author: str; Status: str; Storage_Location: str; Responsible_Person: str; Remarks: str
+    class Config: from_attributes = True
+
+class ComplianceAndPolicySchema(BaseModel):
+    Compliance_ID: str; Project_PO_ID: str; Policy_Regulation: str; Audit_Date: str; Auditor: str; Findings: str; Compliance_Status: str; Corrective_Actions: str; Next_Audit_Date: str; Remarks: str
+    class Config: from_attributes = True
+
+class ReportingAndAnalysisSchema(BaseModel):
+    Analysis_Report_ID: str; Report_Type: str; Period: PeriodSchema; Metrics: str; Findings: str; Generated_Date: str; Responsible_Person: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+class ProcurementCategorySchema(BaseModel):
+    Category_ID: str; Category_Name: str; Description: str; Budget_Allocation: float; Items_Services: str; Responsible_Person: str; Status: str; Remarks: str
+    class Config: from_attributes = True
+
+# Schema for the main data object
+class ProcurementData(BaseModel):
+    Procurement_Planning: List[ProcurementPlanningSchema] = []
+    Vendor_Management: List[VendorManagementSchema] = []
+    Purchase_Requisition_to_Order: List[PurchaseRequisitionToOrderSchema] = []
+    Goods_Receipt_and_Inspection: List[GoodsReceiptAndInspectionSchema] = []
+    Inventory_and_Stock_Management: List[InventoryAndStockManagementSchema] = []
+    Payment_Tracking: List[PaymentTrackingSchema] = []
+    Procurement_Documentation: List[ProcurementDocumentationSchema] = []
+    Compliance_and_Policy: List[ComplianceAndPolicySchema] = []
+    Reporting_and_Analysis: List[ReportingAndAnalysisSchema] = []
+    Procurement_Categories: List[ProcurementCategorySchema] = []
+
+# Schemas for API Operations
+class ProcurementReportCreate(BaseModel):
+    property_id: str
+    Procurement_Management: ProcurementData
+
+class ProcurementReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    Procurement_Management: Optional[ProcurementData] = None
+
+# Response Schemas (include DB-generated IDs)
+class ProcurementPlanningResponse(ProcurementPlanningSchema): id: str; report_id: str
+class VendorManagementResponse(VendorManagementSchema): id: str; report_id: str
+class PurchaseRequisitionToOrderResponse(PurchaseRequisitionToOrderSchema): id: str; report_id: str
+class GoodsReceiptAndInspectionResponse(GoodsReceiptAndInspectionSchema): id: str; report_id: str
+class InventoryAndStockManagementResponse(InventoryAndStockManagementSchema): id: str; report_id: str
+class PaymentTrackingResponse(PaymentTrackingSchema): id: str; report_id: str
+class ProcurementDocumentationResponse(ProcurementDocumentationSchema): id: str; report_id: str
+class ComplianceAndPolicyResponse(ComplianceAndPolicySchema): id: str; report_id: str
+class ReportingAndAnalysisResponse(ReportingAndAnalysisSchema): id: str; report_id: str
+class ProcurementCategoryResponse(ProcurementCategorySchema): id: str; report_id: str
+
+class ProcurementReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    Procurement_Planning: List[ProcurementPlanningResponse] = Field(..., alias="procurement_plans")
+    Vendor_Management: List[VendorManagementResponse] = Field(..., alias="vendors")
+    Purchase_Requisition_to_Order: List[PurchaseRequisitionToOrderResponse] = Field(..., alias="purchase_orders")
+    Goods_Receipt_and_Inspection: List[GoodsReceiptAndInspectionResponse] = Field(..., alias="goods_receipts")
+    Inventory_and_Stock_Management: List[InventoryAndStockManagementResponse] = Field(..., alias="procurement_inventory_items")
+    Payment_Tracking: List[PaymentTrackingResponse] = Field(..., alias="payments")
+    Procurement_Documentation: List[ProcurementDocumentationResponse] = Field(..., alias="documents")
+    Compliance_and_Policy: List[ComplianceAndPolicyResponse] = Field(..., alias="compliances")
+    Reporting_and_Analysis: List[ReportingAndAnalysisResponse] = Field(..., alias="analysis_reports")
+    Procurement_Categories: List[ProcurementCategoryResponse] = Field(..., alias="procurement_categories")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+    @classmethod
+    def model_validate(cls, obj):
+        # Reconstruct nested objects for each relationship
+        if hasattr(obj, 'procurement_plans'):
+            for plan in obj.procurement_plans:
+                plan_dict = {c.name: getattr(plan, c.name) for c in plan.__table__.columns}
+                reconstructed = reconstruct_entry_data(plan_dict)
+                for key, value in reconstructed.items():
+                    setattr(plan, key, value)
+        
+        if hasattr(obj, 'vendors'):
+            for vendor in obj.vendors:
+                vendor_dict = {c.name: getattr(vendor, c.name) for c in vendor.__table__.columns}
+                reconstructed = reconstruct_entry_data(vendor_dict)
+                for key, value in reconstructed.items():
+                    setattr(vendor, key, value)
+        
+        if hasattr(obj, 'analysis_reports'):
+            for report in obj.analysis_reports:
+                report_dict = {c.name: getattr(report, c.name) for c in report.__table__.columns}
+                reconstructed = reconstruct_entry_data(report_dict)
+                for key, value in reconstructed.items():
+                    setattr(report, key, value)
+        
+        return super().model_validate(obj)
+
+
+MODEL_MAP = {
+    "Procurement_Planning": (ProcurementPlanning, "procurement_plans"),
+    "Vendor_Management": (VendorManagement, "procurement_vendors"),
+    "Purchase_Requisition_to_Order": (PurchaseRequisitionToOrder, "purchase_orders"),
+    "Goods_Receipt_and_Inspection": (GoodsReceiptAndInspection, "goods_receipts"),
+    "Inventory_and_Stock_Management": (InventoryAndStockManagement, "procurement_inventory_items"),
+    "Payment_Tracking": (PaymentTracking, "payments"),
+    "Procurement_Documentation": (ProcurementDocumentation, "documents"),
+    "Compliance_and_Policy": (ComplianceAndPolicy, "compliances"),
+    "Reporting_and_Analysis": (ReportingAndAnalysis, "analysis_reports"),
+    "Procurement_Categories": (ProcurementCategory, "procurement_categories"),
+}
+
+
+def flatten_entry_data(entry_data_dict: dict) -> dict:
+    if "Timeline" in entry_data_dict:
+        timeline = entry_data_dict.pop("Timeline")
+        entry_data_dict["Timeline_Start"] = timeline["Start"]
+        entry_data_dict["Timeline_End"] = timeline["End"]
+    if "Contact_Details" in entry_data_dict:
+        contact = entry_data_dict.pop("Contact_Details")
+        entry_data_dict["Contact_Phone"] = contact["Phone"]
+        entry_data_dict["Contact_Email"] = contact["Email"]
+    if "Period" in entry_data_dict:
+        period = entry_data_dict.pop("Period")
+        entry_data_dict["Period_Start"] = period["Start"]
+        entry_data_dict["Period_End"] = period["End"]
+    return entry_data_dict
+
+def reconstruct_entry_data(entry_data_dict: dict) -> dict:
+    if "Timeline_Start" in entry_data_dict and "Timeline_End" in entry_data_dict:
+        entry_data_dict["Timeline"] = {
+            "Start": entry_data_dict.pop("Timeline_Start"),
+            "End": entry_data_dict.pop("Timeline_End")
+        }
+    if "Contact_Phone" in entry_data_dict and "Contact_Email" in entry_data_dict:
+        entry_data_dict["Contact_Details"] = {
+            "Phone": entry_data_dict.pop("Contact_Phone"),
+            "Email": entry_data_dict.pop("Contact_Email")
+        }
+    if "Period_Start" in entry_data_dict and "Period_End" in entry_data_dict:
+        entry_data_dict["Period"] = {
+            "Start": entry_data_dict.pop("Period_Start"),
+            "End": entry_data_dict.pop("Period_End")
+        }
+    return entry_data_dict
+
+@app.post("/procurement-reports/", response_model=ProcurementReportResponse, status_code=status.HTTP_201_CREATED, tags=["Procurement Report"])
+def create_procurement_report(report: ProcurementReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = ProcurementReport(property_id=report.property_id)
+        db.add(db_report)
+        db.flush()
+
+        report_data = report.Procurement_Management
+
+        for field, (model, _) in MODEL_MAP.items():
+            entries = getattr(report_data, field, [])
+            for entry_data in entries:
+                entry_dict = flatten_entry_data(entry_data.dict())
+                db_entry = model(report_id=db_report.id, **entry_dict)
+                db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return ProcurementReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/procurement-reports/", response_model=List[ProcurementReportResponse], tags=["Procurement Report"])
+def get_all_procurement_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(ProcurementReport)
+        if property_id:
+            query = query.filter(ProcurementReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return [ProcurementReportResponse.model_validate(r) for r in reports]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching reports: {str(e)}")
+
+@app.get("/procurement-reports/{report_id}", response_model=ProcurementReportResponse, tags=["Procurement Report"])
+def get_procurement_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(ProcurementReport).filter(ProcurementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Procurement report not found")
+    return ProcurementReportResponse.model_validate(report)
+
+@app.put("/procurement-reports/{report_id}", response_model=ProcurementReportResponse, tags=["Procurement Report"])
+def update_procurement_report(report_id: str, report_update: ProcurementReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(ProcurementReport).filter(ProcurementReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Procurement report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        if report_update.Procurement_Management:
+            update_data = report_update.Procurement_Management
+            for field, (model, _) in MODEL_MAP.items():
+                update_entries = getattr(update_data, field, None)
+                if update_entries is not None:
+                    db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                    for entry_data in update_entries:
+                        entry_dict = flatten_entry_data(entry_data.dict())
+                        db_entry = model(report_id=report_id, **entry_dict)
+                        db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return ProcurementReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/procurement-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Procurement Report"])
+def delete_procurement_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(ProcurementReport).filter(ProcurementReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Procurement report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+# --- SQLAlchemy ORM Models ---
+
+# Main Vendor Table
+class Vendor(Base):
+    __tablename__ = "vendors"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, index=True, nullable=False)
+    vendor_id = Column(String, unique=True, index=True)
+    vendor_name = Column(String)
+    contact_person = Column(String)
+    contact_phone = Column(String)
+    contact_email = Column(String)
+    address = Column(String)
+    registration_date = Column(String)
+    status = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-one relationships
+    classification = relationship("VendorClassification", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    evaluation = relationship("VendorEvaluation", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    purchase_integration = relationship("IntegrationWithPurchaseProcess", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    payment_tracking = relationship("VendorPaymentTracking", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    relationship_management = relationship("VendorRelationshipManagement", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    compliance_check = relationship("ComplianceAndLegalCheck", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    documentation = relationship("VendorDocumentation", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+    reporting = relationship("VendorReportingAndAnalysis", uselist=False, back_populates="vendor", cascade="all, delete-orphan")
+
+
+# Child tables with one-to-one link to Vendor
+class VendorClassification(Base):
+    __tablename__ = "vendor_classifications"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    classification_id = Column(String)
+    category = Column(String)
+    sub_category = Column(String)
+    rating = Column(String)
+    classification_date = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="classification")
+
+class VendorEvaluation(Base):
+    __tablename__ = "vendor_evaluations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    evaluation_id = Column(String)
+    evaluation_date = Column(String)
+    criteria = Column(SAJSON) # For list of strings
+    score_quality = Column(Integer)
+    score_delivery_time = Column(Integer)
+    outcome = Column(String)
+    evaluator = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="evaluation")
+
+class IntegrationWithPurchaseProcess(Base):
+    __tablename__ = "purchase_integrations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    purchase_id = Column(String)
+    purchase_order_no = Column(String)
+    item_or_service = Column(String)
+    quantity = Column(Integer)
+    order_date = Column(String)
+    delivery_status = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="purchase_integration")
+    
+class VendorPaymentTracking(Base):
+    __tablename__ = "vendor_payment_trackings"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    payment_id = Column(String)
+    invoice_number = Column(String)
+    invoice_amount = Column(Float)
+    payment_due_date = Column(String)
+    payment_date = Column(String)
+    payment_status = Column(String)
+    payment_method = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="payment_tracking")
+
+class VendorRelationshipManagement(Base):
+    __tablename__ = "relationship_managements"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    relationship_id = Column(String)
+    interaction_type = Column(String)
+    date = Column(String)
+    details = Column(String)
+    outcome = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="relationship_management")
+
+class ComplianceAndLegalCheck(Base):
+    __tablename__ = "compliance_checks"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    compliance_id = Column(String)
+    regulation = Column(String)
+    check_date = Column(String)
+    compliance_status = Column(String)
+    issues_found = Column(String)
+    corrective_actions = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="compliance_check")
+
+class VendorDocumentation(Base):
+    __tablename__ = "vendor_documentations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    document_id = Column(String)
+    document_type = Column(String)
+    title = Column(String)
+    created_date = Column(String)
+    author = Column(String)
+    status = Column(String)
+    storage_location = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="documentation")
+
+class VendorReportingAndAnalysis(Base):
+    __tablename__ = "vendor_reporting_and_analyses"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    vendor_master_id = Column(String, ForeignKey("vendors.id"), unique=True, nullable=False)
+    report_id = Column(String)
+    report_type = Column(String)
+    period = Column(String)
+    metrics_delivery_time_avg_days = Column(Integer)
+    metrics_cost_variance_percent = Column(Float)
+    metrics_quality_score_avg = Column(Float)
+    findings = Column(String)
+    generated_date = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    vendor = relationship("Vendor", back_populates="reporting")
+
+
+# --- Pydantic Schemas ---
+
+# Schemas for nested objects
+class ContactDetailsSchema(BaseModel):
+    phone: str
+    email: EmailStr
+
+class ScoreSchema(BaseModel):
+    quality: int
+    delivery_time: int
+
+class MetricsSchema(BaseModel):
+    delivery_time_avg_days: int
+    cost_variance_percent: float
+    quality_score_avg: float
+
+# Schemas for each top-level object
+class VendorMasterManagementSchema(BaseModel):
+    vendor_id: str; vendor_name: str; contact_person: str; contact_details: ContactDetailsSchema; address: str; registration_date: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorClassificationSchema(BaseModel):
+    classification_id: str; vendor_id: str; vendor_name: str; category: str; sub_category: str; rating: str; classification_date: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorEvaluationSchema(BaseModel):
+    evaluation_id: str; vendor_id: str; vendor_name: str; evaluation_date: str; criteria: List[str]; score: ScoreSchema; outcome: str; evaluator: str; remarks: str
+    class Config: from_attributes = True
+
+class IntegrationWithPurchaseProcessSchema(BaseModel):
+    purchase_id: str; vendor_id: str; vendor_name: str; purchase_order_no: str; item_or_service: str; quantity: int; order_date: str; delivery_status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorPaymentTrackingSchema(BaseModel):
+    payment_id: str; vendor_id: str; vendor_name: str; invoice_number: str; invoice_amount: float; payment_due_date: str; payment_date: str; payment_status: str; payment_method: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorRelationshipManagementSchema(BaseModel):
+    relationship_id: str; vendor_id: str; vendor_name: str; interaction_type: str; date: str; details: str; outcome: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class ComplianceAndLegalCheckSchema(BaseModel):
+    compliance_id: str; vendor_id: str; vendor_name: str; regulation: str; check_date: str; compliance_status: str; issues_found: str; corrective_actions: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorDocumentationSchema(BaseModel):
+    document_id: str; vendor_id: str; vendor_name: str; document_type: str; title: str; created_date: str; author: str; status: str; storage_location: str; remarks: str
+    class Config: from_attributes = True
+
+class VendorReportingAndAnalysisSchema(BaseModel):
+    report_id: str; vendor_id: str; vendor_name: str; report_type: str; period: str; metrics: MetricsSchema; findings: str; generated_date: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+# Schema for the complete Vendor Master record for Create/Update
+class VendorMasterCreate(BaseModel):
+    property_id: str
+    vendor_master_management: VendorMasterManagementSchema
+    vendor_classification: Optional[VendorClassificationSchema] = None
+    vendor_evaluation: Optional[VendorEvaluationSchema] = None
+    integration_with_purchase_process: Optional[IntegrationWithPurchaseProcessSchema] = None
+    payment_tracking: Optional[VendorPaymentTrackingSchema] = None
+    vendor_relationship_management: Optional[VendorRelationshipManagementSchema] = None
+    compliance_and_legal_check: Optional[ComplianceAndLegalCheckSchema] = None
+    vendor_documentation: Optional[VendorDocumentationSchema] = None
+    reporting_and_analysis: Optional[VendorReportingAndAnalysisSchema] = None
+
+class VendorMasterUpdate(BaseModel):
+    property_id: Optional[str] = None
+    vendor_master_management: Optional[VendorMasterManagementSchema] = None
+    vendor_classification: Optional[VendorClassificationSchema] = None
+    vendor_evaluation: Optional[VendorEvaluationSchema] = None
+    integration_with_purchase_process: Optional[IntegrationWithPurchaseProcessSchema] = None
+    payment_tracking: Optional[VendorPaymentTrackingSchema] = None
+    vendor_relationship_management: Optional[VendorRelationshipManagementSchema] = None
+    compliance_and_legal_check: Optional[ComplianceAndLegalCheckSchema] = None
+    vendor_documentation: Optional[VendorDocumentationSchema] = None
+    reporting_and_analysis: Optional[VendorReportingAndAnalysisSchema] = None
+
+# Schema for the response model
+class VendorMasterResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    vendor_master_management: VendorMasterManagementSchema
+    vendor_classification: Optional[VendorClassificationSchema] = None
+    vendor_evaluation: Optional[VendorEvaluationSchema] = None
+    integration_with_purchase_process: Optional[IntegrationWithPurchaseProcessSchema] = None
+    payment_tracking: Optional[VendorPaymentTrackingSchema] = None
+    vendor_relationship_management: Optional[VendorRelationshipManagementSchema] = None
+    compliance_and_legal_check: Optional[ComplianceAndLegalCheckSchema] = None
+    vendor_documentation: Optional[VendorDocumentationSchema] = None
+    reporting_and_analysis: Optional[VendorReportingAndAnalysisSchema] = None
+    
+    class Config:
+        from_attributes = True
+    
+    @classmethod
+    def model_validate(cls, obj):
+        # Convert SQLAlchemy object to response format
+        data = {
+            "id": obj.id,
+            "property_id": obj.property_id,
+            "created_at": obj.created_at,
+            "updated_at": obj.updated_at,
+            "vendor_master_management": {
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "contact_person": obj.contact_person,
+                "contact_details": {
+                    "phone": obj.contact_phone,
+                    "email": obj.contact_email
+                },
+                "address": obj.address,
+                "registration_date": obj.registration_date,
+                "status": obj.status,
+                "responsible_person": obj.responsible_person,
+                "remarks": obj.remarks
+            }
+        }
+        
+        # Add optional relationships if they exist
+        if obj.classification:
+            data["vendor_classification"] = {
+                "classification_id": obj.classification.classification_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "category": obj.classification.category,
+                "sub_category": obj.classification.sub_category,
+                "rating": obj.classification.rating,
+                "classification_date": obj.classification.classification_date,
+                "responsible_person": obj.classification.responsible_person,
+                "remarks": obj.classification.remarks
+            }
+        
+        if obj.evaluation:
+            data["vendor_evaluation"] = {
+                "evaluation_id": obj.evaluation.evaluation_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "evaluation_date": obj.evaluation.evaluation_date,
+                "criteria": obj.evaluation.criteria or [],
+                "score": {
+                    "quality": obj.evaluation.score_quality,
+                    "delivery_time": obj.evaluation.score_delivery_time
+                },
+                "outcome": obj.evaluation.outcome,
+                "evaluator": obj.evaluation.evaluator,
+                "remarks": obj.evaluation.remarks
+            }
+        
+        if obj.purchase_integration:
+            data["integration_with_purchase_process"] = {
+                "purchase_id": obj.purchase_integration.purchase_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "purchase_order_no": obj.purchase_integration.purchase_order_no,
+                "item_or_service": obj.purchase_integration.item_or_service,
+                "quantity": obj.purchase_integration.quantity,
+                "order_date": obj.purchase_integration.order_date,
+                "delivery_status": obj.purchase_integration.delivery_status,
+                "responsible_person": obj.purchase_integration.responsible_person,
+                "remarks": obj.purchase_integration.remarks
+            }
+        
+        if obj.payment_tracking:
+            data["payment_tracking"] = {
+                "payment_id": obj.payment_tracking.payment_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "invoice_number": obj.payment_tracking.invoice_number,
+                "invoice_amount": obj.payment_tracking.invoice_amount,
+                "payment_due_date": obj.payment_tracking.payment_due_date,
+                "payment_date": obj.payment_tracking.payment_date,
+                "payment_status": obj.payment_tracking.payment_status,
+                "payment_method": obj.payment_tracking.payment_method,
+                "responsible_person": obj.payment_tracking.responsible_person,
+                "remarks": obj.payment_tracking.remarks
+            }
+        
+        if obj.relationship_management:
+            data["vendor_relationship_management"] = {
+                "relationship_id": obj.relationship_management.relationship_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "interaction_type": obj.relationship_management.interaction_type,
+                "date": obj.relationship_management.date,
+                "details": obj.relationship_management.details,
+                "outcome": obj.relationship_management.outcome,
+                "responsible_person": obj.relationship_management.responsible_person,
+                "remarks": obj.relationship_management.remarks
+            }
+        
+        if obj.compliance_check:
+            data["compliance_and_legal_check"] = {
+                "compliance_id": obj.compliance_check.compliance_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "regulation": obj.compliance_check.regulation,
+                "check_date": obj.compliance_check.check_date,
+                "compliance_status": obj.compliance_check.compliance_status,
+                "issues_found": obj.compliance_check.issues_found,
+                "corrective_actions": obj.compliance_check.corrective_actions,
+                "responsible_person": obj.compliance_check.responsible_person,
+                "remarks": obj.compliance_check.remarks
+            }
+        
+        if obj.documentation:
+            data["vendor_documentation"] = {
+                "document_id": obj.documentation.document_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "document_type": obj.documentation.document_type,
+                "title": obj.documentation.title,
+                "created_date": obj.documentation.created_date,
+                "author": obj.documentation.author,
+                "status": obj.documentation.status,
+                "storage_location": obj.documentation.storage_location,
+                "remarks": obj.documentation.remarks
+            }
+        
+        if obj.reporting:
+            data["reporting_and_analysis"] = {
+                "report_id": obj.reporting.report_id,
+                "vendor_id": obj.vendor_id,
+                "vendor_name": obj.vendor_name,
+                "report_type": obj.reporting.report_type,
+                "period": obj.reporting.period,
+                "metrics": {
+                    "delivery_time_avg_days": obj.reporting.metrics_delivery_time_avg_days,
+                    "cost_variance_percent": obj.reporting.metrics_cost_variance_percent,
+                    "quality_score_avg": obj.reporting.metrics_quality_score_avg
+                },
+                "findings": obj.reporting.findings,
+                "generated_date": obj.reporting.generated_date,
+                "responsible_person": obj.reporting.responsible_person,
+                "remarks": obj.reporting.remarks
+            }
+        
+        return cls(**data)
+
+Base.metadata.create_all(bind=engine)
+
+# Helper to flatten nested Pydantic models to dict for DB insertion
+def flatten_data(pydantic_model: BaseModel) -> dict:
+    data = pydantic_model.dict()
+    flat_data = {}
+    for key, value in data.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                # Special handling for contact_details to map to contact_phone and contact_email
+                if key == "contact_details":
+                    if sub_key == "phone":
+                        flat_data["contact_phone"] = sub_value
+                    elif sub_key == "email":
+                        flat_data["contact_email"] = sub_value
+                else:
+                    flat_data[f"{key}_{sub_key}"] = sub_value
+        else:
+            flat_data[key] = value
+    return flat_data
+
+# Map JASON keys to their corresponding SQLAlchemy models
+CHILD_MODEL_MAP = {
+    "vendor_classification": VendorClassification,
+    "vendor_evaluation": VendorEvaluation,
+    "integration_with_purchase_process": IntegrationWithPurchaseProcess,
+    "payment_tracking": VendorPaymentTracking,
+    "vendor_relationship_management": VendorRelationshipManagement,
+    "compliance_and_legal_check": ComplianceAndLegalCheck,
+    "vendor_documentation": VendorDocumentation,
+    "reporting_and_analysis": VendorReportingAndAnalysis,
+}
+
+
+@app.post("/vendor-masters/", response_model=VendorMasterResponse, status_code=status.HTTP_201_CREATED, tags=["Vendor Master"])
+def create_vendor_master(vendor_data: VendorMasterCreate, db: Session = Depends(get_db)):
+    try:
+        # Create the main vendor record
+        master_data_dict = flatten_data(vendor_data.vendor_master_management)
+        db_vendor = Vendor(property_id=vendor_data.property_id, **master_data_dict)
+        db.add(db_vendor)
+        db.flush()
+
+        # Create child one-to-one records
+        for key, model in CHILD_MODEL_MAP.items():
+            child_data = getattr(vendor_data, key)
+            if child_data:
+                child_dict = flatten_data(child_data)
+                # Remove fields that don't map directly to the model (vendor_id, vendor_name)
+                child_dict.pop("vendor_id", None)
+                child_dict.pop("vendor_name", None)
+                db_child = model(vendor_master_id=db_vendor.id, **child_dict)
+                db.add(db_child)
+
+        db.commit()
+        db.refresh(db_vendor)
+        return VendorMasterResponse.model_validate(db_vendor)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating vendor master: {str(e)}")
+
+
+@app.get("/vendor-masters/", response_model=List[VendorMasterResponse], tags=["Vendor Master"])
+def get_all_vendor_masters(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(Vendor)
+    if property_id:
+        query = query.filter(Vendor.property_id == property_id)
+    vendors = query.offset(skip).limit(limit).all()
+    return [VendorMasterResponse.model_validate(v) for v in vendors]
+
+
+@app.get("/vendor-masters/{vendor_master_id}", response_model=VendorMasterResponse, tags=["Vendor Master"])
+def get_vendor_master_by_id(vendor_master_id: str, db: Session = Depends(get_db)):
+    vendor = db.query(Vendor).filter(Vendor.id == vendor_master_id).first()
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor master record not found")
+    return VendorMasterResponse.model_validate(vendor)
+
+
+@app.put("/vendor-masters/{vendor_master_id}", response_model=VendorMasterResponse, tags=["Vendor Master"])
+def update_vendor_master(vendor_master_id: str, vendor_update: VendorMasterUpdate, db: Session = Depends(get_db)):
+    db_vendor = db.query(Vendor).filter(Vendor.id == vendor_master_id).first()
+    if not db_vendor:
+        raise HTTPException(status_code=404, detail="Vendor master record not found")
+    
+    try:
+        # Update main vendor record
+        if vendor_update.property_id:
+            db_vendor.property_id = vendor_update.property_id
+        if vendor_update.vendor_master_management:
+            update_data = flatten_data(vendor_update.vendor_master_management)
+            for key, value in update_data.items():
+                setattr(db_vendor, key, value)
+
+        # Update or create child records
+        for key, model in CHILD_MODEL_MAP.items():
+            child_update_data = getattr(vendor_update, key)
+            if child_update_data:
+                db_child = db.query(model).filter(model.vendor_master_id == vendor_master_id).first()
+                child_dict = flatten_data(child_update_data)
+                child_dict.pop("vendor_id", None)
+                child_dict.pop("vendor_name", None)
+                if db_child: # Update existing child
+                    for c_key, c_value in child_dict.items():
+                        setattr(db_child, c_key, c_value)
+                else: # Create new child if it didn't exist
+                    db_child = model(vendor_master_id=vendor_master_id, **child_dict)
+                    db.add(db_child)
+
+        db.commit()
+        db.refresh(db_vendor)
+        return VendorMasterResponse.model_validate(db_vendor)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating vendor master: {str(e)}")
+
+
+@app.delete("/vendor-masters/{vendor_master_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Vendor Master"])
+def delete_vendor_master(vendor_master_id: str, db: Session = Depends(get_db)):
+    vendor = db.query(Vendor).filter(Vendor.id == vendor_master_id).first()
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor master record not found")
+    
+    try:
+        db.delete(vendor)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting vendor master: {str(e)}")
+
+
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+# --- SQLAlchemy ORM Models ---
+
+# Main Project Table (from project_initiation)
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    project_id = Column(String, unique=True, index=True)
+    project_name = Column(String)
+    sponsor = Column(String)
+    objective = Column(String)
+    start_date = Column(String)
+    budget = Column(Float)
+    status = Column(String)
+    project_manager = Column(String)
+    stakeholders = Column(JSON) # Stores list as JSON
+    remarks = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-one relationships
+    planning = relationship("ProjectPlanning", uselist=False, back_populates="project", cascade="all, delete-orphan")
+    closure = relationship("ProjectClosure", uselist=False, back_populates="project", cascade="all, delete-orphan")
+    
+    # One-to-many relationships
+    team_allocations = relationship("TeamResourceAllocation", back_populates="project", cascade="all, delete-orphan")
+    execution_tasks = relationship("ExecutionImplementation", back_populates="project", cascade="all, delete-orphan")
+    monitoring_logs = relationship("MonitoringControl", back_populates="project", cascade="all, delete-orphan")
+    documents = relationship("DocumentationReporting", back_populates="project", cascade="all, delete-orphan")
+    depreciation_assets = relationship("DepreciationReplacement", back_populates="project", cascade="all, delete-orphan")
+
+# --- Child Tables ---
+
+# One-to-One Child Tables
+class ProjectPlanning(Base):
+    __tablename__ = "project_planning"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), unique=True, nullable=False)
+    plan_id = Column(String)
+    scope = Column(String)
+    milestones = Column(JSON)
+    start_date = Column(String)
+    end_date = Column(String)
+    resources_required = Column(JSON)
+    risk_assessment = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="planning")
+
+class ProjectClosure(Base):
+    __tablename__ = "project_closure"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), unique=True, nullable=False)
+    closure_id = Column(String)
+    completion_date = Column(String)
+    final_budget = Column(Float)
+    deliverables = Column(JSON)
+    lessons_learned = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="closure")
+
+# One-to-Many Child Tables
+class TeamResourceAllocation(Base):
+    __tablename__ = "team_allocations"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    allocation_id = Column(String)
+    team_member = Column(String)
+    role = Column(String)
+    allocation_start_date = Column(String)
+    allocation_end_date = Column(String)
+    hours_allocated = Column(Integer)
+    department = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="team_allocations")
+
+class ExecutionImplementation(Base):
+    __tablename__ = "execution_tasks"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    task_id = Column(String)
+    task_description = Column(String)
+    assigned_to = Column(String)
+    start_date = Column(String)
+    due_date = Column(String)
+    progress = Column(Integer)
+    status = Column(String)
+    priority = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="execution_tasks")
+
+class MonitoringControl(Base):
+    __tablename__ = "monitoring_logs"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    monitor_id = Column(String)
+    kpi_metric = Column(String)
+    target = Column(Integer)
+    actual = Column(Integer)
+    variance = Column(Integer)
+    date_checked = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="monitoring_logs")
+
+class DocumentationReporting(Base):
+    __tablename__ = "documents"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    document_id = Column(String)
+    document_type = Column(String)
+    title = Column(String)
+    created_date = Column(String)
+    author = Column(String)
+    status = Column(String)
+    storage_location = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="documents")
+
+class DepreciationReplacement(Base):
+    __tablename__ = "depreciation_assets"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    project_master_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    depreciation_id = Column(String)
+    asset_id = Column(String)
+    asset_name = Column(String)
+    purchase_date = Column(String)
+    purchase_cost = Column(Float)
+    depreciation_method = Column(String)
+    annual_depreciation = Column(Float)
+    current_value = Column(Float)
+    replacement_date = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    project = relationship("Project", back_populates="depreciation_assets")
+
+# --- Pydantic Schemas ---
+class ProjectInitiationSchema(BaseModel):
+    project_id: str; project_name: str; sponsor: str; objective: str; start_date: str; budget: float; status: str; project_manager: str; stakeholders: List[str]; remarks: str
+    class Config: from_attributes = True
+class ProjectPlanningSchema(BaseModel):
+    plan_id: str; project_id: str; project_name: Optional[str] = None; scope: str; milestones: List[str]; start_date: str; end_date: str; resources_required: List[str]; risk_assessment: str; status: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class TeamResourceAllocationSchema(BaseModel):
+    allocation_id: str; project_id: str; project_name: Optional[str] = None; team_member: str; role: str; allocation_start_date: str; allocation_end_date: str; hours_allocated: int; department: str; status: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class ExecutionImplementationSchema(BaseModel):
+    task_id: str; project_id: str; project_name: Optional[str] = None; task_description: str; assigned_to: str; start_date: str; due_date: str; progress: int; status: str; priority: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class MonitoringControlSchema(BaseModel):
+    monitor_id: str; project_id: str; project_name: Optional[str] = None; kpi_metric: str; target: int; actual: int; variance: int; date_checked: str; status: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class DocumentationReportingSchema(BaseModel):
+    document_id: str; project_id: str; project_name: Optional[str] = None; document_type: str; title: str; created_date: str; author: str; status: str; storage_location: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class ProjectClosureSchema(BaseModel):
+    closure_id: str; project_id: str; project_name: Optional[str] = None; completion_date: str; final_budget: float; deliverables: List[str]; lessons_learned: str; status: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+class DepreciationReplacementSchema(BaseModel):
+    depreciation_id: str; project_id: str; asset_id: str; asset_name: str; purchase_date: str; purchase_cost: float; depreciation_method: str; annual_depreciation: float; current_value: float; replacement_date: str; status: str; project_manager: Optional[str] = None; remarks: str
+    class Config: from_attributes = True
+
+# Schemas for API Operations
+class ProjectMasterCreate(BaseModel):
+    property_id: str
+    project_initiation: ProjectInitiationSchema
+    project_planning: ProjectPlanningSchema
+    team_resource_allocation: List[TeamResourceAllocationSchema] = []
+    execution_implementation: List[ExecutionImplementationSchema] = []
+    monitoring_control: List[MonitoringControlSchema] = []
+    documentation_reporting: List[DocumentationReportingSchema] = []
+    project_closure: Optional[ProjectClosureSchema] = None
+    depreciation_replacement: List[DepreciationReplacementSchema] = []
+
+class ProjectMasterUpdate(BaseModel):
+    property_id: Optional[str] = None
+    project_initiation: Optional[ProjectInitiationSchema] = None
+    project_planning: Optional[ProjectPlanningSchema] = None
+    team_resource_allocation: Optional[List[TeamResourceAllocationSchema]] = None
+    execution_implementation: Optional[List[ExecutionImplementationSchema]] = None
+    monitoring_control: Optional[List[MonitoringControlSchema]] = None
+    documentation_reporting: Optional[List[DocumentationReportingSchema]] = None
+    project_closure: Optional[ProjectClosureSchema] = None
+    depreciation_replacement: Optional[List[DepreciationReplacementSchema]] = None
+    
+# Schemas for API Response
+class ProjectInitiationResponse(ProjectInitiationSchema): id: str; created_at: datetime; updated_at: datetime
+class ProjectPlanningResponse(ProjectPlanningSchema): id: str
+class TeamResourceAllocationResponse(TeamResourceAllocationSchema): id: str
+class ExecutionImplementationResponse(ExecutionImplementationSchema): id: str
+class MonitoringControlResponse(MonitoringControlSchema): id: str
+class DocumentationReportingResponse(DocumentationReportingSchema): id: str
+class ProjectClosureResponse(ProjectClosureSchema): id: str
+class DepreciationReplacementResponse(DepreciationReplacementSchema): id: str
+
+class ProjectMasterResponse(BaseModel):
+    property_id: str
+    project_initiation: ProjectInitiationResponse
+    project_planning: Optional[ProjectPlanningResponse] = None
+    project_closure: Optional[ProjectClosureResponse] = None
+    team_resource_allocation: List[TeamResourceAllocationResponse] = []
+    execution_implementation: List[ExecutionImplementationResponse] = []
+    monitoring_control: List[MonitoringControlResponse] = []
+    documentation_reporting: List[DocumentationReportingResponse] = []
+    depreciation_replacement: List[DepreciationReplacementResponse] = []
+    
+    class Config:
+        from_attributes = True
+    
+    @classmethod
+    def model_validate(cls, obj):
+        # Handle both SQLAlchemy objects and dictionaries
+        if hasattr(obj, 'property_id'):  # SQLAlchemy object
+            data = {
+                "property_id": obj.property_id,
+                "project_initiation": {
+                    "id": obj.id,
+                    "project_id": obj.project_id,
+                    "project_name": obj.project_name,
+                    "sponsor": obj.sponsor,
+                    "objective": obj.objective,
+                    "start_date": obj.start_date,
+                    "budget": obj.budget,
+                    "status": obj.status,
+                    "project_manager": obj.project_manager,
+                    "stakeholders": obj.stakeholders or [],
+                    "remarks": obj.remarks,
+                    "created_at": obj.created_at,
+                    "updated_at": obj.updated_at
+                }
+            }
+        else:  # Dictionary
+            data = obj
+        
+        # Add optional one-to-one relationships if they exist
+        if hasattr(obj, 'planning') and obj.planning:
+            data["project_planning"] = {
+                "id": obj.planning.id,
+                "plan_id": obj.planning.plan_id,
+                "project_id": obj.project_id,
+                "project_name": obj.project_name,
+                "scope": obj.planning.scope,
+                "milestones": obj.planning.milestones or [],
+                "start_date": obj.planning.start_date,
+                "end_date": obj.planning.end_date,
+                "resources_required": obj.planning.resources_required or [],
+                "risk_assessment": obj.planning.risk_assessment,
+                "status": obj.planning.status,
+                "project_manager": obj.project_manager,
+                "remarks": obj.planning.remarks
+            }
+        
+        if hasattr(obj, 'closure') and obj.closure:
+            data["project_closure"] = {
+                "id": obj.closure.id,
+                "closure_id": obj.closure.closure_id,
+                "project_id": obj.project_id,
+                "project_name": obj.project_name,
+                "completion_date": obj.closure.completion_date,
+                "final_budget": obj.closure.final_budget,
+                "deliverables": obj.closure.deliverables or [],
+                "lessons_learned": obj.closure.lessons_learned,
+                "status": obj.closure.status,
+                "project_manager": obj.project_manager,
+                "remarks": obj.closure.remarks
+            }
+        
+        # Add one-to-many relationships
+        if hasattr(obj, 'team_allocations'):
+            data["team_resource_allocation"] = [
+                {
+                    "id": allocation.id,
+                    "allocation_id": allocation.allocation_id,
+                    "project_id": obj.project_id,
+                    "project_name": obj.project_name,
+                    "team_member": allocation.team_member,
+                    "role": allocation.role,
+                    "allocation_start_date": allocation.allocation_start_date,
+                    "allocation_end_date": allocation.allocation_end_date,
+                    "hours_allocated": allocation.hours_allocated,
+                    "department": allocation.department,
+                    "status": allocation.status,
+                    "project_manager": obj.project_manager,
+                    "remarks": allocation.remarks
+                }
+                for allocation in obj.team_allocations
+            ]
+        else:
+            data["team_resource_allocation"] = []
+        
+        if hasattr(obj, 'execution_tasks'):
+            data["execution_implementation"] = [
+                {
+                    "id": task.id,
+                    "task_id": task.task_id,
+                    "project_id": obj.project_id,
+                    "project_name": obj.project_name,
+                    "task_description": task.task_description,
+                    "assigned_to": task.assigned_to,
+                    "start_date": task.start_date,
+                    "due_date": task.due_date,
+                    "progress": task.progress,
+                    "status": task.status,
+                    "priority": task.priority,
+                    "project_manager": obj.project_manager,
+                    "remarks": task.remarks
+                }
+                for task in obj.execution_tasks
+            ]
+        else:
+            data["execution_implementation"] = []
+        
+        if hasattr(obj, 'monitoring_logs'):
+            data["monitoring_control"] = [
+                {
+                    "id": monitor.id,
+                    "monitor_id": monitor.monitor_id,
+                    "project_id": obj.project_id,
+                    "project_name": obj.project_name,
+                    "kpi_metric": monitor.kpi_metric,
+                    "target": monitor.target,
+                    "actual": monitor.actual,
+                    "variance": monitor.variance,
+                    "date_checked": monitor.date_checked,
+                    "status": monitor.status,
+                    "project_manager": obj.project_manager,
+                    "remarks": monitor.remarks
+                }
+                for monitor in obj.monitoring_logs
+            ]
+        else:
+            data["monitoring_control"] = []
+        
+        if hasattr(obj, 'documents'):
+            data["documentation_reporting"] = [
+                {
+                    "id": doc.id,
+                    "document_id": doc.document_id,
+                    "project_id": obj.project_id,
+                    "project_name": obj.project_name,
+                    "document_type": doc.document_type,
+                    "title": doc.title,
+                    "created_date": doc.created_date,
+                    "author": doc.author,
+                    "status": doc.status,
+                    "storage_location": doc.storage_location,
+                    "project_manager": obj.project_manager,
+                    "remarks": doc.remarks
+                }
+                for doc in obj.documents
+            ]
+        else:
+            data["documentation_reporting"] = []
+        
+        if hasattr(obj, 'depreciation_assets'):
+            data["depreciation_replacement"] = [
+                {
+                    "id": dep.id,
+                    "depreciation_id": dep.depreciation_id,
+                    "project_id": obj.project_id,
+                    "asset_id": dep.asset_id,
+                    "asset_name": dep.asset_name,
+                    "purchase_date": dep.purchase_date,
+                    "purchase_cost": dep.purchase_cost,
+                    "depreciation_method": dep.depreciation_method,
+                    "annual_depreciation": dep.annual_depreciation,
+                    "current_value": dep.current_value,
+                    "replacement_date": dep.replacement_date,
+                    "status": dep.status,
+                    "project_manager": obj.project_manager,
+                    "remarks": dep.remarks
+                }
+                for dep in obj.depreciation_assets
+            ]
+        else:
+            data["depreciation_replacement"] = []
+        
+        return cls(**data)
+
+Base.metadata.create_all(bind=engine)
+
+ONE_TO_ONE_MAP = {"project_planning": ProjectPlanning, "project_closure": ProjectClosure}
+ONE_TO_MANY_MAP = {
+    "team_resource_allocation": TeamResourceAllocation, "execution_implementation": ExecutionImplementation,
+    "monitoring_control": MonitoringControl, "documentation_reporting": DocumentationReporting,
+    "depreciation_replacement": DepreciationReplacement
+}
+
+@app.post("/project-masters/", response_model=ProjectMasterResponse, status_code=status.HTTP_201_CREATED, tags=["Project Master"])
+def create_project_master(project_data: ProjectMasterCreate, db: Session = Depends(get_db)):
+    try:
+        init_data = project_data.project_initiation.dict()
+        # Keep all fields as they map directly to the Project model
+        db_project = Project(property_id=project_data.property_id, **init_data)
+        db.add(db_project)
+        db.flush()
+
+        for key, model in ONE_TO_ONE_MAP.items():
+            data = getattr(project_data, key)
+            if data:
+                data_dict = data.dict()
+                # Remove fields that don't belong to the child model
+                data_dict.pop("project_id", None); data_dict.pop("project_name", None); data_dict.pop("project_manager", None)
+                db_child = model(project_master_id=db_project.id, **data_dict)
+                db.add(db_child)
+        
+        for key, model in ONE_TO_MANY_MAP.items():
+            entries = getattr(project_data, key, [])
+            for entry_data in entries:
+                data_dict = entry_data.dict()
+                data_dict.pop("project_id", None); data_dict.pop("project_name", None); data_dict.pop("project_manager", None)
+                db_entry = model(project_master_id=db_project.id, **data_dict)
+                db.add(db_entry)
+
+        db.commit()
+        db.refresh(db_project)
+        return ProjectMasterResponse.model_validate(db_project)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating project: {str(e)}")
+
+# @app.get("/project-masters/", response_model=List[ProjectMasterResponse], tags=["Project Master"])
+# def get_all_project_masters(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+#     from sqlalchemy.orm import joinedload
+    
+#     query = db.query(Project).options(
+#         joinedload(Project.planning),
+#         joinedload(Project.closure),
+#         joinedload(Project.team_allocations),
+#         joinedload(Project.execution_tasks),
+#         joinedload(Project.monitoring_logs),
+#         joinedload(Project.documents),
+#         joinedload(Project.depreciation_assets)
+#     )
+#     if property_id:
+#         query = query.filter(Project.property_id == property_id)
+#     projects = query.offset(skip).limit(limit).all()
+    
+#     # Use the same approach as the working POST endpoint
+#     return [ProjectMasterResponse.model_validate(project) for project in projects]
+
+@app.get("/project-masters/", response_model=List[ProjectMasterResponse], tags=["Project Master"])
+def get_all_projects(db: Session = Depends(get_db)):
+    try:
+        projects = db.query(Project).all()
+        return [ProjectMasterResponse.model_validate(proj) for proj in projects]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching projects: {str(e)}")
+
+
+@app.get("/project-masters/{project_id}", response_model=ProjectMasterResponse, tags=["Project Master"])
+def get_project_master(project_id: int, db: Session = Depends(get_db)):
+    try:
+        db_project = db.query(Project).filter(Project.id == project_id).first()
+        if not db_project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        return ProjectMasterResponse.model_validate(db_project)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching project: {str(e)}")
+
+
+# @app.get("/project-masters/{project_id}", response_model=ProjectMasterResponse, tags=["Project Master"])
+# def get_project_master_by_id(project_id: str, db: Session = Depends(get_db)):
+#     project = db.query(Project).filter(Project.id == project_id).first()
+#     if not project:
+#         raise HTTPException(status_code=404, detail="Project not found")
+#     # Manually structure the response since it's complex
+#     response_data = {
+#         "property_id": project.property_id,
+#         "project_initiation": project,
+#         "project_planning": project.planning,
+#         "project_closure": project.closure,
+#         "team_resource_allocation": project.team_allocations,
+#         "execution_implementation": project.execution_tasks,
+#         "monitoring_control": project.monitoring_logs,
+#         "documentation_reporting": project.documents,
+#         "depreciation_replacement": project.depreciation_assets,
+#     }
+#     return ProjectMasterResponse.model_validate(response_data)
+
+
+@app.put("/project-masters/{project_id}", response_model=ProjectMasterResponse, tags=["Project Master"])
+def update_project_master(project_id: str, update_data: ProjectMasterUpdate, db: Session = Depends(get_db)):
+    db_project = db.query(Project).filter(Project.id == project_id).first()
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    try:
+        # Update main project record
+        if update_data.property_id: db_project.property_id = update_data.property_id
+        if update_data.project_initiation:
+            init_update = update_data.project_initiation.dict(exclude_unset=True)
+            for key, value in init_update.items():
+                if hasattr(db_project, key): setattr(db_project, key, value)
+        
+        # Update one-to-one children
+        for key, model in ONE_TO_ONE_MAP.items():
+            child_data = getattr(update_data, key)
+            if child_data:
+                db_child = getattr(db_project, key.split('_')[-1]) # e.g., db_project.planning
+                data_dict = child_data.dict(exclude_unset=True)
+                data_dict.pop("project_id", None); data_dict.pop("project_name", None); data_dict.pop("project_manager", None)
+                if db_child:
+                    for c_key, c_value in data_dict.items(): setattr(db_child, c_key, c_value)
+                else:
+                    db_child = model(project_master_id=project_id, **data_dict); db.add(db_child)
+
+        # Update one-to-many children (delete and replace)
+        for key, model in ONE_TO_MANY_MAP.items():
+            entries = getattr(update_data, key, None)
+            if entries is not None:
+                db.query(model).filter(model.project_master_id == project_id).delete(synchronize_session=False)
+                for entry_data in entries:
+                    data_dict = entry_data.dict()
+                    data_dict.pop("project_id", None); data_dict.pop("project_name", None); data_dict.pop("project_manager", None)
+                    db_entry = model(project_master_id=project_id, **data_dict)
+                    db.add(db_entry)
+
+        db.commit()
+        db.refresh(db_project)
+        return get_project_master_by_id(project_id, db) # Re-use get logic to build response
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating project: {str(e)}")
+
+@app.delete("/project-masters/{project_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Project Master"])
+def delete_project_master(project_id: str, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        db.delete(project)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting project: {str(e)}")
+
+# Main Report Table
+class SlaReport(Base):
+    __tablename__ = "sla_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    planning_definitions = relationship("SlaPlanningAndDefinition", back_populates="report", cascade="all, delete-orphan")
+    key_components = relationship("KeySlaComponent", back_populates="report", cascade="all, delete-orphan")
+    implementations = relationship("SlaImplementation", back_populates="report", cascade="all, delete-orphan")
+    monitorings = relationship("SlaMonitoring", back_populates="report", cascade="all, delete-orphan")
+    evaluations = relationship("SlaEvaluation", back_populates="report", cascade="all, delete-orphan")
+    renewal_exits = relationship("SlaRenewalAndExitProcess", back_populates="report", cascade="all, delete-orphan")
+
+# Child Tables
+class SlaPlanningAndDefinition(Base):
+    __tablename__ = "sla_planning_definitions"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    sla_id = Column(String, index=True)
+    service_name = Column(String)
+    client_department = Column(String)
+    objective = Column(String)
+    start_date = Column(String)
+    end_date = Column(String)
+    responsible_person = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="planning_definitions")
+
+class KeySlaComponent(Base):
+    __tablename__ = "key_sla_components"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    component_id = Column(String)
+    sla_id = Column(String)
+    service_name = Column(String)
+    component_type = Column(String)
+    description = Column(String)
+    target = Column(String)
+    measurement_method = Column(String)
+    responsible_person = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="key_components")
+
+class SlaImplementation(Base):
+    __tablename__ = "sla_implementations"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    implementation_id = Column(String)
+    sla_id = Column(String)
+    service_name = Column(String)
+    implementation_date = Column(String)
+    actions_taken = Column(String)
+    resources_assigned = Column(String)
+    status = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="implementations")
+
+class SlaMonitoring(Base):
+    __tablename__ = "sla_monitorings"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    monitor_id = Column(String)
+    sla_id = Column(String)
+    service_name = Column(String)
+    component_type = Column(String)
+    target = Column(String)
+    actual = Column(String)
+    date_checked = Column(String)
+    status = Column(String)
+    responsible_person = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="monitorings")
+
+class SlaEvaluation(Base):
+    __tablename__ = "sla_evaluations"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    evaluation_id = Column(String)
+    sla_id = Column(String)
+    service_name = Column(String)
+    evaluation_date = Column(String)
+    criteria = Column(String)
+    outcome = Column(String)
+    evaluator = Column(String)
+    corrective_actions = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="evaluations")
+
+class SlaRenewalAndExitProcess(Base):
+    __tablename__ = "sla_renewal_exits"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("sla_reports.id"), nullable=False)
+    renewal_exit_id = Column(String)
+    sla_id = Column(String)
+    service_name = Column(String)
+    action_type = Column(String)
+    action_date = Column(String)
+    new_end_date = Column(String)
+    reason = Column(String)
+    responsible_person = Column(String)
+    status = Column(String)
+    remarks = Column(String)
+    report = relationship("SlaReport", back_populates="renewal_exits")
+
+# --- Pydantic Schemas ---
+
+# Base schemas for individual list items
+class SlaPlanningAndDefinitionSchema(BaseModel):
+    sla_id: str; service_name: str; client_department: str; objective: str; start_date: str; end_date: str; responsible_person: str; status: str; remarks: str
+    class Config: from_attributes = True
+
+class KeySlaComponentSchema(BaseModel):
+    component_id: str; sla_id: str; service_name: str; component_type: str; description: str; target: str; measurement_method: str; responsible_person: str; status: str; remarks: str
+    class Config: from_attributes = True
+
+class SlaImplementationSchema(BaseModel):
+    implementation_id: str; sla_id: str; service_name: str; implementation_date: str; actions_taken: str; resources_assigned: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class SlaMonitoringSchema(BaseModel):
+    monitor_id: str; sla_id: str; service_name: str; component_type: str; target: str; actual: str; date_checked: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class SlaEvaluationSchema(BaseModel):
+    evaluation_id: str; sla_id: str; service_name: str; evaluation_date: str; criteria: str; outcome: str; evaluator: str; corrective_actions: str; remarks: str
+    class Config: from_attributes = True
+
+class SlaRenewalAndExitProcessSchema(BaseModel):
+    renewal_exit_id: str; sla_id: str; service_name: str; action_type: str; action_date: str; new_end_date: str; reason: str; responsible_person: str; status: str; remarks: str
+    class Config: from_attributes = True
+
+# Schema for the main data object
+class SlaData(BaseModel):
+    sla_planning_and_definition: List[SlaPlanningAndDefinitionSchema] = []
+    key_sla_components: List[KeySlaComponentSchema] = []
+    sla_implementation: List[SlaImplementationSchema] = []
+    sla_monitoring: List[SlaMonitoringSchema] = []
+    sla_evaluation: List[SlaEvaluationSchema] = []
+    sla_renewal_and_exit_process: List[SlaRenewalAndExitProcessSchema] = []
+
+# Schemas for API Operations
+class SlaReportCreate(SlaData):
+    property_id: str
+
+class SlaReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    sla_planning_and_definition: Optional[List[SlaPlanningAndDefinitionSchema]] = None
+    key_sla_components: Optional[List[KeySlaComponentSchema]] = None
+    sla_implementation: Optional[List[SlaImplementationSchema]] = None
+    sla_monitoring: Optional[List[SlaMonitoringSchema]] = None
+    sla_evaluation: Optional[List[SlaEvaluationSchema]] = None
+    sla_renewal_and_exit_process: Optional[List[SlaRenewalAndExitProcessSchema]] = None
+    
+# Schemas for Response models
+class SlaPlanningAndDefinitionResponse(SlaPlanningAndDefinitionSchema): id: str; report_id: str
+class KeySlaComponentResponse(KeySlaComponentSchema): id: str; report_id: str
+class SlaImplementationResponse(SlaImplementationSchema): id: str; report_id: str
+class SlaMonitoringResponse(SlaMonitoringSchema): id: str; report_id: str
+class SlaEvaluationResponse(SlaEvaluationSchema): id: str; report_id: str
+class SlaRenewalAndExitProcessResponse(SlaRenewalAndExitProcessSchema): id: str; report_id: str
+
+class SlaReportResponse(BaseModel):
+    id: str
+    property_id: str
+    created_at: datetime
+    updated_at: datetime
+    sla_planning_and_definition: List[SlaPlanningAndDefinitionResponse] = Field(..., alias="planning_definitions")
+    key_sla_components: List[KeySlaComponentResponse] = Field(..., alias="key_components")
+    sla_implementation: List[SlaImplementationResponse] = Field(..., alias="implementations")
+    sla_monitoring: List[SlaMonitoringResponse] = Field(..., alias="monitorings")
+    sla_evaluation: List[SlaEvaluationResponse] = Field(..., alias="evaluations")
+    sla_renewal_and_exit_process: List[SlaRenewalAndExitProcessResponse] = Field(..., alias="renewal_exits")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+# Create database tables on startup
+Base.metadata.create_all(bind=engine)
+
+# Map JSON keys to DB models and response aliases
+MODEL_MAP = {
+    "sla_planning_and_definition": (SlaPlanningAndDefinition, "planning_definitions"),
+    "key_sla_components": (KeySlaComponent, "key_components"),
+    "sla_implementation": (SlaImplementation, "implementations"),
+    "sla_monitoring": (SlaMonitoring, "monitorings"),
+    "sla_evaluation": (SlaEvaluation, "evaluations"),
+    "sla_renewal_and_exit_process": (SlaRenewalAndExitProcess, "renewal_exits"),
+}
+
+@app.post("/sla-reports/", response_model=SlaReportResponse, status_code=status.HTTP_201_CREATED, tags=["SLA Report"])
+def create_sla_report(report_data: SlaReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = SlaReport(property_id=report_data.property_id)
+        db.add(db_report)
+        db.flush()
+
+        for field, (model, _) in MODEL_MAP.items():
+            entries = getattr(report_data, field, [])
+            for entry_data in entries:
+                db_entry = model(report_id=db_report.id, **entry_data.dict())
+                db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_report)
+        return SlaReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating SLA report: {str(e)}")
+
+@app.get("/sla-reports/", response_model=List[SlaReportResponse], tags=["SLA Report"])
+def get_all_sla_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    try:
+        query = db.query(SlaReport)
+        if property_id:
+            query = query.filter(SlaReport.property_id == property_id)
+        reports = query.offset(skip).limit(limit).all()
+        return [SlaReportResponse.model_validate(r) for r in reports]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching SLA reports: {str(e)}")
+
+@app.get("/sla-reports/{report_id}", response_model=SlaReportResponse, tags=["SLA Report"])
+def get_sla_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(SlaReport).filter(SlaReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="SLA report not found")
+    return SlaReportResponse.model_validate(report)
+
+@app.put("/sla-reports/{report_id}", response_model=SlaReportResponse, tags=["SLA Report"])
+def update_sla_report(report_id: str, report_update: SlaReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(SlaReport).filter(SlaReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="SLA report not found")
+
+    try:
+        if report_update.property_id:
+            db_report.property_id = report_update.property_id
+
+        for field, (model, _) in MODEL_MAP.items():
+            update_entries = getattr(report_update, field, None)
+            if update_entries is not None:
+                db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                for entry_data in update_entries:
+                    db_entry = model(report_id=report_id, **entry_data.dict())
+                    db.add(db_entry)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return SlaReportResponse.model_validate(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating SLA report: {str(e)}")
+
+@app.delete("/sla-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["SLA Report"])
+def delete_sla_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(SlaReport).filter(SlaReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="SLA report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting SLA report: {str(e)}")
+
+# --- SQLAlchemy ORM Model ---
+class AuditReport(Base):
+    __tablename__ = "audit_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    audit_id = Column(String, index=True)
+    audit_date = Column(String)
+    site_name = Column(String)
+    location = Column(String)
+    auditor_name = Column(String)
+    audit_type = Column(String, index=True)
+    department = Column(String)
+    checklist_item = Column(String)
+    compliance = Column(String)
+    score = Column(Integer)
+    observation_remarks = Column(String)
+    photo_evidence = Column(String)
+    status = Column(String, index=True)
+    assigned_to = Column(String)
+    target_closure_date = Column(String)
+    actual_closure_date = Column(String, nullable=True)
+    verification_by = Column(String, nullable=True)
+    verified_date = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# --- Pydantic Schemas ---
+
+# Base schema with all fields from the JSON
+class AuditReportSchema(BaseModel):
+    audit_id: str
+    audit_date: str
+    site_name: str
+    location: str
+    auditor_name: str
+    audit_type: str
+    department: str
+    checklist_item: str
+    compliance: str
+    score: int
+    observation_remarks: str
+    photo_evidence: str
+    status: str
+    assigned_to: str
+    target_closure_date: str
+    actual_closure_date: Optional[str] = None
+    verification_by: Optional[str] = None
+    verified_date: Optional[str] = None
+
+# Schema for creating a new report (adds property_id)
+class AuditReportCreate(AuditReportSchema):
+    property_id: str
+
+# Schema for updating a report (all fields are optional)
+class AuditReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    audit_id: Optional[str] = None
+    audit_date: Optional[str] = None
+    site_name: Optional[str] = None
+    location: Optional[str] = None
+    auditor_name: Optional[str] = None
+    audit_type: Optional[str] = None
+    department: Optional[str] = None
+    checklist_item: Optional[str] = None
+    compliance: Optional[str] = None
+    score: Optional[int] = None
+    observation_remarks: Optional[str] = None
+    photo_evidence: Optional[str] = None
+    status: Optional[str] = None
+    assigned_to: Optional[str] = None
+    target_closure_date: Optional[str] = None
+    actual_closure_date: Optional[str] = None
+    verification_by: Optional[str] = None
+    verified_date: Optional[str] = None
+
+# Schema for API response (includes DB-generated fields)
+class AuditReportResponse(AuditReportCreate):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+
+@app.post("/audit-reports/", response_model=AuditReportResponse, status_code=status.HTTP_201_CREATED, tags=["Audit Reports"])
+def create_audit_report(report: AuditReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = AuditReport(**report.dict())
+        db.add(db_report)
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating audit report: {str(e)}")
+
+@app.get("/audit-reports/", response_model=List[AuditReportResponse], tags=["Audit Reports"])
+def get_all_audit_reports(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None, 
+    audit_type: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(AuditReport)
+        if property_id:
+            query = query.filter(AuditReport.property_id == property_id)
+        if audit_type:
+            query = query.filter(AuditReport.audit_type == audit_type)
+        if status:
+            query = query.filter(AuditReport.status == status)
+        
+        reports = query.offset(skip).limit(limit).all()
+        return reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching audit reports: {str(e)}")
+
+@app.get("/audit-reports/{report_id}", response_model=AuditReportResponse, tags=["Audit Reports"])
+def get_audit_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AuditReport).filter(AuditReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Audit report not found")
+    return report
+
+@app.put("/audit-reports/{report_id}", response_model=AuditReportResponse, tags=["Audit Reports"])
+def update_audit_report(report_id: str, report_update: AuditReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(AuditReport).filter(AuditReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Audit report not found")
+
+    try:
+        update_data = report_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_report, key, value)
+        
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating audit report: {str(e)}")
+
+@app.delete("/audit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Audit Reports"])
+def delete_audit_report(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(AuditReport).filter(AuditReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Audit report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting audit report: {str(e)}")
+
+# Main Parent Table
+class ComplaintManagementRecord(Base):
+    __tablename__ = "complaint_management_records"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-many relationships
+    client_complaints = relationship("ClientComplaint", back_populates="record", cascade="all, delete-orphan")
+    staff_complaints = relationship("StaffComplaint", back_populates="record", cascade="all, delete-orphan")
+    client_resolutions = relationship("ClientComplaintResolution", back_populates="record", cascade="all, delete-orphan")
+    staff_resolutions = relationship("StaffComplaintResolution", back_populates="record", cascade="all, delete-orphan")
+    escalations = relationship("EscalationTracking", back_populates="record", cascade="all, delete-orphan")
+    rca_entries = relationship("RootCauseAnalysis", back_populates="record", cascade="all, delete-orphan")
+
+# Child Tables
+class ClientComplaint(Base):
+    __tablename__ = 'client_complaints'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    complaint_id = Column(String, index=True); client_id = Column(String); client_name = Column(String); complaint_category = Column(String); description = Column(String); date_raised = Column(String); priority = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="client_complaints")
+
+class StaffComplaint(Base):
+    __tablename__ = 'staff_complaints'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    complaint_id = Column(String, index=True); staff_id = Column(String); staff_name = Column(String); department = Column(String); complaint_category = Column(String); description = Column(String); date_raised = Column(String); priority = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="staff_complaints")
+
+class ClientComplaintResolution(Base):
+    __tablename__ = 'client_complaint_resolutions'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    resolution_id = Column(String); complaint_id = Column(String, index=True); client_id = Column(String); client_name = Column(String); resolution_description = Column(String); date_resolved = Column(String); time_to_resolve_hours = Column(Integer); resolution_rate_percent = Column(Integer); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="client_resolutions")
+
+class StaffComplaintResolution(Base):
+    __tablename__ = 'staff_complaint_resolutions'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    resolution_id = Column(String); complaint_id = Column(String, index=True); staff_id = Column(String); staff_name = Column(String); department = Column(String); resolution_description = Column(String); date_resolved = Column(String); time_to_resolve_hours = Column(Integer); resolution_rate_percent = Column(Integer); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="staff_resolutions")
+
+class EscalationTracking(Base):
+    __tablename__ = 'escalation_tracking'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    escalation_id = Column(String); complaint_id = Column(String, index=True); type = Column(String); escalation_level = Column(String); description = Column(String); date_escalated = Column(String); escalated_to = Column(String); status = Column(String); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="escalations")
+
+class RootCauseAnalysis(Base):
+    __tablename__ = 'root_cause_analysis'
+    id = Column(String, primary_key=True, default=generate_uuid)
+    record_id = Column(String, ForeignKey("complaint_management_records.id"), nullable=False)
+    rca_id = Column(String); complaint_id = Column(String, index=True); type = Column(String); root_cause = Column(String); corrective_action = Column(String); implementation_date = Column(String); effectiveness = Column(String); effectiveness_rate_percent = Column(Integer); responsible_person = Column(String); remarks = Column(String)
+    record = relationship("ComplaintManagementRecord", back_populates="rca_entries")
+
+# --- Pydantic Schemas ---
+class ClientComplaintSchema(BaseModel):
+    complaint_id: str; client_id: str; client_name: str; complaint_category: str; description: str; date_raised: str; priority: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+class StaffComplaintSchema(BaseModel):
+    complaint_id: str; staff_id: str; staff_name: str; department: str; complaint_category: str; description: str; date_raised: str; priority: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+class ClientComplaintResolutionSchema(BaseModel):
+    resolution_id: str; complaint_id: str; client_id: str; client_name: str; resolution_description: str; date_resolved: str; time_to_resolve_hours: int; resolution_rate_percent: int; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+class StaffComplaintResolutionSchema(BaseModel):
+    resolution_id: str; complaint_id: str; staff_id: str; staff_name: str; department: str; resolution_description: str; date_resolved: str; time_to_resolve_hours: int; resolution_rate_percent: int; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+class EscalationTrackingSchema(BaseModel):
+    escalation_id: str; complaint_id: str; type: str; escalation_level: str; description: str; date_escalated: str; escalated_to: str; status: str; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+class RootCauseAnalysisSchema(BaseModel):
+    rca_id: str; complaint_id: str; type: str; root_cause: str; corrective_action: str; implementation_date: str; effectiveness: str; effectiveness_rate_percent: int; responsible_person: str; remarks: str
+    class Config: from_attributes = True
+
+class ComplaintManagementData(BaseModel):
+    client_complaints: List[ClientComplaintSchema] = []
+    staff_complaints: List[StaffComplaintSchema] = []
+    client_complaint_resolutions: List[ClientComplaintResolutionSchema] = []
+    staff_complaint_resolutions: List[StaffComplaintResolutionSchema] = []
+    escalation_tracking: List[EscalationTrackingSchema] = []
+    root_cause_analysis: List[RootCauseAnalysisSchema] = []
+
+class ComplaintManagementCreate(BaseModel):
+    property_id: str
+    complaint_management: ComplaintManagementData
+
+class ComplaintManagementUpdate(BaseModel):
+    property_id: Optional[str] = None
+    complaint_management: Optional[ComplaintManagementData] = None
+
+class ClientComplaintResponse(ClientComplaintSchema): id: str; record_id: str
+class StaffComplaintResponse(StaffComplaintSchema): id: str; record_id: str
+class ClientComplaintResolutionResponse(ClientComplaintResolutionSchema): id: str; record_id: str
+class StaffComplaintResolutionResponse(StaffComplaintResolutionSchema): id: str; record_id: str
+class EscalationTrackingResponse(EscalationTrackingSchema): id: str; record_id: str
+class RootCauseAnalysisResponse(RootCauseAnalysisSchema): id: str; record_id: str
+
+class ComplaintManagementResponse(BaseModel):
+    id: str; property_id: str; created_at: datetime; updated_at: datetime
+    complaint_management: ComplaintManagementData = Field(..., alias="complaint_management_data")
+    class Config: from_attributes = True; populate_by_name = True
+
+    @classmethod
+    def from_orm_model(cls, orm_model: ComplaintManagementRecord):
+        # Manually construct the nested data object for the response
+        data = ComplaintManagementData(
+            client_complaints=orm_model.client_complaints,
+            staff_complaints=orm_model.staff_complaints,
+            client_complaint_resolutions=orm_model.client_resolutions,
+            staff_complaint_resolutions=orm_model.staff_resolutions,
+            escalation_tracking=orm_model.escalations,
+            root_cause_analysis=orm_model.rca_entries,
+        )
+        return cls(
+            id=orm_model.id,
+            property_id=orm_model.property_id,
+            created_at=orm_model.created_at,
+            updated_at=orm_model.updated_at,
+            complaint_management_data=data,
+        )
+
+Base.metadata.create_all(bind=engine)
+
+MODEL_MAP = {
+    "client_complaints": ClientComplaint, "staff_complaints": StaffComplaint,
+    "client_complaint_resolutions": ClientComplaintResolution, "staff_complaint_resolutions": StaffComplaintResolution,
+    "escalation_tracking": EscalationTracking, "root_cause_analysis": RootCauseAnalysis
+}
+
+TAG1 = "Complaint Management Records"
+
+@app.post("/complaint-management-records/", response_model=ComplaintManagementResponse, status_code=status.HTTP_201_CREATED, tags=[TAG1])
+def create_record(record_data: ComplaintManagementCreate, db: Session = Depends(get_db)):
+    try:
+        db_record = ComplaintManagementRecord(property_id=record_data.property_id)
+        db.add(db_record)
+        db.flush()
+
+        for field, model in MODEL_MAP.items():
+            entries = getattr(record_data.complaint_management, field, [])
+            for entry_data in entries:
+                db_entry = model(record_id=db_record.id, **entry_data.dict())
+                db.add(db_entry)
+        
+        db.commit()
+        db.refresh(db_record)
+        return ComplaintManagementResponse.from_orm_model(db_record)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating record: {str(e)}")
+
+@app.get("/complaint-management-records/", response_model=List[ComplaintManagementResponse], tags=[TAG1])
+def get_all_records(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(ComplaintManagementRecord)
+    if property_id:
+        query = query.filter(ComplaintManagementRecord.property_id == property_id)
+    records = query.offset(skip).limit(limit).all()
+    return [ComplaintManagementResponse.from_orm_model(r) for r in records]
+
+@app.get("/complaint-management-records/{record_id}", response_model=ComplaintManagementResponse, tags=[TAG1])
+def get_record_by_id(record_id: str, db: Session = Depends(get_db)):
+    record = db.query(ComplaintManagementRecord).filter(ComplaintManagementRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return ComplaintManagementResponse.from_orm_model(record)
+
+@app.put("/complaint-management-records/{record_id}", response_model=ComplaintManagementResponse, tags=[TAG1])
+def update_record(record_id: str, update_data: ComplaintManagementUpdate, db: Session = Depends(get_db)):
+    db_record = db.query(ComplaintManagementRecord).filter(ComplaintManagementRecord.id == record_id).first()
+    if not db_record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    try:
+        if update_data.property_id:
+            db_record.property_id = update_data.property_id
+        
+        if update_data.complaint_management:
+            for field, model in MODEL_MAP.items():
+                update_entries = getattr(update_data.complaint_management, field, None)
+                if update_entries is not None:
+                    db.query(model).filter(model.record_id == record_id).delete(synchronize_session=False)
+                    for entry_data in update_entries:
+                        db_entry = model(record_id=record_id, **entry_data.dict())
+                        db.add(db_entry)
+        
+        db_record.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_record)
+        return ComplaintManagementResponse.from_orm_model(db_record)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating record: {str(e)}")
+
+@app.delete("/complaint-management-records/{record_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG1])
+def delete_record(record_id: str, db: Session = Depends(get_db)):
+    record = db.query(ComplaintManagementRecord).filter(ComplaintManagementRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    try:
+        db.delete(record)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting record: {str(e)}")
+
+# Main Parent Table
+class SiteVisitReport(Base):
+    __tablename__ = "site_visit_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    visit_details = relationship("VisitDetail", back_populates="report", cascade="all, delete-orphan")
+    observations = relationship("ObservationInteractionSummary", back_populates="report", cascade="all, delete-orphan")
+    checklist_reviews = relationship("ChecklistReview", back_populates="report", cascade="all, delete-orphan")
+    photos = relationship("PhotoCaptured", back_populates="report", cascade="all, delete-orphan")
+    action_plans = relationship("FollowUpActionPlan", back_populates="report", cascade="all, delete-orphan")
+    final_comments = relationship("FinalCommentsSummary", uselist=False, back_populates="report", cascade="all, delete-orphan")
+    sign_off = relationship("SignOff", uselist=False, back_populates="report", cascade="all, delete-orphan")
+
+# Child Tables
+class VisitDetail(Base):
+    __tablename__ = "visit_details"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), nullable=False)
+    s_no = Column(Integer); date_of_visit = Column(String); site_name = Column(String); client_name = Column(String); location = Column(String); visited_by_name = Column(String); visited_by_designation = Column(String); visit_purpose = Column(String); time_in = Column(String); time_out = Column(String); duration_hrs = Column(Float)
+    report = relationship("SiteVisitReport", back_populates="visit_details")
+
+class ObservationInteractionSummary(Base):
+    __tablename__ = "observations"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), nullable=False)
+    department_visited = Column(String); staff_met = Column(String); observation_summary = Column(String); compliance_with_SOP = Column(String); remarks_issues_found = Column(String); corrective_action_required = Column(String)
+    report = relationship("SiteVisitReport", back_populates="observations")
+
+class ChecklistReview(Base):
+    __tablename__ = "checklist_reviews"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), nullable=False)
+    checklist_item = Column(String); status = Column(String); remarks = Column(String)
+    report = relationship("SiteVisitReport", back_populates="checklist_reviews")
+
+class PhotoCaptured(Base):
+    __tablename__ = "photos_captured"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), nullable=False)
+    location_area = Column(String); photo_description = Column(String); photo_file_link = Column(String)
+    report = relationship("SiteVisitReport", back_populates="photos")
+
+class FollowUpActionPlan(Base):
+    __tablename__ = "follow_up_action_plans"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), nullable=False)
+    issue_observed = Column(String); assigned_to = Column(String); target_completion_date = Column(String); status_update = Column(String)
+    report = relationship("SiteVisitReport", back_populates="action_plans")
+
+class FinalCommentsSummary(Base):
+    __tablename__ = "final_comments"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), unique=True, nullable=False)
+    team_observations = Column(String); client_feedback = Column(String); suggestions_recommendations = Column(String)
+    report = relationship("SiteVisitReport", back_populates="final_comments")
+
+class SignOff(Base):
+    __tablename__ = "sign_offs"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("site_visit_reports.id"), unique=True, nullable=False)
+    reported_by_name = Column(String); reported_by_designation = Column(String); signature = Column(String); date = Column(String)
+    report = relationship("SiteVisitReport", back_populates="sign_off")
+
+# --- Pydantic Schemas ---
+class VisitedBySchema(BaseModel): name: str; designation: str
+class ReportedBySchema(BaseModel): name: str; designation: str
+class VisitDetailSchema(BaseModel): s_no: int; date_of_visit: str; site_name: str; client_name: str; location: str; visited_by: VisitedBySchema; visit_purpose: str; time_in: str; time_out: str; duration_hrs: float
+class ObservationInteractionSummarySchema(BaseModel): department_visited: str; staff_met: str; observation_summary: str; compliance_with_SOP: str; remarks_issues_found: str; corrective_action_required: str
+class ChecklistReviewSchema(BaseModel): checklist_item: str; status: str; remarks: str
+class PhotosCapturedSchema(BaseModel): location_area: str; photo_description: str; photo_file_link: str
+class FollowUpActionPlanSchema(BaseModel): issue_observed: str; assigned_to: str; target_completion_date: str; status_update: str
+class FinalCommentsSummarySchema(BaseModel): team_observations: str; client_feedback: str; suggestions_recommendations: str
+class SignOffSchema(BaseModel): reported_by: ReportedBySchema; signature: str; date: str
+
+class SiteVisitReportData(BaseModel):
+    visit_details: List[VisitDetailSchema]
+    observation_interaction_summary: List[ObservationInteractionSummarySchema] = []
+    checklist_review: List[ChecklistReviewSchema] = []
+    photos_captured: List[PhotosCapturedSchema] = []
+    follow_up_action_plan: List[FollowUpActionPlanSchema] = []
+    final_comments_summary: FinalCommentsSummarySchema
+    sign_off: SignOffSchema
+
+class SiteVisitReportCreate(BaseModel):
+    property_id: str
+    site_visit_report: SiteVisitReportData
+
+class SiteVisitReportUpdate(BaseModel):
+    property_id: Optional[str] = None
+    site_visit_report: Optional[SiteVisitReportData] = None
+
+class VisitDetailResponse(VisitDetailSchema): id: str
+class ObservationInteractionSummaryResponse(ObservationInteractionSummarySchema): id: str
+class ChecklistReviewResponse(ChecklistReviewSchema): id: str
+class PhotosCapturedResponse(PhotosCapturedSchema): id: str
+class FollowUpActionPlanResponse(FollowUpActionPlanSchema): id: str
+class FinalCommentsSummaryResponse(FinalCommentsSummarySchema): id: str
+class SignOffResponse(SignOffSchema): id: str
+
+class SiteVisitReportResponse(BaseModel):
+    id: str; property_id: str; created_at: datetime; updated_at: datetime
+    site_visit_report: SiteVisitReportData = Field(..., alias="report_data")
+    class Config: from_attributes = True; populate_by_name = True
+
+    @classmethod
+    def from_orm_model(cls, orm_model: SiteVisitReport):
+        # Convert ORM objects to dictionaries for Pydantic validation
+        visit_details = []
+        for detail in orm_model.visit_details:
+            visit_details.append({
+                "s_no": detail.s_no,
+                "date_of_visit": detail.date_of_visit,
+                "site_name": detail.site_name,
+                "client_name": detail.client_name,
+                "location": detail.location,
+                "visited_by": {
+                    "name": detail.visited_by_name,
+                    "designation": detail.visited_by_designation
+                },
+                "visit_purpose": detail.visit_purpose,
+                "time_in": detail.time_in,
+                "time_out": detail.time_out,
+                "duration_hrs": detail.duration_hrs
+            })
+        
+        observations = []
+        for obs in orm_model.observations:
+            observations.append({
+                "department_visited": obs.department_visited,
+                "staff_met": obs.staff_met,
+                "observation_summary": obs.observation_summary,
+                "compliance_with_SOP": obs.compliance_with_SOP,
+                "remarks_issues_found": obs.remarks_issues_found,
+                "corrective_action_required": obs.corrective_action_required
+            })
+        
+        checklist_reviews = []
+        for check in orm_model.checklist_reviews:
+            checklist_reviews.append({
+                "checklist_item": check.checklist_item,
+                "status": check.status,
+                "remarks": check.remarks
+            })
+        
+        photos = []
+        for photo in orm_model.photos:
+            photos.append({
+                "location_area": photo.location_area,
+                "photo_description": photo.photo_description,
+                "photo_file_link": photo.photo_file_link
+            })
+        
+        action_plans = []
+        for plan in orm_model.action_plans:
+            action_plans.append({
+                "issue_observed": plan.issue_observed,
+                "assigned_to": plan.assigned_to,
+                "target_completion_date": plan.target_completion_date,
+                "status_update": plan.status_update
+            })
+        
+        final_comments = None
+        if orm_model.final_comments:
+            final_comments = {
+                "team_observations": orm_model.final_comments.team_observations,
+                "client_feedback": orm_model.final_comments.client_feedback,
+                "suggestions_recommendations": orm_model.final_comments.suggestions_recommendations
+            }
+        
+        sign_off_data = None
+        if orm_model.sign_off:
+            sign_off_data = {
+                "reported_by": {
+                    "name": orm_model.sign_off.reported_by_name,
+                    "designation": orm_model.sign_off.reported_by_designation
+                },
+                "signature": orm_model.sign_off.signature,
+                "date": orm_model.sign_off.date
+            }
+        
+        data = SiteVisitReportData(
+            visit_details=visit_details,
+            observation_interaction_summary=observations,
+            checklist_review=checklist_reviews,
+            photos_captured=photos,
+            follow_up_action_plan=action_plans,
+            final_comments_summary=final_comments,
+            sign_off=sign_off_data
+        )
+        return cls(id=orm_model.id, property_id=orm_model.property_id, created_at=orm_model.created_at, updated_at=orm_model.updated_at, report_data=data)
+
+
+Base.metadata.create_all(bind=engine)
+
+ONE_TO_MANY_MAP = {
+    "observation_interaction_summary": ObservationInteractionSummary, "checklist_review": ChecklistReview,
+    "photos_captured": PhotoCaptured, "follow_up_action_plan": FollowUpActionPlan, "visit_details": VisitDetail
+}
+ONE_TO_ONE_MAP = {"final_comments_summary": FinalCommentsSummary, "sign_off": SignOff}
+TAG = "Site Visit Reports"
+
+@app.post("/site-visit-reports/", response_model=SiteVisitReportResponse, status_code=status.HTTP_201_CREATED, tags=[TAG])
+def create_report(report_data: SiteVisitReportCreate, db: Session = Depends(get_db)):
+    try:
+        db_report = SiteVisitReport(property_id=report_data.property_id); db.add(db_report); db.flush()
+        report_payload = report_data.site_visit_report
+
+        for key, model in ONE_TO_ONE_MAP.items():
+            data = getattr(report_payload, key)
+            data_dict = data.dict(); flat_dict = {}
+            for k, v in data_dict.items():
+                if isinstance(v, dict): flat_dict.update({f"{k}_{sub_k}": sub_v for sub_k, sub_v in v.items()})
+                else: flat_dict[k] = v
+            db_child = model(report_id=db_report.id, **flat_dict); db.add(db_child)
+        
+        for key, model in ONE_TO_MANY_MAP.items():
+            entries = getattr(report_payload, key, [])
+            for entry_data in entries:
+                data_dict = entry_data.dict(); flat_dict = {}
+                for k, v in data_dict.items():
+                    if isinstance(v, dict): flat_dict.update({f"{k}_{sub_k}": sub_v for sub_k, sub_v in v.items()})
+                    else: flat_dict[k] = v
+                db_entry = model(report_id=db_report.id, **flat_dict); db.add(db_entry)
+
+        db.commit(); db.refresh(db_report)
+        return SiteVisitReportResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error creating report: {str(e)}")
+
+@app.get("/site-visit-reports/", response_model=List[SiteVisitReportResponse], tags=[TAG])
+def get_all_reports(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(SiteVisitReport)
+    if property_id: query = query.filter(SiteVisitReport.property_id == property_id)
+    records = query.offset(skip).limit(limit).all()
+    return [SiteVisitReportResponse.from_orm_model(r) for r in records]
+
+@app.get("/site-visit-reports/{report_id}", response_model=SiteVisitReportResponse, tags=[TAG])
+def get_report_by_id(report_id: str, db: Session = Depends(get_db)):
+    record = db.query(SiteVisitReport).filter(SiteVisitReport.id == report_id).first()
+    if not record: raise HTTPException(status_code=404, detail="Report not found")
+    return SiteVisitReportResponse.from_orm_model(record)
+
+@app.put("/site-visit-reports/{report_id}", response_model=SiteVisitReportResponse, tags=[TAG])
+def update_report(report_id: str, update_data: SiteVisitReportUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(SiteVisitReport).filter(SiteVisitReport.id == report_id).first()
+    if not db_report: raise HTTPException(status_code=404, detail="Report not found")
+    try:
+        if update_data.property_id: db_report.property_id = update_data.property_id
+        if update_data.site_visit_report:
+            report_payload = update_data.site_visit_report
+            for key, model in ONE_TO_ONE_MAP.items():
+                data = getattr(report_payload, key, None)
+                if data:
+                    # For simplicity, replace the one-to-one child
+                    db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                    data_dict = data.dict(); flat_dict = {}
+                    for k, v in data_dict.items():
+                        if isinstance(v, dict): flat_dict.update({f"{k}_{sub_k}": sub_v for sub_k, sub_v in v.items()})
+                        else: flat_dict[k] = v
+                    db_child = model(report_id=db_report.id, **flat_dict); db.add(db_child)
+            
+            for key, model in ONE_TO_MANY_MAP.items():
+                entries = getattr(report_payload, key, None)
+                if entries is not None:
+                    db.query(model).filter(model.report_id == report_id).delete(synchronize_session=False)
+                    for entry_data in entries:
+                        data_dict = entry_data.dict(); flat_dict = {}
+                        for k, v in data_dict.items():
+                            if isinstance(v, dict): flat_dict.update({f"{k}_{sub_k}": sub_v for sub_k, sub_v in v.items()})
+                            else: flat_dict[k] = v
+                        db_entry = model(report_id=db_report.id, **flat_dict); db.add(db_entry)
+
+        db_report.updated_at = datetime.utcnow(); db.commit(); db.refresh(db_report)
+        return SiteVisitReportResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error updating report: {str(e)}")
+
+@app.delete("/site-visit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG])
+def delete_report(report_id: str, db: Session = Depends(get_db)):
+    record = db.query(SiteVisitReport).filter(SiteVisitReport.id == report_id).first()
+    if not record: raise HTTPException(status_code=404, detail="Report not found")
+    try:
+        db.delete(record); db.commit()
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+
+# --- SQLAlchemy ORM Model ---
+# All nested objects are flattened into columns for simplicity and performance.
+class HotWorkPermit(Base):
+    __tablename__ = "hot_work_permits"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    permit_no = Column(String, unique=True, index=True)
+    date_of_issue = Column(String)
+    location_building = Column(String)
+    location_floor = Column(String)
+    location_zone = Column(String)
+    description_of_hot_work = Column(String)
+    person_agency_performing_work = Column(String)
+    supervisor_project_in_charge_name = Column(String)
+    contact_worker = Column(String)
+    contact_supervisor = Column(String)
+    start_date_time = Column(String)
+    end_date_time = Column(String)
+    fire_watch_personnel_assigned = Column(String)
+    fire_watch_personnel_name = Column(String)
+    fire_extinguisher_available = Column(String)
+    type_of_fire_extinguisher = Column(String)
+    fire_blanket_shielding_used = Column(String)
+    nearby_flammable_materials_removed_covered = Column(String)
+    gas_cylinders_condition_verified = Column(String)
+    work_area_ventilation_verified = Column(String)
+    sparks_heat_barriers_installed = Column(String)
+    area_wet_down_if_required = Column(String)
+    gas_detector_used = Column(String)
+    last_gas_test_reading_ppm = Column(Integer)
+    ppe_helmet = Column(String)
+    ppe_goggles = Column(String)
+    ppe_gloves = Column(String)
+    ppe_apron = Column(String)
+    ppe_shoes = Column(String)
+    permit_validity_period = Column(String)
+    emergency_procedure_explained_to_workers = Column(String)
+    area_inspected_before_work_by = Column(String)
+    area_inspected_after_work_by = Column(String)
+    work_completed_time = Column(String)
+    post_work_fire_watch_time = Column(String)
+    final_area_clearance_given_by = Column(String)
+    signature_worker = Column(String)
+    signature_fire_watcher = Column(String)
+    signature_safety_officer = Column(String)
+    remarks_precautions = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# --- Pydantic Schemas ---
+# Schemas for nested objects
+class LocationOfWorkSchema(BaseModel): building: str; floor: str; zone: str
+class ContactNumberSchema(BaseModel): worker: str; supervisor: str
+class PpeVerifiedSchema(BaseModel): helmet: str; goggles: str; gloves: str; apron: str; shoes: str
+class AreaInspectedSchema(BaseModel): inspected_by: str
+class SignaturesSchema(BaseModel): worker: str; fire_watcher: str; safety_officer: str
+
+# Main schema for the hot_work_permit object
+class HotWorkPermitDataSchema(BaseModel):
+    permit_no: str; date_of_issue: str; location_of_work: LocationOfWorkSchema; description_of_hot_work: str; person_agency_performing_work: str; supervisor_project_in_charge_name: str; contact_number: ContactNumberSchema; start_date_time: str; end_date_time: str; fire_watch_personnel_assigned: str; fire_watch_personnel_name: str; fire_extinguisher_available: str; type_of_fire_extinguisher: str; fire_blanket_shielding_used: str; nearby_flammable_materials_removed_covered: str; gas_cylinders_condition_verified: str; work_area_ventilation_verified: str; sparks_heat_barriers_installed: str; area_wet_down_if_required: str; gas_detector_used: str; last_gas_test_reading_ppm: int; ppe_verified: PpeVerifiedSchema; permit_validity_period: str; emergency_procedure_explained_to_workers: str; area_inspected_before_work: AreaInspectedSchema; area_inspected_after_work: AreaInspectedSchema; work_completed_time: str; post_work_fire_watch_time: str; final_area_clearance_given_by: str; signatures: SignaturesSchema; remarks_precautions: str
+
+# Schemas for API Operations
+class HotWorkPermitCreate(BaseModel):
+    property_id: str
+    hot_work_permit: HotWorkPermitDataSchema
+
+class HotWorkPermitUpdate(BaseModel):
+    property_id: Optional[str] = None
+    hot_work_permit: Optional[HotWorkPermitDataSchema] = None
+
+# Schema for the API Response
+class HotWorkPermitResponse(HotWorkPermitCreate):
+    id: str; created_at: datetime; updated_at: datetime
+    class Config: from_attributes = True; arbitrary_types_allowed=True
+
+# --- Helper Function to flatten the data for the DB ---
+def flatten_permit_data(permit_data: HotWorkPermitDataSchema) -> dict:
+    flat_data = permit_data.dict()
+    # Flatten nested dictionaries by prefixing keys
+    for key, value in permit_data.dict().items():
+        if isinstance(value, dict):
+            del flat_data[key]
+            for sub_key, sub_value in value.items():
+                # Special handling for specific keys to match database column names
+                if key == "area_inspected_before_work" or key == "area_inspected_after_work":
+                    flat_data[f"{key}_by"] = sub_value
+                elif key == "location_of_work":
+                    flat_data[f"location_{sub_key}"] = sub_value
+                elif key == "contact_number":
+                    flat_data[f"contact_{sub_key}"] = sub_value
+                elif key == "ppe_verified":
+                    flat_data[f"ppe_{sub_key}"] = sub_value
+                elif key == "signatures":
+                    flat_data[f"signature_{sub_key}"] = sub_value
+                else:
+                    flat_data[f"{key.replace('_of_work','').replace('_number','').replace('_verified','')}_{sub_key}"] = sub_value
+    return flat_data
+
+Base.metadata.create_all(bind=engine)
+TAG = "Hot Work Permits"
+
+@app.post("/hot-work-permits/", response_model=HotWorkPermitResponse, status_code=status.HTTP_201_CREATED, tags=[TAG])
+def create_permit(permit_data: HotWorkPermitCreate, db: Session = Depends(get_db)):
+    try:
+        flat_data = flatten_permit_data(permit_data.hot_work_permit)
+        db_permit = HotWorkPermit(property_id=permit_data.property_id, **flat_data)
+        db.add(db_permit)
+        db.commit()
+        db.refresh(db_permit)
+        # Reconstruct the nested response
+        return HotWorkPermitResponse(
+            id=db_permit.id,
+            property_id=db_permit.property_id,
+            hot_work_permit=permit_data.hot_work_permit,
+            created_at=db_permit.created_at,
+            updated_at=db_permit.updated_at
+        )
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error creating permit: {str(e)}")
+
+@app.get("/hot-work-permits/", response_model=List[HotWorkPermitResponse], tags=[TAG])
+def get_all_permits(skip: int = 0, limit: int = 100, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(HotWorkPermit)
+    if property_id: query = query.filter(HotWorkPermit.property_id == property_id)
+    permits = query.offset(skip).limit(limit).all()
+    # Reconstruct nested responses for the list
+    response_list = []
+    for p in permits:
+        response_data = {
+            "id": p.id, "property_id": p.property_id, "created_at": p.created_at, "updated_at": p.updated_at,
+            "hot_work_permit": {
+                "permit_no": p.permit_no, "date_of_issue": p.date_of_issue,
+                "location_of_work": {"building": p.location_building, "floor": p.location_floor, "zone": p.location_zone},
+                "description_of_hot_work": p.description_of_hot_work, "person_agency_performing_work": p.person_agency_performing_work,
+                "supervisor_project_in_charge_name": p.supervisor_project_in_charge_name,
+                "contact_number": {"worker": p.contact_worker, "supervisor": p.contact_supervisor},
+                "start_date_time": p.start_date_time, "end_date_time": p.end_date_time,
+                "fire_watch_personnel_assigned": p.fire_watch_personnel_assigned, "fire_watch_personnel_name": p.fire_watch_personnel_name,
+                "fire_extinguisher_available": p.fire_extinguisher_available, "type_of_fire_extinguisher": p.type_of_fire_extinguisher,
+                "fire_blanket_shielding_used": p.fire_blanket_shielding_used, "nearby_flammable_materials_removed_covered": p.nearby_flammable_materials_removed_covered,
+                "gas_cylinders_condition_verified": p.gas_cylinders_condition_verified, "work_area_ventilation_verified": p.work_area_ventilation_verified,
+                "sparks_heat_barriers_installed": p.sparks_heat_barriers_installed, "area_wet_down_if_required": p.area_wet_down_if_required,
+                "gas_detector_used": p.gas_detector_used, "last_gas_test_reading_ppm": p.last_gas_test_reading_ppm,
+                "ppe_verified": {"helmet": p.ppe_helmet, "goggles": p.ppe_goggles, "gloves": p.ppe_gloves, "apron": p.ppe_apron, "shoes": p.ppe_shoes},
+                "permit_validity_period": p.permit_validity_period, "emergency_procedure_explained_to_workers": p.emergency_procedure_explained_to_workers,
+                "area_inspected_before_work": {"inspected_by": p.area_inspected_before_work_by},
+                "area_inspected_after_work": {"inspected_by": p.area_inspected_after_work_by},
+                "work_completed_time": p.work_completed_time, "post_work_fire_watch_time": p.post_work_fire_watch_time,
+                "final_area_clearance_given_by": p.final_area_clearance_given_by,
+                "signatures": {"worker": p.signature_worker, "fire_watcher": p.signature_fire_watcher, "safety_officer": p.signature_safety_officer},
+                "remarks_precautions": p.remarks_precautions
+            }
+        }
+        response_list.append(response_data)
+    return response_list
+
+@app.get("/hot-work-permits/{permit_id}", response_model=HotWorkPermitResponse, tags=[TAG])
+def get_permit_by_id(permit_id: str, db: Session = Depends(get_db)):
+    permit = db.query(HotWorkPermit).filter(HotWorkPermit.id == permit_id).first()
+    if not permit: raise HTTPException(status_code=404, detail="Permit not found")
+    # Use the list comprehension logic from GET all to reconstruct the single object
+    reconstructed_permit = get_all_permits(db=db)[0] # This is a shortcut for demonstration
+    single_permit_list = [p for p in get_all_permits(db=db) if p['id'] == permit_id]
+    if not single_permit_list: raise HTTPException(status_code=404, detail="Permit not found")
+    return single_permit_list[0]
+
+@app.put("/hot-work-permits/{permit_id}", response_model=HotWorkPermitResponse, tags=[TAG])
+def update_permit(permit_id: str, permit_update: HotWorkPermitUpdate, db: Session = Depends(get_db)):
+    db_permit = db.query(HotWorkPermit).filter(HotWorkPermit.id == permit_id).first()
+    if not db_permit: raise HTTPException(status_code=404, detail="Permit not found")
+    try:
+        if permit_update.property_id: db_permit.property_id = permit_update.property_id
+        if permit_update.hot_work_permit:
+            update_data = flatten_permit_data(permit_update.hot_work_permit)
+            for key, value in update_data.items():
+                setattr(db_permit, key, value)
+        
+        db_permit.updated_at = datetime.utcnow(); db.commit(); db.refresh(db_permit)
+        return get_permit_by_id(permit_id, db) # Re-use get logic to build response
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error updating permit: {str(e)}")
+
+@app.delete("/hot-work-permits/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG])
+def delete_permit(permit_id: str, db: Session = Depends(get_db)):
+    permit = db.query(HotWorkPermit).filter(HotWorkPermit.id == permit_id).first()
+    if not permit: raise HTTPException(status_code=404, detail="Permit not found")
+    try:
+        db.delete(permit); db.commit()
+    except Exception as e:
+        db.rollback(); raise HTTPException(status_code=500, detail=f"Error deleting permit: {str(e)}")
+
+# --- SQLAlchemy ORM Model ---
+class KpiRecord(Base):
+    __tablename__ = "kpi_records"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    sl_no = Column(Integer)
+    kpi_id = Column(String, index=True)
+    department = Column(String, index=True)
+    kpi_name = Column(String)
+    description_objective = Column(String)
+    unit_of_measure = Column(String)
+    target_value = Column(String)
+    actual_value = Column(String)
+    achievement_percentage = Column(String)
+    frequency = Column(String)
+    data_source = Column(String)
+    responsible_person = Column(String)
+    status = Column(String, index=True)
+    last_updated = Column(String)
+    remarks = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# --- Pydantic Schemas ---
+
+# Base schema with all fields from the JSON
+class KpiRecordSchema(BaseModel):
+    sl_no: int
+    kpi_id: str
+    department: str
+    kpi_name: str
+    description_objective: str
+    unit_of_measure: str
+    target_value: str
+    actual_value: str
+    achievement_percentage: str
+    frequency: str
+    data_source: str
+    responsible_person: str
+    status: str
+    last_updated: str
+    remarks: str
+
+# Schema for creating a new record (adds property_id)
+class KpiRecordCreate(KpiRecordSchema):
+    property_id: str
+
+# Schema for updating a record (all fields are optional)
+class KpiRecordUpdate(BaseModel):
+    property_id: Optional[str] = None
+    sl_no: Optional[int] = None
+    kpi_id: Optional[str] = None
+    department: Optional[str] = None
+    kpi_name: Optional[str] = None
+    description_objective: Optional[str] = None
+    unit_of_measure: Optional[str] = None
+    target_value: Optional[str] = None
+    actual_value: Optional[str] = None
+    achievement_percentage: Optional[str] = None
+    frequency: Optional[str] = None
+    data_source: Optional[str] = None
+    responsible_person: Optional[str] = None
+    status: Optional[str] = None
+    last_updated: Optional[str] = None
+    remarks: Optional[str] = None
+
+# Schema for API response (includes DB-generated fields)
+class KpiRecordResponse(KpiRecordCreate):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    class Config:
+        from_attributes = True
+
+Base.metadata.create_all(bind=engine)
+TAG = "KPI Records"
+
+@app.post("/kpi-records/", response_model=KpiRecordResponse, status_code=status.HTTP_201_CREATED, tags=[TAG])
+def create_kpi_record(record: KpiRecordCreate, db: Session = Depends(get_db)):
+    try:
+        db_record = KpiRecord(**record.dict())
+        db.add(db_record)
+        db.commit()
+        db.refresh(db_record)
+        return db_record
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating KPI record: {str(e)}")
+
+@app.get("/kpi-records/", response_model=List[KpiRecordResponse], tags=[TAG])
+def get_all_kpi_records(
+    skip: int = 0, 
+    limit: int = 100, 
+    property_id: Optional[str] = None, 
+    department: Optional[str] = None,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    try:
+        query = db.query(KpiRecord)
+        if property_id:
+            query = query.filter(KpiRecord.property_id == property_id)
+        if department:
+            query = query.filter(KpiRecord.department == department)
+        if status:
+            query = query.filter(KpiRecord.status == status)
+        
+        records = query.offset(skip).limit(limit).all()
+        return records
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching KPI records: {str(e)}")
+
+@app.get("/kpi-records/{record_id}", response_model=KpiRecordResponse, tags=[TAG])
+def get_kpi_record_by_id(record_id: str, db: Session = Depends(get_db)):
+    record = db.query(KpiRecord).filter(KpiRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="KPI record not found")
+    return record
+
+@app.put("/kpi-records/{record_id}", response_model=KpiRecordResponse, tags=[TAG])
+def update_kpi_record(record_id: str, record_update: KpiRecordUpdate, db: Session = Depends(get_db)):
+    db_record = db.query(KpiRecord).filter(KpiRecord.id == record_id).first()
+    if not db_record:
+        raise HTTPException(status_code=404, detail="KPI record not found")
+
+    try:
+        update_data = record_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_record, key, value)
+        
+        db_record.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_record)
+        return db_record
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating KPI record: {str(e)}")
+
+@app.delete("/kpi-records/{record_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG])
+def delete_kpi_record(record_id: str, db: Session = Depends(get_db)):
+    record = db.query(KpiRecord).filter(KpiRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="KPI record not found")
+    
+    try:
+        db.delete(record)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting KPI record: {str(e)}")

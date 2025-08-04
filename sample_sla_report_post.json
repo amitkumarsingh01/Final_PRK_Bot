@@ -1,0 +1,246 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "sla_planning_and_definition": [
+    {
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "client_department": "Information Technology",
+      "objective": "Provide 24/7 IT infrastructure support with 99.9% uptime guarantee",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31",
+      "responsible_person": "John Smith",
+      "status": "Active",
+      "remarks": "Critical SLA for maintaining business operations"
+    },
+    {
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "client_department": "Facilities Management",
+      "objective": "Ensure all facility systems operate at optimal efficiency with preventive maintenance",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31",
+      "responsible_person": "Sarah Johnson",
+      "status": "Active",
+      "remarks": "Comprehensive facility maintenance SLA"
+    },
+    {
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "client_department": "Security",
+      "objective": "Provide round-the-clock security monitoring and incident response",
+      "start_date": "2024-01-01",
+      "end_date": "2024-12-31",
+      "responsible_person": "Mike Chen",
+      "status": "Active",
+      "remarks": "Security SLA with rapid response requirements"
+    }
+  ],
+  "key_sla_components": [
+    {
+      "component_id": "COMP_001",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "component_type": "Response Time",
+      "description": "Time to acknowledge and respond to critical IT issues",
+      "target": "15 minutes",
+      "measurement_method": "Automated ticketing system",
+      "responsible_person": "John Smith",
+      "status": "Active",
+      "remarks": "Critical component for IT support SLA"
+    },
+    {
+      "component_id": "COMP_002",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "component_type": "Resolution Time",
+      "description": "Time to resolve critical IT issues",
+      "target": "4 hours",
+      "measurement_method": "Issue tracking system",
+      "responsible_person": "John Smith",
+      "status": "Active",
+      "remarks": "Resolution time for critical issues"
+    },
+    {
+      "component_id": "COMP_003",
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "component_type": "Preventive Maintenance",
+      "description": "Scheduled preventive maintenance completion rate",
+      "target": "95%",
+      "measurement_method": "Maintenance tracking system",
+      "responsible_person": "Sarah Johnson",
+      "status": "Active",
+      "remarks": "Preventive maintenance compliance"
+    },
+    {
+      "component_id": "COMP_004",
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "component_type": "Incident Response",
+      "description": "Time to respond to security incidents",
+      "target": "5 minutes",
+      "measurement_method": "Security monitoring system",
+      "responsible_person": "Mike Chen",
+      "status": "Active",
+      "remarks": "Critical security response time"
+    }
+  ],
+  "sla_implementation": [
+    {
+      "implementation_id": "IMP_001",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "implementation_date": "2024-01-01",
+      "actions_taken": "Deployed automated monitoring tools, established 24/7 support team",
+      "resources_assigned": "5 IT support engineers, monitoring software, ticketing system",
+      "status": "Implemented",
+      "responsible_person": "John Smith",
+      "remarks": "Successfully implemented IT support SLA"
+    },
+    {
+      "implementation_id": "IMP_002",
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "implementation_date": "2024-01-01",
+      "actions_taken": "Established maintenance schedules, trained maintenance staff",
+      "resources_assigned": "3 maintenance technicians, maintenance management system",
+      "status": "Implemented",
+      "responsible_person": "Sarah Johnson",
+      "remarks": "Facility maintenance SLA implementation completed"
+    },
+    {
+      "implementation_id": "IMP_003",
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "implementation_date": "2024-01-01",
+      "actions_taken": "Deployed security monitoring systems, established incident response procedures",
+      "resources_assigned": "4 security officers, CCTV system, access control system",
+      "status": "Implemented",
+      "responsible_person": "Mike Chen",
+      "remarks": "Security SLA implementation with monitoring systems"
+    }
+  ],
+  "sla_monitoring": [
+    {
+      "monitor_id": "MON_001",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "component_type": "Response Time",
+      "target": "15 minutes",
+      "actual": "12 minutes",
+      "date_checked": "2024-04-01",
+      "status": "Meeting Target",
+      "responsible_person": "John Smith",
+      "remarks": "Response time consistently below target"
+    },
+    {
+      "monitor_id": "MON_002",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "component_type": "Resolution Time",
+      "target": "4 hours",
+      "actual": "3.5 hours",
+      "date_checked": "2024-04-01",
+      "status": "Meeting Target",
+      "responsible_person": "John Smith",
+      "remarks": "Resolution time within acceptable range"
+    },
+    {
+      "monitor_id": "MON_003",
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "component_type": "Preventive Maintenance",
+      "target": "95%",
+      "actual": "97%",
+      "date_checked": "2024-04-01",
+      "status": "Exceeding Target",
+      "responsible_person": "Sarah Johnson",
+      "remarks": "Preventive maintenance compliance above target"
+    },
+    {
+      "monitor_id": "MON_004",
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "component_type": "Incident Response",
+      "target": "5 minutes",
+      "actual": "4 minutes",
+      "date_checked": "2024-04-01",
+      "status": "Meeting Target",
+      "responsible_person": "Mike Chen",
+      "remarks": "Security response time consistently below target"
+    }
+  ],
+  "sla_evaluation": [
+    {
+      "evaluation_id": "EVAL_001",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "evaluation_date": "2024-03-31",
+      "criteria": "Response time, resolution time, customer satisfaction",
+      "outcome": "Excellent",
+      "evaluator": "IT Director",
+      "corrective_actions": "None required - all targets being met",
+      "remarks": "Q1 2024 evaluation shows excellent performance"
+    },
+    {
+      "evaluation_id": "EVAL_002",
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "evaluation_date": "2024-03-31",
+      "criteria": "Preventive maintenance completion, system uptime, cost efficiency",
+      "outcome": "Good",
+      "evaluator": "Facilities Director",
+      "corrective_actions": "Implement additional training for new maintenance procedures",
+      "remarks": "Q1 2024 evaluation shows good performance with minor improvements needed"
+    },
+    {
+      "evaluation_id": "EVAL_003",
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "evaluation_date": "2024-03-31",
+      "criteria": "Incident response time, security incident prevention, system reliability",
+      "outcome": "Excellent",
+      "evaluator": "Security Director",
+      "corrective_actions": "None required - all security targets exceeded",
+      "remarks": "Q1 2024 evaluation shows excellent security performance"
+    }
+  ],
+  "sla_renewal_and_exit_process": [
+    {
+      "renewal_exit_id": "REN_001",
+      "sla_id": "SLA_001",
+      "service_name": "IT Infrastructure Support",
+      "action_type": "Renewal",
+      "action_date": "2024-12-01",
+      "new_end_date": "2025-12-31",
+      "reason": "Excellent performance and continued business need",
+      "responsible_person": "John Smith",
+      "status": "Planned",
+      "remarks": "SLA renewal planned for 2025 with updated terms"
+    },
+    {
+      "renewal_exit_id": "REN_002",
+      "sla_id": "SLA_002",
+      "service_name": "Facility Maintenance",
+      "action_type": "Renewal",
+      "action_date": "2024-12-01",
+      "new_end_date": "2025-12-31",
+      "reason": "Good performance and ongoing facility requirements",
+      "responsible_person": "Sarah Johnson",
+      "status": "Planned",
+      "remarks": "Facility maintenance SLA renewal with performance improvements"
+    },
+    {
+      "renewal_exit_id": "REN_003",
+      "sla_id": "SLA_003",
+      "service_name": "Security Services",
+      "action_type": "Renewal",
+      "action_date": "2024-12-01",
+      "new_end_date": "2025-12-31",
+      "reason": "Outstanding performance and critical security requirements",
+      "responsible_person": "Mike Chen",
+      "status": "Planned",
+      "remarks": "Security SLA renewal with enhanced monitoring capabilities"
+    }
+  ]
+} 

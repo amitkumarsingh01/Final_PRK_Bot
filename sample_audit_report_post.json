@@ -1,0 +1,21 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "audit_id": "AUDIT_001",
+  "audit_date": "2024-04-01",
+  "site_name": "Main Office Building",
+  "location": "Floor 3, IT Department",
+  "auditor_name": "John Smith",
+  "audit_type": "Safety Audit",
+  "department": "Information Technology",
+  "checklist_item": "Fire Safety Equipment",
+  "compliance": "Compliant",
+  "score": 95,
+  "observation_remarks": "All fire extinguishers are properly maintained and accessible. Emergency exit signs are clearly visible and functional. Fire alarm system tested and working correctly.",
+  "photo_evidence": "https://example.com/photos/fire_safety_equipment_2024_04_01.jpg",
+  "status": "Completed",
+  "assigned_to": "Mike Chen",
+  "target_closure_date": "2024-04-15",
+  "actual_closure_date": "2024-04-01",
+  "verification_by": "Sarah Johnson",
+  "verified_date": "2024-04-02"
+} 

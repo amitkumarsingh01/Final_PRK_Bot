@@ -1,0 +1,57 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "hot_work_permit": {
+    "permit_no": "HWP_2024_001",
+    "date_of_issue": "2024-04-01",
+    "location_of_work": {
+      "building": "Main Office Building",
+      "floor": "3rd Floor",
+      "zone": "IT Server Room"
+    },
+    "description_of_hot_work": "Welding work for installing new server rack mounting brackets and electrical conduit installation",
+    "person_agency_performing_work": "ABC Electrical Contractors Ltd",
+    "supervisor_project_in_charge_name": "Mike Johnson",
+    "contact_number": {
+      "worker": "+91-9876543210",
+      "supervisor": "+91-9876543211"
+    },
+    "start_date_time": "2024-04-02 09:00",
+    "end_date_time": "2024-04-02 17:00",
+    "fire_watch_personnel_assigned": "Yes",
+    "fire_watch_personnel_name": "David Smith",
+    "fire_extinguisher_available": "Yes",
+    "type_of_fire_extinguisher": "CO2 and Dry Chemical",
+    "fire_blanket_shielding_used": "Yes",
+    "nearby_flammable_materials_removed_covered": "Yes",
+    "gas_cylinders_condition_verified": "Yes",
+    "work_area_ventilation_verified": "Yes",
+    "sparks_heat_barriers_installed": "Yes",
+    "area_wet_down_if_required": "No",
+    "gas_detector_used": "Yes",
+    "last_gas_test_reading_ppm": 0,
+    "ppe_verified": {
+      "helmet": "Yes",
+      "goggles": "Yes",
+      "gloves": "Yes",
+      "apron": "Yes",
+      "shoes": "Yes"
+    },
+    "permit_validity_period": "8 hours (09:00 - 17:00)",
+    "emergency_procedure_explained_to_workers": "Yes",
+    "area_inspected_before_work": {
+      "inspected_by": "Safety Officer - Sarah Wilson"
+    },
+    "area_inspected_after_work": {
+      "inspected_by": "Safety Officer - Sarah Wilson"
+    },
+    "work_completed_time": "2024-04-02 16:30",
+    "post_work_fire_watch_time": "2024-04-02 17:30",
+    "final_area_clearance_given_by": "Safety Officer - Sarah Wilson",
+    "signatures": {
+      "worker": "John Doe",
+      "fire_watcher": "David Smith",
+      "safety_officer": "Sarah Wilson"
+    },
+    "remarks_precautions": "All safety precautions followed. Work area properly ventilated. Fire watch maintained throughout the work period. No incidents reported. Area cleared and secured after completion."
+  }
+} 

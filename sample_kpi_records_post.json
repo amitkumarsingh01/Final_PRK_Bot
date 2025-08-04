@@ -1,0 +1,18 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "sl_no": 1,
+  "kpi_id": "KPI_2024_001",
+  "department": "Facility Management",
+  "kpi_name": "Energy Efficiency Index",
+  "description_objective": "Monitor and improve building energy consumption efficiency to reduce operational costs and environmental impact",
+  "unit_of_measure": "kWh/sq.m/month",
+  "target_value": "15.5",
+  "actual_value": "16.2",
+  "achievement_percentage": "95.7%",
+  "frequency": "Monthly",
+  "data_source": "Building Management System (BMS)",
+  "responsible_person": "John Smith",
+  "status": "On Track",
+  "last_updated": "2024-04-01",
+  "remarks": "Energy consumption slightly above target due to increased HVAC usage during hot weather. Implementing additional energy-saving measures."
+} 

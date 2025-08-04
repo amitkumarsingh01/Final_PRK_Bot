@@ -1,0 +1,200 @@
+{
+  "property_id": "prop_12345",
+  "CCTV_Audit": {
+    "Site_Assessment_Format": [
+      {
+        "SL_No": 1,
+        "Description": "Camera Coverage Assessment",
+        "Checklist_Points": "Verify all critical areas are covered by cameras",
+        "Checked_Status": "Yes",
+        "Observations": "All entry points and parking areas are properly covered",
+        "Suggestions_Actions": "Add one additional camera for blind spot in corner",
+        "Responsibility": "Security Manager",
+        "Target_Date": "2024-02-15",
+        "Photo_Insert": "base64_encoded_image_or_url",
+        "Remarks": "Good coverage overall, minor improvement needed"
+      },
+      {
+        "SL_No": 2,
+        "Description": "Lighting Assessment",
+        "Checklist_Points": "Check if lighting is adequate for night vision",
+        "Checked_Status": "Yes",
+        "Observations": "LED floodlights installed, good illumination",
+        "Suggestions_Actions": "Schedule regular bulb replacement",
+        "Responsibility": "Maintenance Team",
+        "Target_Date": "2024-03-01",
+        "Photo_Insert": "base64_encoded_image_or_url",
+        "Remarks": "Lighting system working efficiently"
+      }
+    ],
+    "Installation_Checklist": [
+      {
+        "SL_No": 1,
+        "Category": "Hardware Installation",
+        "Checklist_Point": "Camera mounting brackets secured",
+        "Checked": "Yes",
+        "Observations": "All brackets properly installed with weather protection",
+        "Remarks_Action_Required": "None required",
+        "Responsibility": "Installation Team",
+        "Target_Completion_Date": "2024-01-20",
+        "Photo_Insert": "base64_encoded_image_or_url",
+        "Remarks": "Professional installation completed"
+      },
+      {
+        "SL_No": 2,
+        "Category": "Cable Management",
+        "Checklist_Point": "Cable routing and protection",
+        "Checked": "Yes",
+        "Observations": "Cables properly routed through conduits",
+        "Remarks_Action_Required": "Label cables for easier maintenance",
+        "Responsibility": "Installation Team",
+        "Target_Completion_Date": "2024-01-25",
+        "Photo_Insert": "base64_encoded_image_or_url",
+        "Remarks": "Good cable management practices followed"
+      }
+    ],
+    "Configuration_Testing_Checklist": [
+      {
+        "SL_No": 1,
+        "Category": "Network Configuration",
+        "Checklist_Point": "IP address assignment",
+        "Checked": "Yes",
+        "Observations": "All cameras have unique static IPs",
+        "Suggestions_Action_Required": "Document IP scheme for future reference",
+        "Responsibility": "IT Team",
+        "Target_Completion_Date": "2024-01-30",
+        "Photo_Screenshot": "base64_encoded_screenshot_or_url",
+        "Remarks": "Network configuration completed successfully"
+      },
+      {
+        "SL_No": 2,
+        "Category": "Recording Settings",
+        "Checklist_Point": "Motion detection sensitivity",
+        "Checked": "Yes",
+        "Observations": "Motion detection working at optimal sensitivity",
+        "Suggestions_Action_Required": "Fine-tune for high-traffic areas",
+        "Responsibility": "Security Manager",
+        "Target_Completion_Date": "2024-02-05",
+        "Photo_Screenshot": "base64_encoded_screenshot_or_url",
+        "Remarks": "Recording system functioning properly"
+      }
+    ],
+    "Daily_Operations_Monitoring": [
+      {
+        "SL_No": 1,
+        "Category": "System Health",
+        "Checklist_Point": "Camera online status",
+        "Checked": "Yes",
+        "Observations": "All 12 cameras showing online status",
+        "Actions_Required": "None",
+        "Responsibility": "Security Officer",
+        "Time_Checked": "08:00 AM",
+        "Photo_Screenshot": "base64_encoded_screenshot_or_url",
+        "Remarks": "System operating normally"
+      },
+      {
+        "SL_No": 2,
+        "Category": "Storage Check",
+        "Checklist_Point": "Recording storage capacity",
+        "Checked": "Yes",
+        "Observations": "75% storage used, 30 days retention available",
+        "Actions_Required": "Monitor storage usage",
+        "Responsibility": "IT Administrator",
+        "Time_Checked": "09:00 AM",
+        "Photo_Screenshot": "base64_encoded_screenshot_or_url",
+        "Remarks": "Storage levels adequate"
+      }
+    ],
+    "Maintenance_Schedule": [
+      {
+        "SL_No": 1,
+        "Maintenance_Type": "Preventive",
+        "Checklist_Point_Task": "Camera lens cleaning",
+        "Frequency": "Monthly",
+        "Last_Maintenance_Date": "2024-01-15",
+        "Next_Due_Date": "2024-02-15",
+        "Status": "Scheduled",
+        "Observations_Issues": "Lenses showing minor dust accumulation",
+        "Action_Taken_Required": "Schedule cleaning service",
+        "Responsible": "Maintenance Team",
+        "Remarks": "Regular cleaning prevents image quality degradation"
+      },
+      {
+        "SL_No": 2,
+        "Maintenance_Type": "Preventive",
+        "Checklist_Point_Task": "System backup verification",
+        "Frequency": "Weekly",
+        "Last_Maintenance_Date": "2024-01-20",
+        "Next_Due_Date": "2024-01-27",
+        "Status": "Completed",
+        "Observations_Issues": "Backup completed successfully",
+        "Action_Taken_Required": "None",
+        "Responsible": "IT Administrator",
+        "Remarks": "Backup system functioning properly"
+      }
+    ],
+    "Documentation_Format": {
+      "Site_Information": {
+        "Site_Name_Code": "HQ_MAIN_001",
+        "Address": "123 Business Park, Tech City, TC 12345",
+        "Contact_Person_Site_Incharge": "John Smith - Security Manager",
+        "CCTV_Install_Date": "2024-01-10"
+      },
+      "Camera_Inventory_Log": [
+        {
+          "Camera_ID_Name": "CAM_001",
+          "Camera_Type": "Dome Camera",
+          "Brand_Model_No": "Hikvision DS-2CD2142FWD-I",
+          "Resolution_MP": "4MP",
+          "Location_Installed": "Main Entrance",
+          "Indoor_Outdoor": "Outdoor",
+          "Working_Status": "Active"
+        },
+        {
+          "Camera_ID_Name": "CAM_002",
+          "Camera_Type": "Bullet Camera",
+          "Brand_Model_No": "Dahua IPC-HFW4431R-ZE",
+          "Resolution_MP": "4MP",
+          "Location_Installed": "Parking Lot A",
+          "Indoor_Outdoor": "Outdoor",
+          "Working_Status": "Active"
+        },
+        {
+          "Camera_ID_Name": "CAM_003",
+          "Camera_Type": "PTZ Camera",
+          "Brand_Model_No": "Hikvision DS-2DE2A404IW-DE3",
+          "Resolution_MP": "4MP",
+          "Location_Installed": "Perimeter Fence",
+          "Indoor_Outdoor": "Outdoor",
+          "Working_Status": "Active"
+        }
+      ]
+    },
+    "AMC_Compliance_Format": [
+      {
+        "SL_No": 1,
+        "Category": "Hardware Maintenance",
+        "Checklist_Description": "Annual hardware inspection",
+        "Details_Status": "Compliant",
+        "Last_Updated": "2024-01-15",
+        "Next_Due_Date": "2025-01-15",
+        "Observations_Non_Compliance": "None",
+        "Action_Taken_Required": "None",
+        "Responsible": "AMC Provider",
+        "Remarks": "All hardware in good condition"
+      },
+      {
+        "SL_No": 2,
+        "Category": "Software Updates",
+        "Checklist_Description": "Firmware updates",
+        "Details_Status": "Pending",
+        "Last_Updated": "2023-12-01",
+        "Next_Due_Date": "2024-02-01",
+        "Observations_Non_Compliance": "Firmware 6 months old",
+        "Action_Taken_Required": "Schedule firmware update",
+        "Responsible": "IT Team",
+        "Remarks": "Update required for security patches"
+      }
+    ]
+  }
+} 

@@ -1,0 +1,179 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "complaint_management": {
+    "client_complaints": [
+      {
+        "complaint_id": "CLIENT_COMP_001",
+        "client_id": "CLIENT_001",
+        "client_name": "ABC Corporation",
+        "complaint_category": "Service Quality",
+        "description": "Slow response time for IT support requests. Average response time is 4 hours instead of promised 2 hours.",
+        "date_raised": "2024-04-01",
+        "priority": "High",
+        "status": "In Progress",
+        "responsible_person": "John Smith",
+        "remarks": "Client is a premium customer, requires immediate attention"
+      },
+      {
+        "complaint_id": "CLIENT_COMP_002",
+        "client_id": "CLIENT_002",
+        "client_name": "XYZ Industries",
+        "complaint_category": "Billing Issue",
+        "description": "Incorrect billing for maintenance services. Charged for services not provided.",
+        "date_raised": "2024-04-02",
+        "priority": "Medium",
+        "status": "Open",
+        "responsible_person": "Sarah Johnson",
+        "remarks": "Billing department to investigate and correct charges"
+      },
+      {
+        "complaint_id": "CLIENT_COMP_003",
+        "client_id": "CLIENT_003",
+        "client_name": "DEF Solutions",
+        "complaint_category": "Facility Maintenance",
+        "description": "HVAC system not working properly in office area. Temperature control issues affecting productivity.",
+        "date_raised": "2024-04-03",
+        "priority": "High",
+        "status": "Resolved",
+        "responsible_person": "Mike Chen",
+        "remarks": "HVAC system repaired and functioning normally"
+      }
+    ],
+    "staff_complaints": [
+      {
+        "complaint_id": "STAFF_COMP_001",
+        "staff_id": "STAFF_001",
+        "staff_name": "Lisa Rodriguez",
+        "department": "IT Department",
+        "complaint_category": "Work Environment",
+        "description": "Insufficient lighting in workspace causing eye strain and reduced productivity.",
+        "date_raised": "2024-04-01",
+        "priority": "Medium",
+        "status": "In Progress",
+        "responsible_person": "Facility Manager",
+        "remarks": "Lighting assessment scheduled for next week"
+      },
+      {
+        "complaint_id": "STAFF_COMP_002",
+        "staff_id": "STAFF_002",
+        "staff_name": "David Kim",
+        "department": "Operations",
+        "complaint_category": "Equipment Issue",
+        "description": "Printer malfunctioning frequently, causing delays in document processing.",
+        "date_raised": "2024-04-02",
+        "priority": "Low",
+        "status": "Open",
+        "responsible_person": "IT Support",
+        "remarks": "Printer maintenance scheduled"
+      }
+    ],
+    "client_complaint_resolutions": [
+      {
+        "resolution_id": "CLIENT_RES_001",
+        "complaint_id": "CLIENT_COMP_001",
+        "client_id": "CLIENT_001",
+        "client_name": "ABC Corporation",
+        "resolution_description": "Implemented additional IT support staff and improved ticketing system to reduce response time to 1.5 hours.",
+        "date_resolved": "2024-04-05",
+        "time_to_resolve_hours": 96,
+        "resolution_rate_percent": 95,
+        "status": "Resolved",
+        "responsible_person": "John Smith",
+        "remarks": "Client satisfied with improved response time"
+      },
+      {
+        "resolution_id": "CLIENT_RES_002",
+        "complaint_id": "CLIENT_COMP_003",
+        "client_id": "CLIENT_003",
+        "client_name": "DEF Solutions",
+        "resolution_description": "Replaced faulty thermostat and repaired HVAC system. System now functioning at optimal levels.",
+        "date_resolved": "2024-04-04",
+        "time_to_resolve_hours": 24,
+        "resolution_rate_percent": 100,
+        "status": "Resolved",
+        "responsible_person": "Mike Chen",
+        "remarks": "HVAC system fully operational"
+      }
+    ],
+    "staff_complaint_resolutions": [
+      {
+        "resolution_id": "STAFF_RES_001",
+        "complaint_id": "STAFF_COMP_001",
+        "staff_id": "STAFF_001",
+        "staff_name": "Lisa Rodriguez",
+        "department": "IT Department",
+        "resolution_description": "Installed additional LED lighting fixtures and adjusted workspace layout for better illumination.",
+        "date_resolved": "2024-04-08",
+        "time_to_resolve_hours": 168,
+        "resolution_rate_percent": 90,
+        "status": "Resolved",
+        "responsible_person": "Facility Manager",
+        "remarks": "Staff member satisfied with improved lighting"
+      }
+    ],
+    "escalation_tracking": [
+      {
+        "escalation_id": "ESC_001",
+        "complaint_id": "CLIENT_COMP_001",
+        "type": "Client Complaint",
+        "escalation_level": "Level 2",
+        "description": "Escalated due to premium client status and repeated complaints about response time.",
+        "date_escalated": "2024-04-02",
+        "escalated_to": "IT Director",
+        "status": "Resolved",
+        "responsible_person": "IT Director",
+        "remarks": "Escalation led to immediate action and resolution"
+      },
+      {
+        "escalation_id": "ESC_002",
+        "complaint_id": "CLIENT_COMP_002",
+        "type": "Client Complaint",
+        "escalation_level": "Level 1",
+        "description": "Escalated due to billing accuracy concerns and potential financial impact.",
+        "date_escalated": "2024-04-03",
+        "escalated_to": "Finance Manager",
+        "status": "In Progress",
+        "responsible_person": "Finance Manager",
+        "remarks": "Billing audit in progress"
+      }
+    ],
+    "root_cause_analysis": [
+      {
+        "rca_id": "RCA_001",
+        "complaint_id": "CLIENT_COMP_001",
+        "type": "Service Delivery",
+        "root_cause": "Insufficient IT support staff during peak hours and outdated ticketing system causing delays.",
+        "corrective_action": "Hired additional IT support staff and implemented new ticketing system with automated prioritization.",
+        "implementation_date": "2024-04-05",
+        "effectiveness": "High",
+        "effectiveness_rate_percent": 95,
+        "responsible_person": "IT Director",
+        "remarks": "Significant improvement in response times observed"
+      },
+      {
+        "rca_id": "RCA_002",
+        "complaint_id": "CLIENT_COMP_003",
+        "type": "Equipment Failure",
+        "root_cause": "Aging HVAC system with outdated thermostat and lack of preventive maintenance.",
+        "corrective_action": "Replaced thermostat, implemented preventive maintenance schedule, and upgraded HVAC monitoring system.",
+        "implementation_date": "2024-04-04",
+        "effectiveness": "High",
+        "effectiveness_rate_percent": 100,
+        "responsible_person": "Facility Manager",
+        "remarks": "HVAC system now operating efficiently with monitoring in place"
+      },
+      {
+        "rca_id": "RCA_003",
+        "complaint_id": "STAFF_COMP_001",
+        "type": "Work Environment",
+        "root_cause": "Inadequate lighting design in workspace and lack of ergonomic assessment.",
+        "corrective_action": "Conducted lighting assessment, installed additional fixtures, and implemented ergonomic workspace guidelines.",
+        "implementation_date": "2024-04-08",
+        "effectiveness": "Good",
+        "effectiveness_rate_percent": 90,
+        "responsible_person": "Facility Manager",
+        "remarks": "Improved lighting and ergonomic conditions for staff"
+      }
+    ]
+  }
+} 

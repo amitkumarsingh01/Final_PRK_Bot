@@ -1,0 +1,150 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "site_visit_report": {
+    "visit_details": [
+      {
+        "s_no": 1,
+        "date_of_visit": "2024-04-01",
+        "site_name": "Main Office Building",
+        "client_name": "ABC Corporation",
+        "location": "Floor 3, IT Department",
+        "visited_by": {
+          "name": "John Smith",
+          "designation": "Senior Facility Manager"
+        },
+        "visit_purpose": "Routine facility inspection and compliance audit",
+        "time_in": "09:00",
+        "time_out": "16:00",
+        "duration_hrs": 7.0
+      },
+      {
+        "s_no": 2,
+        "date_of_visit": "2024-04-02",
+        "site_name": "Data Center",
+        "client_name": "ABC Corporation",
+        "location": "Basement Level, Server Room",
+        "visited_by": {
+          "name": "Sarah Johnson",
+          "designation": "IT Infrastructure Manager"
+        },
+        "visit_purpose": "Security and environmental systems inspection",
+        "time_in": "10:00",
+        "time_out": "14:00",
+        "duration_hrs": 4.0
+      }
+    ],
+    "observation_interaction_summary": [
+      {
+        "department_visited": "IT Department",
+        "staff_met": "Mike Chen (IT Manager), Lisa Rodriguez (Network Admin)",
+        "observation_summary": "IT department operations are running smoothly with proper documentation and procedures in place. Staff demonstrated good knowledge of systems and processes.",
+        "compliance_with_SOP": "Compliant",
+        "remarks_issues_found": "Minor issue with cable management in server room. Some cables need better organization.",
+        "corrective_action_required": "Implement cable management system and organize existing cables"
+      },
+      {
+        "department_visited": "Facilities Management",
+        "staff_met": "David Kim (Facility Supervisor), Tom Wilson (Maintenance Tech)",
+        "observation_summary": "Facility maintenance procedures are well documented and followed. Preventive maintenance schedule is being adhered to properly.",
+        "compliance_with_SOP": "Compliant",
+        "remarks_issues_found": "HVAC filter replacement schedule needs updating",
+        "corrective_action_required": "Update HVAC maintenance schedule and replace filters"
+      },
+      {
+        "department_visited": "Security",
+        "staff_met": "Alex Brown (Security Manager), Emma Davis (Security Officer)",
+        "observation_summary": "Security protocols are properly implemented. Access control systems are functioning correctly.",
+        "compliance_with_SOP": "Compliant",
+        "remarks_issues_found": "None",
+        "corrective_action_required": "None"
+      }
+    ],
+    "checklist_review": [
+      {
+        "checklist_item": "Fire Safety Equipment",
+        "status": "Compliant",
+        "remarks": "All fire extinguishers properly maintained and accessible"
+      },
+      {
+        "checklist_item": "Emergency Exit Signs",
+        "status": "Compliant",
+        "remarks": "All exit signs clearly visible and functional"
+      },
+      {
+        "checklist_item": "Electrical Safety",
+        "status": "Compliant",
+        "remarks": "Electrical panels properly labeled and accessible"
+      },
+      {
+        "checklist_item": "HVAC Systems",
+        "status": "Needs Attention",
+        "remarks": "Filters need replacement, scheduled for next week"
+      },
+      {
+        "checklist_item": "Security Systems",
+        "status": "Compliant",
+        "remarks": "CCTV and access control systems operational"
+      },
+      {
+        "checklist_item": "Documentation",
+        "status": "Compliant",
+        "remarks": "All required documentation up to date"
+      }
+    ],
+    "photos_captured": [
+      {
+        "location_area": "IT Server Room",
+        "photo_description": "Server room layout showing proper equipment arrangement",
+        "photo_file_link": "https://example.com/photos/server_room_layout_2024_04_01.jpg"
+      },
+      {
+        "location_area": "HVAC Equipment",
+        "photo_description": "HVAC system showing current filter condition",
+        "photo_file_link": "https://example.com/photos/hvac_system_2024_04_01.jpg"
+      },
+      {
+        "location_area": "Fire Safety Equipment",
+        "photo_description": "Fire extinguisher location and accessibility",
+        "photo_file_link": "https://example.com/photos/fire_safety_equipment_2024_04_01.jpg"
+      },
+      {
+        "location_area": "Security Control Room",
+        "photo_description": "Security monitoring systems and control panel",
+        "photo_file_link": "https://example.com/photos/security_control_room_2024_04_01.jpg"
+      }
+    ],
+    "follow_up_action_plan": [
+      {
+        "issue_observed": "Cable management in server room needs improvement",
+        "assigned_to": "Mike Chen",
+        "target_completion_date": "2024-04-15",
+        "status_update": "Cable management supplies ordered, implementation scheduled"
+      },
+      {
+        "issue_observed": "HVAC filter replacement overdue",
+        "assigned_to": "David Kim",
+        "target_completion_date": "2024-04-08",
+        "status_update": "Filters received, replacement scheduled for tomorrow"
+      },
+      {
+        "issue_observed": "Update preventive maintenance schedule",
+        "assigned_to": "Sarah Johnson",
+        "target_completion_date": "2024-04-10",
+        "status_update": "Schedule review in progress"
+      }
+    ],
+    "final_comments_summary": {
+      "team_observations": "Overall facility condition is excellent with good compliance to safety and operational standards. Staff demonstrate strong knowledge of procedures and systems. Minor issues identified are being addressed promptly.",
+      "client_feedback": "Client expressed satisfaction with current facility management services. Appreciated the thorough inspection and proactive approach to maintenance.",
+      "suggestions_recommendations": "Recommend implementing regular cable management audits in IT areas. Consider upgrading HVAC monitoring system for better efficiency tracking. Continue current preventive maintenance practices."
+    },
+    "sign_off": {
+      "reported_by": {
+        "name": "John Smith",
+        "designation": "Senior Facility Manager"
+      },
+      "signature": "John Smith",
+      "date": "2024-04-02"
+    }
+  }
+} 

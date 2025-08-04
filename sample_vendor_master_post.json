@@ -1,0 +1,124 @@
+{
+  "property_id": "3f9d7469-0f53-4d82-ba5b-4ac8e67173b1",
+  "vendor_master_management": {
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "contact_person": "John Smith",
+    "contact_details": {
+      "phone": "+91-9876543210",
+      "email": "john.smith@techsolutions.com"
+    },
+    "address": "123 Tech Park, Electronic City, Bangalore - 560100",
+    "registration_date": "2024-01-15",
+    "status": "Active",
+    "responsible_person": "Procurement Manager",
+    "remarks": "Reliable vendor for IT equipment and services"
+  },
+      "vendor_classification": {
+      "classification_id": "CLASS_002",
+      "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "category": "IT Equipment",
+    "sub_category": "Computer Hardware",
+    "rating": "A",
+    "classification_date": "2024-01-20",
+    "responsible_person": "Category Manager",
+    "remarks": "Premium vendor with excellent track record"
+  },
+      "vendor_evaluation": {
+      "evaluation_id": "EVAL_002",
+      "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "evaluation_date": "2024-02-01",
+    "criteria": [
+      "Quality of Products",
+      "Delivery Time",
+      "Price Competitiveness",
+      "After Sales Support",
+      "Technical Expertise"
+    ],
+    "score": {
+      "quality": 9,
+      "delivery_time": 8
+    },
+    "outcome": "Approved",
+    "evaluator": "Senior Procurement Officer",
+    "remarks": "Excellent performance across all criteria"
+  },
+  "integration_with_purchase_process": {
+    "purchase_id": "PUR_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "purchase_order_no": "PO-2024-001",
+    "item_or_service": "Laptop Computers",
+    "quantity": 50,
+    "order_date": "2024-02-15",
+    "delivery_status": "Delivered",
+    "responsible_person": "IT Manager",
+    "remarks": "Order completed successfully within timeline"
+  },
+  "payment_tracking": {
+    "payment_id": "PAY_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "invoice_number": "INV-2024-001",
+    "invoice_amount": 2500000.00,
+    "payment_due_date": "2024-03-15",
+    "payment_date": "2024-03-10",
+    "payment_status": "Paid",
+    "payment_method": "Bank Transfer",
+    "responsible_person": "Accounts Payable",
+    "remarks": "Payment processed before due date"
+  },
+  "vendor_relationship_management": {
+    "relationship_id": "REL_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "interaction_type": "Quarterly Review",
+    "date": "2024-03-01",
+    "details": "Performance review meeting to discuss service quality and future requirements",
+    "outcome": "Positive feedback, contract renewal recommended",
+    "responsible_person": "Vendor Manager",
+    "remarks": "Strong relationship maintained, vendor responsive to feedback"
+  },
+  "compliance_and_legal_check": {
+    "compliance_id": "COMP_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "regulation": "GST Compliance",
+    "check_date": "2024-01-25",
+    "compliance_status": "Compliant",
+    "issues_found": "None",
+    "corrective_actions": "Not applicable",
+    "responsible_person": "Legal Officer",
+    "remarks": "All legal and compliance requirements met"
+  },
+  "vendor_documentation": {
+    "document_id": "DOC_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "document_type": "Vendor Registration Certificate",
+    "title": "Tech Solutions Ltd - Registration Certificate",
+    "created_date": "2024-01-15",
+    "author": "Company Secretary",
+    "status": "Active",
+    "storage_location": "Digital Repository/Vendors/TechSolutions",
+    "remarks": "Valid registration certificate with all required details"
+  },
+  "reporting_and_analysis": {
+    "report_id": "REP_002",
+    "vendor_id": "VEND_002",
+    "vendor_name": "Tech Solutions Ltd",
+    "report_type": "Quarterly Performance Report",
+    "period": "Q1 2024",
+    "metrics": {
+      "delivery_time_avg_days": 5,
+      "cost_variance_percent": 2.5,
+      "quality_score_avg": 9.2
+    },
+    "findings": "Vendor consistently meets delivery timelines and quality standards",
+    "generated_date": "2024-04-01",
+    "responsible_person": "Analytics Team",
+    "remarks": "Performance metrics indicate vendor is performing above expectations"
+  }
+} 
