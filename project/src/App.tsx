@@ -79,6 +79,31 @@ import StockEntryIssue from './components/InventoryManagement/StockEntryIssue';
 import MinMaxLevelMonitoring from './components/InventoryManagement/MinMaxLevelMonitoring';
 import ConsumptionReports from './components/InventoryManagement/ConsumptionReports';
 import ExpiryDamageLog from './components/InventoryManagement/ExpiryDamageLog';
+import QualityPlanning from './components/QualityAndProcess.tsx/QualityPlanning';
+import ProcessManagementSetup from './components/QualityAndProcess.tsx/ProcessManagementSetup';
+import QualityAssurance from './components/QualityAndProcess.tsx/QualityAssurance';
+import QualityControl from './components/QualityAndProcess.tsx/QualityControl';
+import PerformanceMonitoring from './components/QualityAndProcess.tsx/PerformanceMonitoring';
+import DocumentationReporting from './components/QualityAndProcess.tsx/DocumentationReporting';
+import SiteAssessmentAndPlanning from './components/FireSafety/Site_Assessment_and_Planning';
+import InstallationAndEquipmentSetup from './components/FireSafety/Installation_and_Equipment_Setup';
+import FireSafetyDocuments from './components/FireSafety/Fire_Safety_Documents';
+import ComplianceReports from './components/FireSafety/Compliance_Reports';
+import FireAndSafetyTraining from './components/FireSafety/Fire_and_Safety_Training';
+import DailyChecklist from './components/FireSafety/Daily_Checklist';
+import WeeklyChecklist from './components/FireSafety/Weekly_Checklist';
+import MonthlyChecklist from './components/FireSafety/Monthly_Checklist';
+import QuarterlyChecklist from './components/FireSafety/Quarterly_Checklist';
+import EmergencyPreparednessPlan from './components/FireSafety/Emergency_Preparedness_Plan';
+import RecordKeeping from './components/FireSafety/Record_Keeping';
+import SystemDesignPlanningPage from './components/CCTVAudit/System_Design__Planning';
+import InstallationChecklist from './components/CCTVAudit/Installation_Checklist';
+import ConfigurationTestingPage from './components/CCTVAudit/Conguration_and_Testing';
+import DailyOperationsMonitoringPage from './components/CCTVAudit/Daily_Operations__Monitoring';
+import MaintenanceSchedulePage from './components/CCTVAudit/Maintenance_Schedule.tsx';
+import Documentation from './components/CCTVAudit/Documentation';
+import AmcAndCompliance from './components/CCTVAudit/AMC_and_Compliance';
+import SiteAssessment from './components/CCTVAudit/Site_Assessment';
 
 // import UserTasks from './pages/Users/usertasks';
 
@@ -227,6 +252,37 @@ const AppRoutes = () => {
         <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
 
         <Route path="user/tasks" element={<UserTasks />} />
+
+        {/* Quality and Process Management Routes */}
+        <Route path="quality-planning" element={<QualityPlanning />} />
+        <Route path="process-management-setup" element={<ProcessManagementSetup />} />
+        <Route path="quality-assurance" element={<QualityAssurance />} />
+        <Route path="quality-control" element={<QualityControl />} />
+        <Route path="performance-monitoring" element={<PerformanceMonitoring />} />
+        <Route path="documentation-and-reporting" element={<DocumentationReporting />} />
+
+        {/* Fire and Safety Routes */}
+        <Route path="site-assessment-and-planning" element={<SiteAssessmentAndPlanning />} />
+        <Route path="installation-and-equipment-setup" element={<InstallationAndEquipmentSetup />} />
+        <Route path="fire-safety-documents" element={<FireSafetyDocuments />} />
+        <Route path="compliance-reports" element={<ComplianceReports />} />
+        <Route path="fire-and-safety-training" element={<FireAndSafetyTraining />} />
+        <Route path="daily-checklist" element={<DailyChecklist />} />
+        <Route path="weekly-checklist" element={<WeeklyChecklist />} />
+        <Route path="monthly-checklist" element={<MonthlyChecklist />} />
+        <Route path="quarterly-checklist" element={<QuarterlyChecklist />} />
+        <Route path="emergency-preparedness-plan" element={<EmergencyPreparednessPlan />} />
+        <Route path="record-keeping" element={<RecordKeeping />} />
+
+        {/* CCTV Department Routes */}
+        <Route path="site-assessment" element={<SiteAssessment />} />
+        <Route path="system-design-and-planning" element={<SystemDesignPlanningPage />} />
+        <Route path="installation-checklist" element={<InstallationChecklist />} />
+        <Route path="configuration-and-testing" element={<ConfigurationTestingPage />} />
+        <Route path="daily-operations-and-monitoring" element={<DailyOperationsMonitoringPage />} />
+        <Route path="maintenance-schedule" element={<MaintenanceSchedulePage />} />
+        <Route path="documentation" element={<Documentation />} />
+        <Route path="amc-and-compliance" element={<AmcAndCompliance />} />
         
       </Route>
 

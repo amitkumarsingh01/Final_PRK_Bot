@@ -1,0 +1,357 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+interface Property {
+  id: string;
+  name: string;
+  title: string;
+  description?: string;
+  logo_base64?: string;
+}
+
+interface CctvMaintenanceSchedule {
+  id?: string;
+  cctv_audit_id?: string;
+  SL_No: number;
+  Maintenance_Type: string;
+  Checklist_Point_Task: string;
+  Frequency: string;
+  Last_Maintenance_Date?: string;
+  Next_Due_Date?: string;
+  Status: string;
+  Observations_Issues: string;
+  Action_Taken_Required: string;
+  Responsible: string;
+  Remarks: string;
+}
+
+interface CctvAuditReport {
+  id: string;
+  property_id: string;
+  cctv_audit_data: {
+    Maintenance_Schedule: CctvMaintenanceSchedule[];
+  };
+}
+
+const API_URL = 'https://server.prktechindia.in/cctv-audit-reports/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const orange = '#FB7E03';
+const orangeDark = '#E06002';
+
+const emptyMaintenanceSchedule: CctvMaintenanceSchedule = {
+  SL_No: 0,
+  Maintenance_Type: '',
+  Checklist_Point_Task: '',
+  Frequency: '',
+  Last_Maintenance_Date: '',
+  Next_Due_Date: '',
+  Status: '',
+  Observations_Issues: '',
+  Action_Taken_Required: '',
+  Responsible: '',
+  Remarks: '',
+};
+
+const MaintenanceSchedulePage: React.FC = () => {
+  const { user } = useAuth();
+  const [data, setData] = useState<CctvAuditReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [viewModal, setViewModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null }>({ open: false, item: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await axios.get(PROPERTIES_URL);
+        setProperties(res.data);
+      } catch (e) {
+        setError('Failed to fetch properties');
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserProperty = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const res = await axios.get('https://server.prktechindia.in/profile', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
+        if (matchedUser && matchedUser.property_id) {
+          setSelectedPropertyId(matchedUser.property_id);
+        }
+        if (matchedUser && matchedUser.user_role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProperty();
+  }, [user]);
+
+  const fetchData = async (propertyId: string) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      console.log('Maintenance Schedule - API Response:', res.data);
+      setData(res.data);
+    } catch (e) {
+      console.error('Maintenance Schedule - API Error:', e);
+      setError('Failed to fetch CCTV audit reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (selectedPropertyId) {
+      fetchData(selectedPropertyId);
+    }
+  }, [selectedPropertyId]);
+
+  const handleEdit = (item: CctvMaintenanceSchedule, reportId: string) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  };
+
+  const handleAdd = (reportId: string) => {
+    setEditModal({
+      open: true,
+      isNew: true,
+      item: { ...emptyMaintenanceSchedule },
+      reportId,
+    });
+  };
+
+  const handleDelete = async (itemId: string, reportId: string) => {
+    if (!window.confirm('Delete this maintenance schedule entry?')) return;
+    try {
+      const report = data.find(r => r.id === reportId);
+      if (!report) return;
+      const newArr = (report.cctv_audit_data?.Maintenance_Schedule || []).filter((i: CctvMaintenanceSchedule) => i.id !== itemId);
+      await axios.put(`${API_URL}${reportId}`, { 
+        CCTV_Audit: { Maintenance_Schedule: newArr }
+      });
+      fetchData(selectedPropertyId);
+    } catch (e) {
+      setError('Failed to delete');
+    }
+  };
+
+  const handleView = (item: CctvMaintenanceSchedule) => {
+    setViewModal({ open: true, item });
+  };
+
+  const handleSave = async () => {
+    if (!editModal.item || !editModal.reportId) return;
+    try {
+      const report = data.find(r => r.id === editModal.reportId);
+      if (!report) return;
+      let newArr: CctvMaintenanceSchedule[];
+      if (editModal.isNew) {
+                newArr = [...(report.cctv_audit_data?.Maintenance_Schedule || []), editModal.item];
+      } else {
+        newArr = (report.cctv_audit_data?.Maintenance_Schedule || []).map((i: CctvMaintenanceSchedule) =>
+          i.id === editModal.item!.id ? editModal.item! : i
+        );
+      }
+      await axios.put(`${API_URL}${editModal.reportId}`, { 
+        CCTV_Audit: { Maintenance_Schedule: newArr }
+      });
+      setEditModal({ open: false, item: null, isNew: false, reportId: null });
+      fetchData(selectedPropertyId);
+    } catch (e) {
+      setError('Failed to save changes');
+    }
+  };
+
+  return (
+    <div className="p-6" style={{ background: '#fff' }}>
+      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Maintenance Schedule</h2>
+      
+      {/* Property Selection Dropdown */}
+      <div className="mb-6 max-w-md">
+        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <select
+            id="propertySelect"
+            value={selectedPropertyId}
+            onChange={e => setSelectedPropertyId(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+          >
+            <option value="">Select a property...</option>
+            {properties.map(property => (
+              <option key={property.id} value={property.id}>
+                {property.name} - {property.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error && <div className="mb-2 text-red-600">{error}</div>}
+
+      <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr style={{ background: orange, color: '#fff' }}>
+              <th className="px-3 py-2 border">Sl.No</th>
+              <th className="px-3 py-2 border">Maintenance Type</th>
+              <th className="px-3 py-2 border">Checklist Point/Task</th>
+              <th className="px-3 py-2 border">Frequency</th>
+              <th className="px-3 py-2 border">Last Maintenance Date</th>
+              <th className="px-3 py-2 border">Next Due Date</th>
+              <th className="px-3 py-2 border">Status</th>
+              <th className="px-3 py-2 border">Observations/Issues</th>
+              <th className="px-3 py-2 border">Action Taken/Required</th>
+              <th className="px-3 py-2 border">Responsible</th>
+              <th className="px-3 py-2 border">Remarks</th>
+              <th className="px-3 py-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={12} className="text-center py-6">Loading...</td></tr>
+            ) : (
+              <>
+                {data.flatMap((report, rIdx) =>
+                  (report.cctv_audit_data?.Maintenance_Schedule || []).map((item, idx) => (
+                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                      <td className="border px-2 py-1">{item.SL_No}</td>
+                      <td className="border px-2 py-1">{item.Maintenance_Type}</td>
+                      <td className="border px-2 py-1">{item.Checklist_Point_Task}</td>
+                      <td className="border px-2 py-1">{item.Frequency}</td>
+                      <td className="border px-2 py-1">{item.Last_Maintenance_Date}</td>
+                      <td className="border px-2 py-1">{item.Next_Due_Date}</td>
+                      <td className="border px-2 py-1">{item.Status}</td>
+                      <td className="border px-2 py-1">{item.Observations_Issues}</td>
+                      <td className="border px-2 py-1">{item.Action_Taken_Required}</td>
+                      <td className="border px-2 py-1">{item.Responsible}</td>
+                      <td className="border px-2 py-1">{item.Remarks}</td>
+                      <td className="border px-2 py-1 text-center">
+                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                        {isAdmin && (
+                          <>
+                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {isAdmin && data.length > 0 && (
+        <button
+          onClick={() => handleAdd(data[0].id)}
+          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+        >
+          <Plus size={18} className="mr-2" /> Add Maintenance Schedule Entry
+        </button>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.open && editModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editModal.isNew ? 'Add' : 'Edit'} Maintenance Schedule Entry
+              </h3>
+              <button
+                onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={e => { e.preventDefault(); handleSave(); }}>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="border rounded px-3 py-2" placeholder="SL No" type="number" value={editModal.item.SL_No} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, SL_No: parseInt(e.target.value) } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Maintenance Type" value={editModal.item.Maintenance_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Maintenance_Type: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Checklist Point/Task" value={editModal.item.Checklist_Point_Task} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checklist_Point_Task: e.target.value } })} required />
+                <select className="border rounded px-3 py-2" value={editModal.item.Frequency} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Frequency: e.target.value } })} required>
+                  <option value="">Select Frequency</option>
+                  <option value="Daily">Daily</option>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Quarterly">Quarterly</option>
+                  <option value="Semi-Annually">Semi-Annually</option>
+                  <option value="Annually">Annually</option>
+                  <option value="As Required">As Required</option>
+                </select>
+                <input className="border rounded px-3 py-2" placeholder="Last Maintenance Date" type="date" value={editModal.item.Last_Maintenance_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Last_Maintenance_Date: e.target.value } })} />
+                <input className="border rounded px-3 py-2" placeholder="Next Due Date" type="date" value={editModal.item.Next_Due_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Next_Due_Date: e.target.value } })} />
+                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
+                  <option value="">Select Status</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Overdue">Overdue</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Scheduled">Scheduled</option>
+                </select>
+                <textarea className="border rounded px-3 py-2" placeholder="Observations/Issues" value={editModal.item.Observations_Issues} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Observations_Issues: e.target.value } })} required />
+                <textarea className="border rounded px-3 py-2" placeholder="Action Taken/Required" value={editModal.item.Action_Taken_Required} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Action_Taken_Required: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Responsible" value={editModal.item.Responsible} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Responsible: e.target.value } })} required />
+                <textarea className="border rounded px-3 py-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button type="button" onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })} className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {viewModal.open && viewModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Maintenance Schedule Details
+              </h3>
+              <button
+                onClick={() => setViewModal({ open: false, item: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><b>SL No:</b> {viewModal.item.SL_No}</div>
+              <div><b>Maintenance Type:</b> {viewModal.item.Maintenance_Type}</div>
+              <div><b>Checklist Point/Task:</b> {viewModal.item.Checklist_Point_Task}</div>
+              <div><b>Frequency:</b> {viewModal.item.Frequency}</div>
+              <div><b>Last Maintenance Date:</b> {viewModal.item.Last_Maintenance_Date}</div>
+              <div><b>Next Due Date:</b> {viewModal.item.Next_Due_Date}</div>
+              <div><b>Status:</b> {viewModal.item.Status}</div>
+              <div><b>Observations/Issues:</b> {viewModal.item.Observations_Issues}</div>
+              <div><b>Action Taken/Required:</b> {viewModal.item.Action_Taken_Required}</div>
+              <div><b>Responsible:</b> {viewModal.item.Responsible}</div>
+              <div><b>Remarks:</b> {viewModal.item.Remarks}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MaintenanceSchedulePage;

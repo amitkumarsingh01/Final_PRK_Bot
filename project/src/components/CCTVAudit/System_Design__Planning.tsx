@@ -11,55 +11,57 @@ interface Property {
   logo_base64?: string;
 }
 
-interface PerformanceMonitor {
+interface SiteAssessmentFormat {
   id?: string;
-  quality_report_id?: string;
-  monitor_id: string;
-  project_process_id: string;
-  metric: string;
-  target: string;
-  actual: string;
-  variance: string;
-  date_checked: string;
-  status: string;
-  responsible_person: string;
-  remarks: string;
+  cctv_audit_id?: string;
+  SL_No: number;
+  Description: string;
+  Checklist_Points: string;
+  Checked_Status: string;
+  Observations: string;
+  Suggestions_Actions: string;
+  Responsibility: string;
+  Target_Date?: string;
+  Photo_Insert: string;
+  Remarks: string;
 }
 
-interface QualityReport {
+interface CctvAuditReport {
   id: string;
   property_id: string;
-  performance_monitors: PerformanceMonitor[];
+  cctv_audit_data: {
+    Site_Assessment_Format: SiteAssessmentFormat[];
+  };
 }
 
-const API_URL = 'https://server.prktechindia.in/quality-reports/';
+const API_URL = 'https://server.prktechindia.in/cctv-audit-reports/';
 const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
-const emptyPerformanceMonitor: PerformanceMonitor = {
-  monitor_id: '',
-  project_process_id: '',
-  metric: '',
-  target: '',
-  actual: '',
-  variance: '',
-  date_checked: '',
-  status: '',
-  responsible_person: '',
-  remarks: '',
+const emptySiteAssessment: SiteAssessmentFormat = {
+  SL_No: 0,
+  Description: '',
+  Checklist_Points: '',
+  Checked_Status: '',
+  Observations: '',
+  Suggestions_Actions: '',
+  Responsibility: '',
+  Target_Date: '',
+  Photo_Insert: '',
+  Remarks: '',
 };
 
-const PerformanceMonitoringPage: React.FC = () => {
+const SystemDesignPlanningPage: React.FC = () => {
   const { user } = useAuth();
-  const [data, setData] = useState<QualityReport[]>([]);
+  const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [viewModal, setViewModal] = useState<{ open: boolean; item: PerformanceMonitor | null }>({ open: false, item: null });
-  const [editModal, setEditModal] = useState<{ open: boolean; item: PerformanceMonitor | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [viewModal, setViewModal] = useState<{ open: boolean; item: SiteAssessmentFormat | null }>({ open: false, item: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: SiteAssessmentFormat | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -102,7 +104,7 @@ const PerformanceMonitoringPage: React.FC = () => {
       const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
       setData(res.data);
     } catch (e) {
-      setError('Failed to fetch quality reports');
+      setError('Failed to fetch CCTV audit reports');
     }
     setLoading(false);
   };
@@ -113,30 +115,35 @@ const PerformanceMonitoringPage: React.FC = () => {
     }
   }, [selectedPropertyId]);
 
-  const handleEdit = (item: PerformanceMonitor, reportId: string) => {
+  const handleEdit = (item: SiteAssessmentFormat, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
+
   const handleAdd = (reportId: string) => {
     setEditModal({
       open: true,
       isNew: true,
-      item: { ...emptyPerformanceMonitor },
+      item: { ...emptySiteAssessment },
       reportId,
     });
   };
+
   const handleDelete = async (itemId: string, reportId: string) => {
-    if (!window.confirm('Delete this performance monitor?')) return;
+    if (!window.confirm('Delete this system design entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = report.performance_monitors.filter(i => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { performance_monitors: newArr });
+      const newArr = (report.cctv_audit_data?.Site_Assessment_Format || []).filter((i: SiteAssessmentFormat) => i.id !== itemId);
+      await axios.put(`${API_URL}${reportId}`, { 
+        CCTV_Audit: { Site_Assessment_Format: newArr }
+      });
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
     }
   };
-  const handleView = (item: PerformanceMonitor) => {
+
+  const handleView = (item: SiteAssessmentFormat) => {
     setViewModal({ open: true, item });
   };
 
@@ -145,15 +152,17 @@ const PerformanceMonitoringPage: React.FC = () => {
     try {
       const report = data.find(r => r.id === editModal.reportId);
       if (!report) return;
-      let newArr: PerformanceMonitor[];
+      let newArr: SiteAssessmentFormat[];
       if (editModal.isNew) {
-        newArr = [...report.performance_monitors, editModal.item];
+        newArr = [...(report.cctv_audit_data?.Site_Assessment_Format || []), editModal.item];
       } else {
-        newArr = report.performance_monitors.map(i =>
+                        newArr = (report.cctv_audit_data?.Site_Assessment_Format || []).map((i: SiteAssessmentFormat) =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { performance_monitors: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { 
+        CCTV_Audit: { Site_Assessment_Format: newArr }
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -161,24 +170,10 @@ const PerformanceMonitoringPage: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'On Track':
-        return 'bg-green-100 text-green-800';
-      case 'Behind Schedule':
-        return 'bg-red-100 text-red-800';
-      case 'At Risk':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Completed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className="p-6" style={{ background: '#fff' }}>
-      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Performance Monitoring</h2>
+      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>System Design & Planning</h2>
+      
       {/* Property Selection Dropdown */}
       <div className="mb-6 max-w-md">
         <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
@@ -199,48 +194,44 @@ const PerformanceMonitoringPage: React.FC = () => {
           </select>
         </div>
       </div>
+
       {error && <div className="mb-2 text-red-600">{error}</div>}
+
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
           <thead>
             <tr style={{ background: orange, color: '#fff' }}>
               <th className="px-3 py-2 border">Sl.No</th>
-              <th className="px-3 py-2 border">Monitor ID</th>
-              <th className="px-3 py-2 border">Project/Process ID</th>
-              <th className="px-3 py-2 border">Metric</th>
-              <th className="px-3 py-2 border">Target</th>
-              <th className="px-3 py-2 border">Actual</th>
-              <th className="px-3 py-2 border">Variance</th>
-              <th className="px-3 py-2 border">Date Checked</th>
-              <th className="px-3 py-2 border">Status</th>
-              <th className="px-3 py-2 border">Responsible Person</th>
+              <th className="px-3 py-2 border">Description</th>
+              <th className="px-3 py-2 border">Checklist Points</th>
+              <th className="px-3 py-2 border">Checked Status</th>
+              <th className="px-3 py-2 border">Observations</th>
+              <th className="px-3 py-2 border">Suggestions/Actions</th>
+              <th className="px-3 py-2 border">Responsibility</th>
+              <th className="px-3 py-2 border">Target Date</th>
+              <th className="px-3 py-2 border">Photo Insert</th>
               <th className="px-3 py-2 border">Remarks</th>
               <th className="px-3 py-2 border">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={12} className="text-center py-6">Loading...</td></tr>
+              <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
                 {data.flatMap((report, rIdx) =>
-                  report.performance_monitors.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                      <td className="border px-2 py-1">{idx + 1}</td>
-                      <td className="border px-2 py-1">{item.monitor_id}</td>
-                      <td className="border px-2 py-1">{item.project_process_id}</td>
-                      <td className="border px-2 py-1">{item.metric}</td>
-                      <td className="border px-2 py-1">{item.target}</td>
-                      <td className="border px-2 py-1">{item.actual}</td>
-                      <td className="border px-2 py-1">{item.variance}</td>
-                      <td className="border px-2 py-1">{item.date_checked}</td>
-                      <td className="border px-2 py-1">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(item.status)}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="border px-2 py-1">{item.responsible_person}</td>
-                      <td className="border px-2 py-1">{item.remarks}</td>
+                  (report.cctv_audit_data?.Site_Assessment_Format || []).map((item, idx) => (
+                    <tr key={item.id || `${rIdx}-${idx}`} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                      <td className="border px-2 py-1">{item.SL_No}</td>
+                      <td className="border px-2 py-1">{item.Description}</td>
+                      <td className="border px-2 py-1">{item.Checklist_Points}</td>
+                      <td className="border px-2 py-1">{item.Checked_Status}</td>
+                      <td className="border px-2 py-1">{item.Observations}</td>
+                      <td className="border px-2 py-1">{item.Suggestions_Actions}</td>
+                      <td className="border px-2 py-1">{item.Responsibility}</td>
+                      <td className="border px-2 py-1">{item.Target_Date}</td>
+                      <td className="border px-2 py-1">{item.Photo_Insert}</td>
+                      <td className="border px-2 py-1">{item.Remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                         {isAdmin && (
@@ -258,20 +249,23 @@ const PerformanceMonitoringPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+
       {isAdmin && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
-          <Plus size={18} className="mr-2" /> Add Performance Monitor
+          <Plus size={18} className="mr-2" /> Add System Design Entry
         </button>
       )}
+
+      {/* Edit Modal */}
       {editModal.open && editModal.item && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                {editModal.isNew ? 'Add' : 'Edit'} Performance Monitor
+                {editModal.isNew ? 'Add' : 'Edit'} System Design Entry
               </h3>
               <button
                 onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })}
@@ -282,22 +276,22 @@ const PerformanceMonitoringPage: React.FC = () => {
             </div>
             <form onSubmit={e => { e.preventDefault(); handleSave(); }}>
               <div className="grid grid-cols-2 gap-3">
-                <input className="border rounded px-3 py-2" placeholder="Monitor ID" value={editModal.item.monitor_id} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, monitor_id: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Project/Process ID" value={editModal.item.project_process_id} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, project_process_id: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Metric" value={editModal.item.metric} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, metric: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Target" value={editModal.item.target} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, target: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Actual" value={editModal.item.actual} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, actual: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Variance" value={editModal.item.variance} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, variance: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Date Checked" type="date" value={editModal.item.date_checked} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, date_checked: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, status: e.target.value } })} required>
+                <input className="border rounded px-3 py-2" placeholder="SL No" type="number" value={editModal.item.SL_No} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, SL_No: parseInt(e.target.value) } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Description" value={editModal.item.Description} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Description: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Checklist Points" value={editModal.item.Checklist_Points} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checklist_Points: e.target.value } })} required />
+                <select className="border rounded px-3 py-2" value={editModal.item.Checked_Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checked_Status: e.target.value } })} required>
                   <option value="">Select Status</option>
-                  <option value="On Track">On Track</option>
-                  <option value="Behind Schedule">Behind Schedule</option>
-                  <option value="At Risk">At Risk</option>
-                  <option value="Completed">Completed</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                  <option value="N/A">N/A</option>
+                  <option value="Pending">Pending</option>
                 </select>
-                <input className="border rounded px-3 py-2" placeholder="Responsible Person" value={editModal.item.responsible_person} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, responsible_person: e.target.value } })} required />
-                <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, remarks: e.target.value } })} rows={3} />
+                <textarea className="border rounded px-3 py-2" placeholder="Observations" value={editModal.item.Observations} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Observations: e.target.value } })} required />
+                <textarea className="border rounded px-3 py-2" placeholder="Suggestions/Actions" value={editModal.item.Suggestions_Actions} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Suggestions_Actions: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Responsibility" value={editModal.item.Responsibility} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Responsibility: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Target Date" type="date" value={editModal.item.Target_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Target_Date: e.target.value } })} />
+                <input className="border rounded px-3 py-2" placeholder="Photo Insert" value={editModal.item.Photo_Insert} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Photo_Insert: e.target.value } })} required />
+                <textarea className="border rounded px-3 py-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <button type="button" onClick={() => setEditModal({ open: false, item: null, isNew: false, reportId: null })} className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold">Cancel</button>
@@ -307,12 +301,14 @@ const PerformanceMonitoringPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* View Modal */}
       {viewModal.open && viewModal.item && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Performance Monitor Details
+                System Design Details
               </h3>
               <button
                 onClick={() => setViewModal({ open: false, item: null })}
@@ -322,20 +318,16 @@ const PerformanceMonitoringPage: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><b>Monitor ID:</b> {viewModal.item.monitor_id}</div>
-              <div><b>Project/Process ID:</b> {viewModal.item.project_process_id}</div>
-              <div><b>Metric:</b> {viewModal.item.metric}</div>
-              <div><b>Target:</b> {viewModal.item.target}</div>
-              <div><b>Actual:</b> {viewModal.item.actual}</div>
-              <div><b>Variance:</b> {viewModal.item.variance}</div>
-              <div><b>Date Checked:</b> {viewModal.item.date_checked}</div>
-              <div><b>Status:</b> 
-                <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${getStatusColor(viewModal.item.status)}`}>
-                  {viewModal.item.status}
-                </span>
-              </div>
-              <div><b>Responsible Person:</b> {viewModal.item.responsible_person}</div>
-              <div className="col-span-2"><b>Remarks:</b> {viewModal.item.remarks}</div>
+              <div><b>SL No:</b> {viewModal.item.SL_No}</div>
+              <div><b>Description:</b> {viewModal.item.Description}</div>
+              <div><b>Checklist Points:</b> {viewModal.item.Checklist_Points}</div>
+              <div><b>Checked Status:</b> {viewModal.item.Checked_Status}</div>
+              <div><b>Observations:</b> {viewModal.item.Observations}</div>
+              <div><b>Suggestions/Actions:</b> {viewModal.item.Suggestions_Actions}</div>
+              <div><b>Responsibility:</b> {viewModal.item.Responsibility}</div>
+              <div><b>Target Date:</b> {viewModal.item.Target_Date}</div>
+              <div><b>Photo Insert:</b> {viewModal.item.Photo_Insert}</div>
+              <div><b>Remarks:</b> {viewModal.item.Remarks}</div>
             </div>
           </div>
         </div>
@@ -344,4 +336,4 @@ const PerformanceMonitoringPage: React.FC = () => {
   );
 };
 
-export default PerformanceMonitoringPage; 
+export default SystemDesignPlanningPage;

@@ -110,16 +110,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       if (user?.userId) {
         console.log('Current user ID:', user.userId);
         try {
-          const response = await fetch('https://server.prktechindia.in/profile', {
+          const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
             headers: {
               'Authorization': `Bearer ${user.token}`
             }
           });
-          const data = await response.json();
-          console.log('API response data:', data);
-          // Find the profile matching the current user's ID
-          const currentUserProfile = data.find((profile: UserProfile) => profile.user_id === user.userId);
-          console.log('Found user profile:', currentUserProfile);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const currentUserProfile = await response.json();
+          console.log('API response data:', currentUserProfile);
+          
           if (currentUserProfile) {
             setUserProfile(currentUserProfile);
             // Fetch property logo for cadmin/user
@@ -143,7 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               setPropertyLogo(null);
             }
           } else {
-            console.log('No matching profile found for user ID:', user.userId);
+            console.log('No profile found for user ID:', user.userId);
             setUserProfile(null);
             setPropertyLogo(null);
           }
@@ -632,12 +635,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Quality and Process Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Quality Planning' },
-          { path: '#', label: 'Process Management Setup' },
-          { path: '#', label: 'Quality Assurance' },
-          { path: '#', label: 'Quality Control' },
-          { path: '#', label: 'Performance Monitoring' },
-          { path: '#', label: 'Documentation and Reporting' },
+          { path: '/quality-planning', label: 'Quality Planning' },
+          { path: '/process-management-setup', label: 'Process Management Setup' },
+          { path: '/quality-assurance', label: 'Quality Assurance' },
+          { path: '/quality-control', label: 'Quality Control' },
+          { path: '/performance-monitoring', label: 'Performance Monitoring' },
+          { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
         ]
       },
       // 16. CCTV Department
@@ -647,14 +650,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'CCTV Department',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Site Assessment' },
-          { path: '#', label: 'System Design & Planning' },
-          { path: '#', label: 'Installation Checklist' },
-          { path: '#', label: 'Conguration and Testing' },
-          { path: '#', label: 'Daily Operations & Monitoring' },
-          { path: '#', label: 'Maintenance Schedule' },
-          { path: '#', label: 'Documentation' },
-          { path: '#', label: 'AMC and Compliance' },
+          { path: '/site-assessment', label: 'Site Assessment' },
+          { path: '/system-design-and-planning', label: 'System Design & Planning' },
+          { path: '/installation-checklist', label: 'Installation Checklist' },
+          { path: '/configuration-and-testing', label: 'Conguration and Testing' },
+          { path: '/daily-operations-and-monitoring', label: 'Daily Operations & Monitoring' },
+          { path: '/maintenance-schedule', label: 'Maintenance Schedule' },
+          { path: '/documentation', label: 'Documentation' },
+          { path: '/amc-and-compliance', label: 'AMC and Compliance' },
         ]
       },
       // 17. Fire and Safety
@@ -664,17 +667,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Fire and Safety',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Site Assessment and Planning' },
-          { path: '#', label: 'Installation and Equipment Setup' },
-          { path: '#', label: 'Fire Safety Documents' },
-          { path: '#', label: 'Compliance Reports' },
-          { path: '#', label: 'Fire and Safety Training' },
-          { path: '#', label: 'Daily Checklist' },
-          { path: '#', label: 'Weekly Checklist' },
-          { path: '#', label: 'Monthly Checklist' },
-          { path: '#', label: 'Quarterly Checklist' },
-          { path: '#', label: 'Emergency Preparedness Plan' },
-          { path: '#', label: 'Record Keeping' },
+          { path: '/site-assessment-and-planning', label: 'Site Assessment and Planning' },
+          { path: '/installation-and-equipment-setup', label: 'Installation and Equipment Setup' },
+          { path: '/fire-safety-documents', label: 'Fire Safety Documents' },
+          { path: '/compliance-reports', label: 'Compliance Reports' },
+          { path: '/fire-and-safety-training', label: 'Fire and Safety Training' },
+          { path: '/daily-checklist', label: 'Daily Checklist' },
+          { path: '/weekly-checklist', label: 'Weekly Checklist' },
+          { path: '/monthly-checklist', label: 'Monthly Checklist' },
+          { path: '/quarterly-checklist', label: 'Quarterly Checklist' },
+          { path: '/emergency-preparedness-plan', label: 'Emergency Preparedness Plan' },
+          { path: '/record-keeping', label: 'Record Keeping' },
         ]
       },
       // 18. Procurement Management
@@ -1271,21 +1274,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       
       {/* Navigation items */}
       <div className="flex-1 px-3 py-2 overflow-y-auto">
-        {navItems.map((item) => (
-          <div key={item.path} className="mb-1">
+        {navItems.map((item, index) => (
+          <div key={`nav-${item.label}-${index}`} className="mb-1">
             <NavItem
               to={item.hasSubmenu ? '#' : item.path}
               icon={item.icon}
               label={!isCollapsed ? item.label : ''}
               active={location.pathname === item.path || (!!item.hasSubmenu && location.pathname.startsWith(item.path + '/'))}
               hasSubmenu={item.hasSubmenu && !isCollapsed}
-              isOpen={item.hasSubmenu && openKeys.includes(item.path)}
+              isOpen={item.hasSubmenu && openKeys.includes(`nav-${item.label}-${index}`)}
               onClick={() => {
                 if (item.hasSubmenu && !isCollapsed) {
-                  if (openKeys.includes(item.path)) {
-                    setOpenKeys(openKeys.filter((k) => k !== item.path));
+                  const key = `nav-${item.label}-${index}`;
+                  if (openKeys.includes(key)) {
+                    setOpenKeys(openKeys.filter((k) => k !== key));
                   } else {
-                    setOpenKeys([...openKeys, item.path]);
+                    setOpenKeys([...openKeys, key]);
                   }
                 } else if (isMobile) {
                   onClose();
@@ -1293,12 +1297,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               }}
             />
             {/* Recursive Submenu rendering */}
-            {item.hasSubmenu && openKeys.includes(item.path) && item.submenuItems && !isCollapsed && (
+            {item.hasSubmenu && openKeys.includes(`nav-${item.label}-${index}`) && item.submenuItems && !isCollapsed && (
               <SidebarSubMenu
                 items={item.submenuItems}
                 openKeys={openKeys}
                 setOpenKeys={setOpenKeys}
-                parentPath={item.path}
+                parentPath={`nav-${item.label}-${index}`}
                 isCollapsed={isCollapsed}
                 onClose={onClose}
                 isMobile={isMobile}
@@ -1343,8 +1347,8 @@ const SidebarSubMenu: React.FC<{
 
   return (
     <div className="ml-4">
-      {items.map((item) => (
-        <div key={parentPath + item.path} className="mb-1">
+      {items.map((item, index) => (
+        <div key={`${parentPath}-${item.label}-${index}`} className="mb-1">
           <Link
             to={item.hasSubmenu ? '#' : item.path}
             className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
@@ -1354,7 +1358,7 @@ const SidebarSubMenu: React.FC<{
             }`}
             onClick={() => {
               if (item.hasSubmenu) {
-                handleToggle(parentPath + item.path);
+                handleToggle(`${parentPath}-${item.label}-${index}`);
               } else if (isMobile) {
                 onClose();
               }
@@ -1363,16 +1367,16 @@ const SidebarSubMenu: React.FC<{
             <span className="flex-1">{item.label}</span>
             {item.hasSubmenu && (
               <span className="ml-auto">
-                {openKeys.includes(parentPath + item.path) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {openKeys.includes(`${parentPath}-${item.label}-${index}`) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
             )}
           </Link>
-          {item.hasSubmenu && openKeys.includes(parentPath + item.path) && item.submenuItems && !isCollapsed && (
+          {item.hasSubmenu && openKeys.includes(`${parentPath}-${item.label}-${index}`) && item.submenuItems && !isCollapsed && (
             <SidebarSubMenu
               items={item.submenuItems}
               openKeys={openKeys}
               setOpenKeys={setOpenKeys}
-              parentPath={parentPath + item.path}
+              parentPath={`${parentPath}-${item.label}-${index}`}
               isCollapsed={isCollapsed}
               onClose={onClose}
               isMobile={isMobile}
