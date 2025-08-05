@@ -130,8 +130,16 @@ import IntegrationWithPurchaseProcess from './components/VendorManagement/Integr
 import VendorRelationshipManagement from './components/VendorManagement/Vendor_Relationship_Management';
 import ComplianceAndLegalCheck from './components/VendorManagement/Compliance_and_Legal_Check';
 import VendorDocumentation from './components/VendorManagement/Vendor_Documentation';
+import SLA_Planning_and_Denition from './components/ServiceLevel/SLA_Planning_and_Denition';
+import Key_SLA_Components from './components/ServiceLevel/Key_SLA_Components';
+import SLA_Implementation from './components/ServiceLevel/SLA_Implementation';
+import SLA_Monitoring from './components/ServiceLevel/SLA_Monitoring';
+import SLA_Evaluation from './components/ServiceLevel/SLA_Evaluation';
+import SLA_Renewal_and_Exit_Process from './components/ServiceLevel/SLA_Renewal_and_Exit_Process';
 // import ReportingAndAnalysis_Vendor from './components/VendorManagement/Reporting_and_Analysis';
 import Vendor_Reporting_and_Analysis from './components/VendorManagement/Reporting_and_Analysis';
+import KPIPage from './components/KPI/KPI';
+import ComplaintPage from './components/Complaint/Complaint';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -344,7 +352,19 @@ const AppRoutes = () => {
         <Route path="vendor-documentation" element={<VendorDocumentation />} />
         <Route path="reporting-and-analysis" element={<Vendor_Reporting_and_Analysis />} />
 
+        {/* SLA Management Routes */}
+        <Route path="sla-planning-and-denition" element={<SLA_Planning_and_Denition />} />
+        <Route path="key-sla-components" element={<Key_SLA_Components />} />
+        <Route path="sla-implementation" element={<SLA_Implementation />} />
+        <Route path="sla-monitoring" element={<SLA_Monitoring />} />
+        <Route path="sla-evaluation" element={<SLA_Evaluation />} />
+        <Route path="sla-renewal-and-exit-process" element={<SLA_Renewal_and_Exit_Process />} />
 
+        {/* KPI Management Routes */}
+        <Route path="kpi" element={<KPIPage />} />
+
+        {/* Complaint Management Routes */}
+        <Route path="complaint-management" element={<ComplaintPage />} />
       </Route>
 
       {/* Catch all unmatched routes */}

@@ -728,14 +728,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Service Level Agreement (SLA)',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'SLA Planning and Denition' },
-          { path: '#', label: 'Key SLA Components' },
-          { path: '#', label: 'SLA Implementation' },
-          { path: '#', label: 'SLA Monitoring' },
-          { path: '#', label: 'SLA Evaluation' },
-          { path: '#', label: 'SLA Renewal and Exit Process' },
+          { path: '/sla-planning-and-denition', label: 'SLA Planning and Denition' },
+          { path: '/key-sla-components', label: 'Key SLA Components' },
+          { path: '/sla-implementation', label: 'SLA Implementation' },
+          { path: '/sla-monitoring', label: 'SLA Monitoring' },
+          { path: '/sla-evaluation', label: 'SLA Evaluation' },
+          { path: '/sla-renewal-and-exit-process', label: 'SLA Renewal and Exit Process' },
         ]
-      },
+      },  
       // 21. Key Performance Indicators (KPI)
       {
         path: '#',
@@ -743,16 +743,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Key Performance Indicators (KPI)',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Facility Department KPI' },
-          { path: '#', label: 'Security Department KPI' },
-          { path: '#', label: 'Procurement KPI' },
-          { path: '#', label: 'Admin Department KPI' },
-          { path: '#', label: 'Finance Department KPI' },
-          { path: '#', label: 'Vendor Management KPI' },
-          { path: '#', label: 'Training & Development KPI' },
-          { path: '#', label: 'Company-Wide KPI' },
-          { path: '#', label: 'Individual Sta KPI' },
+          { path: '/kpi', label: 'KPI' },
         ]
+        // submenuItems: [
+        //   { path: '#', label: 'Facility Department KPI' },
+        //   { path: '#', label: 'Security Department KPI' },
+        //   { path: '#', label: 'Procurement KPI' },
+        //   { path: '#', label: 'Admin Department KPI' },
+        //   { path: '#', label: 'Finance Department KPI' },
+        //   { path: '#', label: 'Vendor Management KPI' },
+        //   { path: '#', label: 'Training & Development KPI' },
+        //   { path: '#', label: 'Company-Wide KPI' },
+        //   { path: '#', label: 'Individual Sta KPI' },
+        // ]
       },
       // 22. Raise Complaints and Solutions
       {
@@ -761,13 +764,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Raise Complaints and Solutions',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Client Complaint Management' },
-          { path: '#', label: 'Sta Complaint Management' },
-          { path: '#', label: 'Client Complaint Resolution' },
-          { path: '#', label: 'Sta Complaint Resolution' },
-          { path: '#', label: 'Escalation Tracking' },
-          { path: '#', label: 'Root Cause & Corrective Action' },
+          { path: '/complaint-management', label: 'Complaint' },
         ]
+        // submenuItems: [
+        //   { path: '#', label: 'Client Complaint Management' },
+        //   { path: '#', label: 'Sta Complaint Management' },
+        //   { path: '#', label: 'Client Complaint Resolution' },
+        //   { path: '#', label: 'Sta Complaint Resolution' },
+        //   { path: '#', label: 'Escalation Tracking' },
+        //   { path: '#', label: 'Root Cause & Corrective Action' },
+        // ]
       },
       // 23. Back-End Office Management
       {
