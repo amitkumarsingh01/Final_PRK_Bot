@@ -16,6 +16,7 @@ from reportlab.lib.pagesizes import A4
 import shutil
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.types import JSON as SAJSON
+from enum import Enum
 
 
 
@@ -12122,3 +12123,671 @@ def delete_report(report_id: str, db: Session = Depends(get_db)):
         db.delete(record); db.commit()
     except Exception as e:
         db.rollback(); raise HTTPException(status_code=500, detail=f"Error deleting report: {str(e)}")
+
+# --- Helper Functions ---
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+# --- SQLAlchemy ORM Models ---
+
+# Main Parent Table
+class TransitionChecklistReport(Base):
+    __tablename__ = "transition_checklist_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    property_id = Column(String, index=True, nullable=False)
+    # Metadata fields
+    company_logo = Column(String)
+    client_logo = Column(String)
+    site_name = Column(String)
+    transition_details = Column(String)
+    prepared_by = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-many relationship to a unified checklist table
+    checklist_items = relationship("ChecklistItem", back_populates="report", cascade="all, delete-orphan")
+
+# Unified Child Table for all checklist items
+class ChecklistItem(Base):
+    __tablename__ = "checklist_items"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_id = Column(String, ForeignKey("transition_checklist_reports.id"), nullable=False)
+    section = Column(String, index=True) # e.g., "Helpdesk", "Housekeeping"
+    sr_no = Column(Integer)
+    description = Column(Text)
+    critical_important_desirable = Column(String)
+    applicable = Column(String)
+    availability_status = Column(String)
+    details = Column(Text)
+    remarks = Column(Text)
+    report = relationship("TransitionChecklistReport", back_populates="checklist_items")
+
+# --- Pydantic Schemas ---
+class ChecklistItemSchema(BaseModel):
+    sr_no: int
+    description: str
+    critical_important_desirable: str
+    applicable: str
+    availability_status: str
+    details: str
+    remarks: str
+    class Config: from_attributes = True
+
+class SectionCategorySchema(BaseModel):
+    documents_to_be_customised: List[ChecklistItemSchema] = []
+
+# Schemas for API Operations
+class TransitionChecklistCreate(BaseModel):
+    property_id: str
+    company_logo: str
+    client_logo: str
+    site_name: str
+    transition_details: str
+    prepared_by: str
+    sections: Dict[str, SectionCategorySchema]
+
+class TransitionChecklistUpdate(BaseModel):
+    property_id: Optional[str] = None
+    company_logo: Optional[str] = None
+    client_logo: Optional[str] = None
+    site_name: Optional[str] = None
+    transition_details: Optional[str] = None
+    prepared_by: Optional[str] = None
+    sections: Optional[Dict[str, SectionCategorySchema]] = None
+
+# Schema for API Response
+class TransitionChecklistResponse(BaseModel):
+    id: str; property_id: str; created_at: datetime; updated_at: datetime
+    company_logo: str; client_logo: str; site_name: str; transition_details: str; prepared_by: str
+    sections: Dict[str, SectionCategorySchema]
+    class Config: from_attributes = True
+
+    @classmethod
+    def from_orm_model(cls, report: TransitionChecklistReport):
+        # Reconstruct the nested sections object from the flat list of items
+        sections_data = {}
+        for item in report.checklist_items:
+            # Initialize the section if it's not already in our dictionary
+            if item.section not in sections_data:
+                sections_data[item.section] = {"documents_to_be_customised": []}
+            
+            item_schema = ChecklistItemSchema.from_orm(item)
+            sections_data[item.section]["documents_to_be_customised"].append(item_schema)
+
+        return cls(
+            id=report.id, property_id=report.property_id, created_at=report.created_at, updated_at=report.updated_at,
+            company_logo=report.company_logo, client_logo=report.client_logo, site_name=report.site_name,
+            transition_details=report.transition_details, prepared_by=report.prepared_by,
+            sections=sections_data
+        )
+
+Base.metadata.create_all(bind=engine)
+TAG = "Transition Checklists"
+
+@app.post("/transition-checklists/", response_model=TransitionChecklistResponse, status_code=status.HTTP_201_CREATED, tags=[TAG])
+def create_checklist(report_data: TransitionChecklistCreate, db: Session = Depends(get_db)):
+    try:
+        report_dict = report_data.dict(exclude={"sections"}) # Exclude sections from main object creation
+        db_report = TransitionChecklistReport(**report_dict)
+        db.add(db_report)
+        db.flush()
+
+        # Iterate through the sections dictionary and add items to the unified table
+        for section_name, section_content in report_data.sections.items():
+            for item_data in section_content.documents_to_be_customised:
+                db_item = ChecklistItem(
+                    report_id=db_report.id,
+                    section=section_name,
+                    **item_data.dict()
+                )
+                db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_report)
+        return TransitionChecklistResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating checklist: {str(e)}")
+
+@app.get("/transition-checklists/", response_model=List[TransitionChecklistResponse], tags=[TAG])
+def get_all_checklists(skip: int = 0, limit: int = 10, property_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(TransitionChecklistReport)
+    if property_id:
+        query = query.filter(TransitionChecklistReport.property_id == property_id)
+    reports = query.offset(skip).limit(limit).all()
+    return [TransitionChecklistResponse.from_orm_model(r) for r in reports]
+
+@app.get("/transition-checklists/{report_id}", response_model=TransitionChecklistResponse, tags=[TAG])
+def get_checklist_by_id(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(TransitionChecklistReport).filter(TransitionChecklistReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+    return TransitionChecklistResponse.from_orm_model(report)
+
+@app.put("/transition-checklists/{report_id}", response_model=TransitionChecklistResponse, tags=[TAG])
+def update_checklist(report_id: str, update_data: TransitionChecklistUpdate, db: Session = Depends(get_db)):
+    db_report = db.query(TransitionChecklistReport).filter(TransitionChecklistReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+    try:
+        # Update metadata fields
+        update_dict = update_data.dict(exclude_unset=True)
+        for key, value in update_dict.items():
+            if key != "sections":
+                setattr(db_report, key, value)
+
+        # Replace checklist items if provided
+        if 'sections' in update_dict:
+            db.query(ChecklistItem).filter(ChecklistItem.report_id == report_id).delete(synchronize_session=False)
+            for section_name, section_content in update_dict['sections'].items():
+                for item_data in section_content['documents_to_be_customised']:
+                    db_item = ChecklistItem(report_id=report_id, section=section_name, **item_data)
+                    db.add(db_item)
+
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return TransitionChecklistResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating checklist: {str(e)}")
+
+@app.delete("/transition-checklists/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[TAG])
+def delete_checklist(report_id: str, db: Session = Depends(get_db)):
+    report = db.query(TransitionChecklistReport).filter(TransitionChecklistReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Checklist not found")
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting checklist: {str(e)}")
+
+# ============================================================================
+# POST TRANSITION CHECKLISTS - SEPARATE DATABASE
+# ============================================================================
+
+# Separate database for post transition checklists
+# POST_DATABASE_URL = "sqlite:///./post_transition.db"
+# post_engine = create_engine(POST_DATABASE_URL, connect_args={"check_same_thread": False})
+# PostSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=post_engine)
+PostBase = declarative_base()
+
+def get_post_db():
+    db = PostSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Post Transition Checklist Models
+class PostTransitionChecklistReport(PostBase):
+    __tablename__ = "post_transition_checklist_reports"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    property_id = Column(String, index=True, nullable=False)
+    # Metadata fields
+    company_logo = Column(String)
+    client_logo = Column(String)
+    site_name = Column(String)
+    transition_details = Column(String)
+    prepared_by = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # One-to-many relationship to a unified checklist table
+    checklist_items = relationship("PostChecklistItem", back_populates="report", cascade="all, delete-orphan")
+
+class PostChecklistItem(PostBase):
+    __tablename__ = "post_checklist_items"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String, ForeignKey("post_transition_checklist_reports.id"), nullable=False)
+    section = Column(String, index=True) # e.g., "Helpdesk", "Housekeeping"
+    sr_no = Column(Integer)
+    description = Column(Text)
+    critical_important_desirable = Column(String)
+    applicable = Column(String)
+    availability_status = Column(String)
+    details = Column(Text)
+    remarks = Column(Text)
+    report = relationship("PostTransitionChecklistReport", back_populates="checklist_items")
+
+# Post Transition Pydantic Schemas
+class PostChecklistItemSchema(BaseModel):
+    sr_no: int
+    description: str
+    critical_important_desirable: str
+    applicable: str
+    availability_status: str
+    details: str
+    remarks: str
+    class Config: from_attributes = True
+
+class PostSectionCategorySchema(BaseModel):
+    documents_to_be_customised: List[PostChecklistItemSchema] = []
+
+class PostTransitionChecklistCreate(BaseModel):
+    property_id: str
+    company_logo: str
+    client_logo: str
+    site_name: str
+    transition_details: str
+    prepared_by: str
+    sections: Dict[str, PostSectionCategorySchema]
+
+class PostTransitionChecklistUpdate(BaseModel):
+    property_id: Optional[str] = None
+    company_logo: Optional[str] = None
+    client_logo: Optional[str] = None
+    site_name: Optional[str] = None
+    transition_details: Optional[str] = None
+    prepared_by: Optional[str] = None
+    sections: Optional[Dict[str, PostSectionCategorySchema]] = None
+
+class PostTransitionChecklistResponse(BaseModel):
+    id: str; property_id: str; created_at: datetime; updated_at: datetime
+    company_logo: str; client_logo: str; site_name: str; transition_details: str; prepared_by: str
+    sections: Dict[str, PostSectionCategorySchema]
+    class Config: from_attributes = True
+
+    @classmethod
+    def from_orm_model(cls, report: PostTransitionChecklistReport):
+        # Reconstruct the nested sections object from the flat list of items
+        sections_data = {}
+        for item in report.checklist_items:
+            # Initialize the section if it's not already in our dictionary
+            if item.section not in sections_data:
+                sections_data[item.section] = {"documents_to_be_customised": []}
+            
+            item_schema = PostChecklistItemSchema.from_orm(item)
+            sections_data[item.section]["documents_to_be_customised"].append(item_schema)
+
+        return cls(
+            id=report.id, property_id=report.property_id, created_at=report.created_at, updated_at=report.updated_at,
+            company_logo=report.company_logo, client_logo=report.client_logo, site_name=report.site_name,
+            transition_details=report.transition_details, prepared_by=report.prepared_by,
+            sections=sections_data
+        )
+
+# Create tables for post transition database
+# PostBase.metadata.create_all(bind=post_engine)
+POST_TAG = "Post Transition Checklists"
+
+@app.post("/post/transition-checklists/", response_model=PostTransitionChecklistResponse, status_code=status.HTTP_201_CREATED, tags=[POST_TAG])
+def create_post_checklist(report_data: PostTransitionChecklistCreate, db: Session = Depends(get_post_db)):
+    try:
+        report_dict = report_data.dict(exclude={"sections"}) # Exclude sections from main object creation
+        db_report = PostTransitionChecklistReport(**report_dict)
+        db.add(db_report)
+        db.flush()
+
+        # Iterate through the sections dictionary and add items to the unified table
+        for section_name, section_content in report_data.sections.items():
+            for item_data in section_content.documents_to_be_customised:
+                db_item = PostChecklistItem(
+                    report_id=db_report.id,
+                    section=section_name,
+                    **item_data.dict()
+                )
+                db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_report)
+        return PostTransitionChecklistResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating post checklist: {str(e)}")
+
+@app.get("/post/transition-checklists/", response_model=List[PostTransitionChecklistResponse], tags=[POST_TAG])
+def get_all_post_checklists(skip: int = 0, limit: int = 10, property_id: Optional[str] = None, db: Session = Depends(get_post_db)):
+    query = db.query(PostTransitionChecklistReport)
+    if property_id:
+        query = query.filter(PostTransitionChecklistReport.property_id == property_id)
+    reports = query.offset(skip).limit(limit).all()
+    return [PostTransitionChecklistResponse.from_orm_model(r) for r in reports]
+
+@app.get("/post/transition-checklists/{report_id}", response_model=PostTransitionChecklistResponse, tags=[POST_TAG])
+def get_post_checklist_by_id(report_id: str, db: Session = Depends(get_post_db)):
+    report = db.query(PostTransitionChecklistReport).filter(PostTransitionChecklistReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Post checklist not found")
+    return PostTransitionChecklistResponse.from_orm_model(report)
+
+@app.put("/post/transition-checklists/{report_id}", response_model=PostTransitionChecklistResponse, tags=[POST_TAG])
+def update_post_checklist(report_id: str, update_data: PostTransitionChecklistUpdate, db: Session = Depends(get_post_db)):
+    db_report = db.query(PostTransitionChecklistReport).filter(PostTransitionChecklistReport.id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Post checklist not found")
+    try:
+        # Update metadata fields
+        update_dict = update_data.dict(exclude_unset=True)
+        for key, value in update_dict.items():
+            if key != "sections":
+                setattr(db_report, key, value)
+
+        # Replace checklist items if provided
+        if 'sections' in update_dict:
+            db.query(PostChecklistItem).filter(PostChecklistItem.report_id == report_id).delete(synchronize_session=False)
+            for section_name, section_content in update_dict['sections'].items():
+                for item_data in section_content['documents_to_be_customised']:
+                    db_item = PostChecklistItem(report_id=report_id, section=section_name, **item_data)
+                    db.add(db_item)
+
+        db_report.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_report)
+        return PostTransitionChecklistResponse.from_orm_model(db_report)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating post checklist: {str(e)}")
+
+@app.delete("/post/transition-checklists/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=[POST_TAG])
+def delete_post_checklist(report_id: str, db: Session = Depends(get_post_db)):
+    report = db.query(PostTransitionChecklistReport).filter(PostTransitionChecklistReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Post checklist not found")
+    try:
+        db.delete(report)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting post checklist: {str(e)}")
+
+
+class ShiftEnum(str, Enum):
+    """Enum for the shift types."""
+    morning = "Morning"
+    evening = "Evening"
+    night = "Night"
+
+class Task(BaseModel):
+    """Schema for a single task within a department."""
+    time: str = Field(..., example="07:00")
+    task_description: str = Field(..., example="Shift Handover")
+    person_responsible: str = Field(..., example="Supervisor")
+    status_remarks: str = Field(..., example="Completed, logbook signed")
+
+class Departments(BaseModel):
+    """Schema for the departments object containing lists of tasks."""
+    security: List[Task]
+    housekeeping: List[Task]
+    technical_maintenance: List[Task]
+    facility_soft_services: List[Task]
+
+class WorkSummary(BaseModel):
+    """Schema for the summary of work updates."""
+    department: str = Field(..., example="Security")
+    tasks_planned: int = Field(..., example=6)
+    completed: int = Field(..., example=6)
+    pending: int = Field(..., example=0)
+    remarks: str = Field(..., example="Smooth day")
+
+class SiteReportBase(BaseModel):
+    """Base schema for a site report."""
+    property_id: str = Field(..., example="P-001")
+    date: str = Field(..., example="12/08/2025")
+    site_name: str = Field(..., example="ABC Tower")
+    prepared_by: str = Field(..., example="Supervisor Name")
+    shift: ShiftEnum
+    departments: Departments
+    summary_of_work_updates: List[WorkSummary]
+
+class SiteReportCreate(SiteReportBase):
+    """Schema used for creating a new report. Inherits all fields from Base."""
+    pass
+
+class SiteReport(SiteReportBase):
+    """Schema used for reading a report from the DB. Includes the DB record ID."""
+    id: int
+
+    class Config:
+        orm_mode = True # Enables Pydantic to read data from ORM models
+
+# --- SQLAlchemy Model (Database Table) ---
+
+class ReportDB(Base):
+    """Database ORM model for the 'reports' table."""
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    date = Column(String)
+    site_name = Column(String)
+    prepared_by = Column(String)
+    shift = Column(String)
+    # Storing complex objects as JSON is efficient for this kind of nested data
+    departments = Column(JSON)
+    summary_of_work_updates = Column(JSON)
+
+# Create the database tables
+Base.metadata.create_all(bind=engine)
+# --- Dependency for DB Session ---
+
+def get_db():
+    """Dependency to get a DB session for each request."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# --- API Endpoints ---
+
+@app.post("/reports/", response_model=SiteReport, status_code=status.HTTP_201_CREATED, tags=["Reports"])
+def create_report(report: SiteReportCreate, db: Session = Depends(get_db)):
+    """
+    Create a new site report.
+    
+    The request body must contain all the details of the report as per the JSON structure.
+    """
+    # Pydantic's .dict() method converts the model to a Python dictionary
+    report_data = report.dict()
+    db_report = ReportDB(**report_data)
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@app.get("/reports/", response_model=List[SiteReport], tags=["Reports"])
+def read_reports(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Retrieve a list of all site reports.
+    
+    Supports pagination with `skip` and `limit` query parameters.
+    """
+    reports = db.query(ReportDB).offset(skip).limit(limit).all()
+    return reports
+
+@app.get("/reports/{report_id}", response_model=SiteReport, tags=["Reports"])
+def read_report_by_id(report_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single site report by its unique ID.
+    """
+    db_report = db.query(ReportDB).filter(ReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    return db_report
+
+@app.put("/reports/{report_id}", response_model=SiteReport, tags=["Reports"])
+def update_report(report_id: int, report: SiteReportCreate, db: Session = Depends(get_db)):
+    """
+    Update an existing site report by its ID.
+    
+    The request body must contain the full updated report data.
+    """
+    db_report = db.query(ReportDB).filter(ReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    
+    # Update the model fields
+    update_data = report.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_report, key, value)
+        
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@app.delete("/reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Reports"])
+def delete_report(report_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a site report by its ID.
+    """
+    db_report = db.query(ReportDB).filter(ReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    
+    db.delete(db_report)
+    db.commit()
+    # No body is returned for a 204 response
+    return {"ok": True}
+
+class StatusEnum(str, Enum):
+    """Enum for the status types."""
+    yes = "Yes"
+    no = "No"
+
+class TypeEnum(str, Enum):
+    """Enum for the training types."""
+    theory = "Theory"
+    practical = "Practical"
+
+class TrainingItemBase(BaseModel):
+    """Schema for a single training item in the schedule list (for INPUT)."""
+    Month: str = Field(..., example="January")
+    Week: int = Field(..., example=1)
+    type: TypeEnum
+    Topics: str = Field(..., example="About the Company.& It's Benefits.")
+    status: StatusEnum
+
+class ScheduleBase(BaseModel):
+    """Base schema for a training schedule (for INPUT)."""
+    property_id: str = Field(..., example="PROP-789")
+    year: int = Field(..., example=2025)
+    training_schedule: List[TrainingItemBase]
+
+class ScheduleCreate(ScheduleBase):
+    """Schema used for creating a new schedule."""
+    pass
+
+class ScheduleUpdate(ScheduleBase):
+    """Schema used for updating an existing schedule."""
+    pass
+
+class Schedule(ScheduleBase):
+    """
+    Main schema for a training schedule (for OUTPUT).
+    It includes the auto-generated database fields.
+    """
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True # Enables Pydantic to read data from ORM models
+
+# --- SQLAlchemy Model (Database Table) ---
+
+class ScheduleDB(Base):
+    """Database ORM model for the 'schedules' table."""
+    __tablename__ = "schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    year = Column(Integer, index=True)
+    
+    # The entire list of training items is stored in a single JSON column
+    training_schedule = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database tables if they don't exist
+Base.metadata.create_all(bind=engine)
+
+
+# --- Dependency for DB Session ---
+def get_db():
+    """Dependency to get a DB session for each request."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# --- API Endpoints ---
+
+@app.post("/schedules/", response_model=Schedule, status_code=status.HTTP_201_CREATED, tags=["Schedules"])
+def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
+    """
+    Create a new annual training schedule.
+    
+    The request body must contain `property_id`, `year`, and the list of `training_schedule` items.
+    The `id`, `created_at`, and `updated_at` fields will be auto-generated.
+    """
+    schedule_data = schedule.dict()
+    db_schedule = ScheduleDB(**schedule_data)
+    db.add(db_schedule)
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+@app.get("/schedules/", response_model=List[Schedule], tags=["Schedules"])
+def read_schedules(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve a list of all training schedules.
+    
+    Supports pagination with `skip` and `limit` query parameters.
+    """
+    schedules = db.query(ScheduleDB).offset(skip).limit(limit).all()
+    return schedules
+
+@app.get("/schedules/{schedule_id}", response_model=Schedule, tags=["Schedules"])
+def read_schedule_by_id(schedule_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single training schedule by its unique ID.
+    """
+    db_schedule = db.query(ScheduleDB).filter(ScheduleDB.id == schedule_id).first()
+    if db_schedule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    return db_schedule
+
+@app.put("/schedules/{schedule_id}", response_model=Schedule, tags=["Schedules"])
+def update_schedule(schedule_id: int, schedule: ScheduleUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing training schedule by its ID.
+    
+    The request body must contain the full updated schedule data.
+    """
+    db_schedule = db.query(ScheduleDB).filter(ScheduleDB.id == schedule_id).first()
+    if db_schedule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    
+    update_data = schedule.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_schedule, key, value)
+        
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+@app.delete("/schedules/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Schedules"])
+def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a training schedule by its ID.
+    """
+    db_schedule = db.query(ScheduleDB).filter(ScheduleDB.id == schedule_id).first()
+    if db_schedule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    
+    db.delete(db_schedule)
+    db.commit()
+    return {"ok": True}

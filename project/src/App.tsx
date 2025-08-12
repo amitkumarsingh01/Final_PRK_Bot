@@ -37,8 +37,10 @@ import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 import UserTasks from './pages/Users/UserTasks';
 import DailyTaskManagementAllDepartment from './components/DailyTaskManagement/DailyTaskManagementAllDepartment';
 import DailyManagementReport from './components/DailyTaskManagement/DailyManagementReport';
+import DailyReports from './components/DailyTaskManagement/DailyReports';
 import MonthlyTask from './components/MonthlyTaskManagement/MonthlyTask';
 import WeekCalendar from './components/52Week/52WeekCalender';
+import WeekTraining from './components/52Week/52WeekTraining.tsx';
 import IncidentReportPage from './components/IncidentReport/IncidentReport';
 import NightIncidentPage from './components/Patrolling/NightIncident';
 import SiteSecurityPage from './components/Patrolling/SiteSecurity';
@@ -140,6 +142,9 @@ import SLA_Renewal_and_Exit_Process from './components/ServiceLevel/SLA_Renewal_
 import Vendor_Reporting_and_Analysis from './components/VendorManagement/Reporting_and_Analysis';
 import KPIPage from './components/KPI/KPI';
 import ComplaintPage from './components/Complaint/Complaint';
+import TransitionChecklistsPage from './components/TransitionChecklist/TransitionChecklists';
+import PostTransitionChecklistsPage from './components/TransitionChecklist/PostTransitionChecklists';
+import DailyReportsPage from './components/DailyTaskManagement/DailyReports.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -207,13 +212,15 @@ const AppRoutes = () => {
           <Route path="diesel-generator" element={<DieselGeneratorDashboard/>} />
         </Route>
         <Route path="daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
+        <Route path="daily-management-report" element={<DailyManagementReport />} />
+        <Route path="daily-reports" element={<DailyReports />} />
         <Route path="monthly-task-management" element={<MonthlyTask />} />
         <Route path="52-week-work-calendar" element={<WeekCalendar />} />
+        <Route path="52-week-training" element={<WeekTraining />} />
         <Route path="incident-report" element={<IncidentReportPage />} />
         <Route path="night-patrolling-report" element={<NightIncidentPage />} />
         <Route path="site-security-patrolling-report" element={<SiteSecurityPage />} />
         <Route path="technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
-        <Route path="daily-management-report" element={<DailyManagementReport />} />
         <Route path="audit-reports" element={<AuditReportPage />} />
         <Route path="profile" element={<Profile />} />
         <Route path="activity" element={<div className="p-4">Activity Log Page</div>} />
@@ -365,6 +372,16 @@ const AppRoutes = () => {
 
         {/* Complaint Management Routes */}
         <Route path="complaint-management" element={<ComplaintPage />} />
+
+        {/* Transition Checklists Routes */}
+        <Route path="transition-checklists" element={<TransitionChecklistsPage />} />
+        <Route path="post-transition-checklist" element={<PostTransitionChecklistsPage />} />
+
+        {/* Daily Task Management Routes */}
+        <Route path="daily-reports" element={<DailyReportsPage />} />
+
+        {/* 52 Week Training Routes */}
+        <Route path="52-week-training-calendar" element={<WeekTraining />} />
       </Route>
 
       {/* Catch all unmatched routes */}
@@ -372,7 +389,7 @@ const AppRoutes = () => {
         <Navigate to={
           !isAuthenticated ? "/login" : 
           user?.status === 'active' ? "/profile" : "/verify"
-        } replace />
+        } replace />  
       } />
     </Routes>
   );
