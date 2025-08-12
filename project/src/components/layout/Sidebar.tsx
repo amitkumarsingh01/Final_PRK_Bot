@@ -754,7 +754,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         //   { path: '#', label: 'Vendor Management KPI' },
         //   { path: '#', label: 'Training & Development KPI' },
         //   { path: '#', label: 'Company-Wide KPI' },
-        //   { path: '#', label: 'Individual Sta KPI' },
+        //   { path: '#', label: 'Individual Staff KPI' },
         // ]
       },
       // 22. Raise Complaints and Solutions
@@ -768,9 +768,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         ]
         // submenuItems: [
         //   { path: '#', label: 'Client Complaint Management' },
-        //   { path: '#', label: 'Sta Complaint Management' },
+        //   { path: '#', label: 'Staff Complaint Management' },
         //   { path: '#', label: 'Client Complaint Resolution' },
-        //   { path: '#', label: 'Sta Complaint Resolution' },
+        //   { path: '#', label: 'Staff Complaint Resolution' },
         //   { path: '#', label: 'Escalation Tracking' },
         //   { path: '#', label: 'Root Cause & Corrective Action' },
         // ]
@@ -790,12 +790,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '#', label: 'Background Verication Reports' },
           { path: '#', label: 'Loss Prevention & Investigation Reports' },
           { path: '#', label: 'Emergency Response Team (ERT) Details' },
-          { path: '#', label: 'Site Sta Details' },
+          { path: '#', label: 'Site Staff Details' },
           { path: '#', label: 'Back-Oce Task Management' },
-          { path: '#', label: 'Field Sta Daily Reports' },
-          { path: '#', label: 'Oce Sta Daily Reports' },
-          { path: '#', label: 'Field Sta Monthly Reports' },
-          { path: '#', label: 'Oce Sta Monthly Reports' },
+          { path: '#', label: 'Field Staff Daily Reports' },
+          { path: '#', label: 'Oce Staff Daily Reports' },
+          { path: '#', label: 'Field Staff Monthly Reports' },
+          { path: '#', label: 'Oce Staff Monthly Reports' },
         ]
       },
       // 24. Work Permit
