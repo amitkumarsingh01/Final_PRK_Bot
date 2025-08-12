@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/daily-task-management-all-department', label: 'Daily Task Management of all department' },
           { path: '/tasks', label: 'Daily logs of all department' },
           { path: '/daily-management-report', label: 'Daily Management Report' },
-          { path: '#', label: 'Daily Complete work Details ' },
+          { path: '/daily-reports', label: 'Daily Complete work Details ' },
         ]
       },
       {
@@ -224,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '/52-week-work-calendar', label: '52 Week Work Calendar' },
-          { path: '#', label: '52 week training calendar format' },
+          { path: '/52-week-training-calendar', label: '52 week training calendar format' },
         ]
       },
       { path: '/incident-report', icon: <ClipboardList size={20} />, label: 'Incident Report' },
@@ -540,8 +540,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Transition Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'Site Pre-Transition' },
-          { path: '#', label: 'Post-Transition' },
+          { path: '/transition-checklists', label: 'Site Pre-Transition' },
+          { path: '/post-transition-checklist', label: 'Post-Transition' },
         ]
       },
       // 10. Gate Management
