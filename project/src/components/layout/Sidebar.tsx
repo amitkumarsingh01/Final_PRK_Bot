@@ -806,6 +806,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '#', label: 'All Work Permit' },
+          { path: '/interior-work-permit', label: 'Interior Work Permit' },
+          { path: '/vehicle-entry-permit', label: 'Vehicle Entry Permit' },
         ]
       },
       // 25. All Reports

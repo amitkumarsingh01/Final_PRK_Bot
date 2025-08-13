@@ -13776,174 +13776,4434 @@ def delete_site_visit_details(site_visit_id: int, db: Session = Depends(get_db))
     db.commit()
     return {"ok": True}
 
-from datetime import datetime
-from typing import List
+# --- Pydantic Schemas for Hot Work Permit ---
 
-# --- Pydantic Schemas (Data Validation Models) ---
-# We create a model for each nested object in the JSON.
+class HotWorkPermitCreate(BaseModel):
+    """Schema for creating hot work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_no: str = Field(..., example="HWP-2025-045")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    location_of_work: str = Field(..., example="Building A / Floor 3 / Zone C")
+    description_of_hot_work: str = Field(..., example="Welding of support beams near HVAC duct")
+    person_or_agency_performing_work: str = Field(..., example="SteelFix Contractors Pvt. Ltd.")
+    supervisor_or_project_incharge_name: str = Field(..., example="Rajesh Sharma")
+    contact_number_worker: str = Field(..., example="+91-9876543210")
+    contact_number_supervisor: str = Field(..., example="+91-9123456780")
+    start_date_time: str = Field(..., example="2025-08-13T10:00:00")
+    end_date_time: str = Field(..., example="2025-08-13T14:30:00")
+    fire_watch_personnel_assigned: str = Field(..., example="Yes")
+    name_of_fire_watch_personnel: str = Field(..., example="Amit Verma")
+    fire_extinguisher_available: str = Field(..., example="Yes")
+    type_of_fire_extinguisher_provided: str = Field(..., example="CO2 4.5kg")
+    fire_blanket_or_shielding_used: str = Field(..., example="Yes")
+    nearby_flammable_materials_removed_or_covered: str = Field(..., example="Yes")
+    gas_cylinders_condition_verified: str = Field(..., example="Yes")
+    work_area_ventilation_verified: str = Field(..., example="Yes")
+    sparks_and_heat_barriers_installed: str = Field(..., example="Yes")
+    area_wet_down_if_required: str = Field(..., example="No")
+    gas_detector_used: str = Field(..., example="Yes")
+    last_gas_test_reading_ppm: int = Field(..., example=12)
+    ppe_verified: List[str] = Field(..., example=["Helmet", "Goggles", "Gloves", "Apron", "Shoes"])
+    permit_validity_period: str = Field(..., example="2025-08-13T10:00:00 to 2025-08-13T14:30:00")
+    emergency_procedure_explained_to_workers: str = Field(..., example="Yes")
+    area_inspected_before_work_by: str = Field(..., example="Vikram Singh")
+    area_inspected_after_work_by: str = Field(..., example="Pooja Nair")
+    work_completed_time: str = Field(..., example="2025-08-13T14:20:00")
+    post_work_fire_watch_time: str = Field(..., example="30 minutes")
+    final_area_clearance_given_by: str = Field(..., example="Safety Officer - Anil Kumar")
+    signature_of_worker: str = Field(..., example="Rajeev Kumar")
+    signature_of_fire_watcher: str = Field(..., example="Amit Verma")
+    signature_of_safety_officer: str = Field(..., example="Anil Kumar")
+    remarks_or_precautions: str = Field(..., example="Ensure all tools are stored safely and conduct one more gas test after 15 minutes.")
 
-class VisitedBy(BaseModel):
-    name: str = Field(..., example="Ravi Kumar")
-    designation: str = Field(..., example="Senior Facility Manager")
+class HotWorkPermitUpdate(BaseModel):
+    """Schema for updating hot work permit."""
+    property_id: Optional[str] = None
+    permit_no: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    location_of_work: Optional[str] = None
+    description_of_hot_work: Optional[str] = None
+    person_or_agency_performing_work: Optional[str] = None
+    supervisor_or_project_incharge_name: Optional[str] = None
+    contact_number_worker: Optional[str] = None
+    contact_number_supervisor: Optional[str] = None
+    start_date_time: Optional[str] = None
+    end_date_time: Optional[str] = None
+    fire_watch_personnel_assigned: Optional[str] = None
+    name_of_fire_watch_personnel: Optional[str] = None
+    fire_extinguisher_available: Optional[str] = None
+    type_of_fire_extinguisher_provided: Optional[str] = None
+    fire_blanket_or_shielding_used: Optional[str] = None
+    nearby_flammable_materials_removed_or_covered: Optional[str] = None
+    gas_cylinders_condition_verified: Optional[str] = None
+    work_area_ventilation_verified: Optional[str] = None
+    sparks_and_heat_barriers_installed: Optional[str] = None
+    area_wet_down_if_required: Optional[str] = None
+    gas_detector_used: Optional[str] = None
+    last_gas_test_reading_ppm: Optional[int] = None
+    ppe_verified: Optional[List[str]] = None
+    permit_validity_period: Optional[str] = None
+    emergency_procedure_explained_to_workers: Optional[str] = None
+    area_inspected_before_work_by: Optional[str] = None
+    area_inspected_after_work_by: Optional[str] = None
+    work_completed_time: Optional[str] = None
+    post_work_fire_watch_time: Optional[str] = None
+    final_area_clearance_given_by: Optional[str] = None
+    signature_of_worker: Optional[str] = None
+    signature_of_fire_watcher: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    remarks_or_precautions: Optional[str] = None
 
-class VisitDetails(BaseModel):
-    serial_no: str = Field(..., example="001")
-    date_of_visit: str = Field(..., example="2025-08-13")
-    site_name: str = Field(..., example="Tech Park Tower A")
-    client_name: str = Field(..., example="ABC Corp Ltd.")
-    location: str = Field(..., example="Bengaluru, India")
-    visited_by: VisitedBy
-    visit_purpose: str = Field(..., example="Monthly Compliance Check")
-    time_in: str = Field(..., example="10:00 AM")
-    time_out: str = Field(..., example="1:30 PM")
-    duration_hours: str = Field(..., example="3.5")
-
-class ObservationItem(BaseModel):
-    department: str = Field(..., example="Security")
-    staff_met: str = Field(..., example="Ajay Sharma")
-    observation_summary: str = Field(..., example="Security guards were attentive...")
-    compliance_with_SOP: str = Field(..., example="Yes")
-    remarks: str
-    corrective_action_required: str
-
-class ChecklistItem(BaseModel):
-    item: str = Field(..., example="Staff Attendance Register Maintained")
-    status: str = Field(..., example="Yes")
-    remarks: str
-
-class PhotoItem(BaseModel):
-    location_area: str = Field(..., example="Main Lobby")
-    photo_description: str = Field(..., example="Clean lobby with reception desk")
-    photo_file_link: str = Field(..., example="https://example.com/photos/lobby.jpg")
-
-class ActionPlanItem(BaseModel):
-    issue_observed: str = Field(..., example="Washroom basin leakage")
-    assigned_to: str = Field(..., example="Rahul Singh - Maintenance")
-    target_completion_date: str = Field(..., example="2025-08-13")
-    status_update: str = Field(..., example="Pending")
-
-class FinalComments(BaseModel):
-    team_observations: str
-    client_feedback: str
-    suggestions_recommendations: str
-
-class ReportedBy(BaseModel):
-    name: str = Field(..., example="Ravi Kumar")
-    designation: str = Field(..., example="Senior Facility Manager")
-
-class SignOff(BaseModel):
-    reported_by: ReportedBy
-    signature: str = Field(..., example="Ravi_K_Signature.png")
-    date: str = Field(..., example="2025-08-13")
-
-class SiteVisitReportContent(BaseModel):
-    """The main nested object containing all report details."""
-    visit_details: VisitDetails
-    observation_interaction_summary: List[ObservationItem]
-    checklist_review: List[ChecklistItem]
-    photos: List[PhotoItem]
-    follow_up_action_plan: List[ActionPlanItem]
-    final_comments_summary: FinalComments
-    sign_off: SignOff
-
-class ReportBase(BaseModel):
-    """The root model for creating a report (INPUT)."""
-    property_id: str = Field(..., example="PROP-999")
-    site_visit_report: SiteVisitReportContent
-
-class ReportCreate(ReportBase):
-    pass
-
-class ReportUpdate(ReportBase):
-    pass
-
-class Report(ReportBase):
-    """The model for reading a report from the DB (OUTPUT)."""
+class HotWorkPermit(HotWorkPermitCreate):
+    """Schema for reading hot work permit from database."""
     id: int
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# --- SQLAlchemy Model (Database Table) ---
+# --- SQLAlchemy Model for Hot Work Permit ---
 
-class VisitReportDB(Base):
-    __tablename__ = "simple_visit_reports"
+class HotWorkPermitDB(Base):
+    """Database ORM model for the 'hot_work_permit' table."""
+    __tablename__ = "hot_work_permit"
 
     id = Column(Integer, primary_key=True, index=True)
     property_id = Column(String, index=True)
+    permit_no = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    location_of_work = Column(String)
+    description_of_hot_work = Column(Text)
+    person_or_agency_performing_work = Column(String)
+    supervisor_or_project_incharge_name = Column(String)
+    contact_number_worker = Column(String)
+    contact_number_supervisor = Column(String)
+    start_date_time = Column(String, index=True)
+    end_date_time = Column(String, index=True)
+    fire_watch_personnel_assigned = Column(String)
+    name_of_fire_watch_personnel = Column(String)
+    fire_extinguisher_available = Column(String)
+    type_of_fire_extinguisher_provided = Column(String)
+    fire_blanket_or_shielding_used = Column(String)
+    nearby_flammable_materials_removed_or_covered = Column(String)
+    gas_cylinders_condition_verified = Column(String)
+    work_area_ventilation_verified = Column(String)
+    sparks_and_heat_barriers_installed = Column(String)
+    area_wet_down_if_required = Column(String)
+    gas_detector_used = Column(String)
+    last_gas_test_reading_ppm = Column(Integer)
+    ppe_verified = Column(JSON)
+    permit_validity_period = Column(String)
+    emergency_procedure_explained_to_workers = Column(String)
+    area_inspected_before_work_by = Column(String)
+    area_inspected_after_work_by = Column(String)
+    work_completed_time = Column(String)
+    post_work_fire_watch_time = Column(String)
+    final_area_clearance_given_by = Column(String)
+    signature_of_worker = Column(String)
+    signature_of_fire_watcher = Column(String)
+    signature_of_safety_officer = Column(String)
+    remarks_or_precautions = Column(Text)
     
-    # Store the complex, nested site_visit_report object as a single JSON field
-    site_visit_report = Column(JSON)
-    
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Create the database table
 Base.metadata.create_all(bind=engine)
 
+# --- API Endpoints for Hot Work Permit ---
 
-
-# --- API Endpoints ---
-
-@app.post("/simple-visit-reports/", response_model=Report, status_code=status.HTTP_201_CREATED, tags=["Simple Visit Reports"])
-def create_visit_report(report: ReportCreate, db: Session = Depends(get_db)):
+@app.post("/hot-work-permit/", response_model=HotWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Hot Work Permit"])
+def create_hot_work_permit(permit: HotWorkPermitCreate, db: Session = Depends(get_db)):
     """
-    Create a new Site Visit Report.
+    Create a new hot work permit record.
     """
-    # Pydantic's .dict() method is perfect for converting the nested model to a JSON-compatible dict
-    report_data = report.dict()
-    db_report = VisitReportDB(**report_data)
-    db.add(db_report)
+    permit_data = permit.dict()
+    db_permit = HotWorkPermitDB(**permit_data)
+    db.add(db_permit)
     db.commit()
-    db.refresh(db_report)
-    return db_report
+    db.refresh(db_permit)
+    return db_permit
 
-@app.get("/simple-visit-reports/", response_model=List[Report], tags=["Simple Visit Reports"])
-def read_visit_reports(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+@app.get("/hot-work-permit/", response_model=List[HotWorkPermit], tags=["Hot Work Permit"])
+def read_hot_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     """
-    Retrieve all Site Visit Reports with pagination.
+    Retrieve all hot work permits with pagination.
     """
-    reports = db.query(VisitReportDB).offset(skip).limit(limit).all()
-    return reports
+    permit_records = db.query(HotWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
 
-@app.get("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
-def read_visit_report_by_id(report_id: int, db: Session = Depends(get_db)):
+@app.get("/hot-work-permit/{permit_id}", response_model=HotWorkPermit, tags=["Hot Work Permit"])
+def read_hot_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
     """
-    Retrieve a single Site Visit Report by its ID.
+    Retrieve a single hot work permit record by its ID.
     """
-    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
-    if db_report is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
-    return db_report
+    db_permit = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hot work permit not found")
+    return db_permit
 
-@app.put("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
-def update_visit_report(report_id: int, report: ReportUpdate, db: Session = Depends(get_db)):
+@app.get("/hot-work-permit/permit/{permit_no}", response_model=HotWorkPermit, tags=["Hot Work Permit"])
+def read_hot_work_permit_by_permit_no(permit_no: str, db: Session = Depends(get_db)):
     """
-    Update an existing Site Visit Report.
+    Retrieve a hot work permit by its permit number.
     """
-    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
-    if db_report is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    db_permit = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.permit_no == permit_no).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hot work permit not found")
+    return db_permit
 
-    update_data = report.dict(exclude_unset=True)
+@app.get("/hot-work-permit/property/{property_id}", response_model=List[HotWorkPermit], tags=["Hot Work Permit"])
+def read_hot_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all hot work permits for a specific property.
+    """
+    permit_records = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/hot-work-permit/date/{date}", response_model=List[HotWorkPermit], tags=["Hot Work Permit"])
+def read_hot_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all hot work permits for a specific date.
+    """
+    permit_records = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/hot-work-permit/status/active", response_model=List[HotWorkPermit], tags=["Hot Work Permit"])
+def read_active_hot_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active hot work permits (current date within validity period).
+    """
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    permit_records = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.date_of_issue == current_date).all()
+    return permit_records
+
+@app.get("/hot-work-permit/contractor/{contractor_name}", response_model=List[HotWorkPermit], tags=["Hot Work Permit"])
+def read_hot_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all hot work permits for a specific contractor.
+    """
+    permit_records = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.person_or_agency_performing_work.contains(contractor_name)).all()
+    return permit_records
+
+@app.put("/hot-work-permit/{permit_id}", response_model=HotWorkPermit, tags=["Hot Work Permit"])
+def update_hot_work_permit(permit_id: int, permit: HotWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing hot work permit record.
+    """
+    db_permit = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hot work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
     for key, value in update_data.items():
-        setattr(db_report, key, value)
+        setattr(db_permit, key, value)
         
     db.commit()
-    db.refresh(db_report)
-    return db_report
+    db.refresh(db_permit)
+    return db_permit
 
-@app.delete("/simple-visit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Simple Visit Reports"])
-def delete_visit_report(report_id: int, db: Session = Depends(get_db)):
+@app.delete("/hot-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Hot Work Permit"])
+def delete_hot_work_permit(permit_id: int, db: Session = Depends(get_db)):
     """
-    Delete a Site Visit Report by its ID.
+    Delete a hot work permit record by its ID.
     """
-    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
-    if db_report is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    db_permit = db.query(HotWorkPermitDB).filter(HotWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hot work permit not found")
     
-    db.delete(db_report)
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Cold Work Permit ---
+
+class ColdWorkPermitCreate(BaseModel):
+    """Schema for creating cold work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="CWP-2025-019")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    valid_from: str = Field(..., example="2025-08-13T09:00:00")
+    valid_to: str = Field(..., example="2025-08-13T18:00:00")
+    site_location_of_work: str = Field(..., example="Building B / Maintenance Wing")
+    floor_zone_area_details: str = Field(..., example="Floor 2 / Zone D / Corridor Section")
+    description_of_work: str = Field(..., example="Painting and minor wall repair")
+    nature_of_tools_used: List[str] = Field(..., example=["Paint rollers", "Ladders", "Scrapers"])
+    person_or_agency_performing_work: str = Field(..., example="BrightCoat Painters Pvt. Ltd.")
+    number_of_workers_assigned: int = Field(..., example=4)
+    contact_details_of_contractor: str = Field(..., example="+91-9876543211")
+    work_supervisor_name: str = Field(..., example="Sunil Mehta")
+    supervisor_contact_number: str = Field(..., example="+91-9123456782")
+    type_of_safety_gear_required: List[str] = Field(..., example=["Helmet", "Shoes", "Gloves", "Safety Goggles"])
+    safety_instructions_explained_to_team: str = Field(..., example="Yes")
+    risk_assessment_attached: str = Field(..., example="Yes")
+    msds_required: str = Field(..., example="No")
+    work_area_inspected_before_start: str = Field(..., example="Yes")
+    nearby_sensitive_equipment_covered_or_protected: str = Field(..., example="Yes")
+    floor_corridor_wall_protection_arranged: str = Field(..., example="Yes")
+    emergency_exit_access_ensured: str = Field(..., example="Yes")
+    fire_safety_equipment_nearby: str = Field(..., example="Yes")
+    waste_disposal_method: str = Field(..., example="Contractor")
+    permit_approved_by: str = Field(..., example="Facility Officer - Ramesh Iyer")
+    date_time_of_approval: str = Field(..., example="2025-08-13T08:45:00")
+    security_team_notified: str = Field(..., example="Yes")
+    post_work_area_inspection_done_by: str = Field(..., example="Facility Supervisor - Manish Gupta")
+    final_clearance_given: str = Field(..., example="Yes")
+    signature_of_contractor: str = Field(..., example="Arvind Kumar")
+    signature_of_approving_officer: str = Field(..., example="Ramesh Iyer")
+    remarks_or_precautions: str = Field(..., example="Ensure proper ventilation during painting and store leftover materials securely.")
+
+class ColdWorkPermitUpdate(BaseModel):
+    """Schema for updating cold work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_to: Optional[str] = None
+    site_location_of_work: Optional[str] = None
+    floor_zone_area_details: Optional[str] = None
+    description_of_work: Optional[str] = None
+    nature_of_tools_used: Optional[List[str]] = None
+    person_or_agency_performing_work: Optional[str] = None
+    number_of_workers_assigned: Optional[int] = None
+    contact_details_of_contractor: Optional[str] = None
+    work_supervisor_name: Optional[str] = None
+    supervisor_contact_number: Optional[str] = None
+    type_of_safety_gear_required: Optional[List[str]] = None
+    safety_instructions_explained_to_team: Optional[str] = None
+    risk_assessment_attached: Optional[str] = None
+    msds_required: Optional[str] = None
+    work_area_inspected_before_start: Optional[str] = None
+    nearby_sensitive_equipment_covered_or_protected: Optional[str] = None
+    floor_corridor_wall_protection_arranged: Optional[str] = None
+    emergency_exit_access_ensured: Optional[str] = None
+    fire_safety_equipment_nearby: Optional[str] = None
+    waste_disposal_method: Optional[str] = None
+    permit_approved_by: Optional[str] = None
+    date_time_of_approval: Optional[str] = None
+    security_team_notified: Optional[str] = None
+    post_work_area_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    signature_of_approving_officer: Optional[str] = None
+    remarks_or_precautions: Optional[str] = None
+
+class ColdWorkPermit(ColdWorkPermitCreate):
+    """Schema for reading cold work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Cold Work Permit ---
+
+class ColdWorkPermitDB(Base):
+    """Database ORM model for the 'cold_work_permit' table."""
+    __tablename__ = "cold_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    valid_from = Column(String, index=True)
+    valid_to = Column(String, index=True)
+    site_location_of_work = Column(String)
+    floor_zone_area_details = Column(String)
+    description_of_work = Column(Text)
+    nature_of_tools_used = Column(JSON)
+    person_or_agency_performing_work = Column(String)
+    number_of_workers_assigned = Column(Integer)
+    contact_details_of_contractor = Column(String)
+    work_supervisor_name = Column(String)
+    supervisor_contact_number = Column(String)
+    type_of_safety_gear_required = Column(JSON)
+    safety_instructions_explained_to_team = Column(String)
+    risk_assessment_attached = Column(String)
+    msds_required = Column(String)
+    work_area_inspected_before_start = Column(String)
+    nearby_sensitive_equipment_covered_or_protected = Column(String)
+    floor_corridor_wall_protection_arranged = Column(String)
+    emergency_exit_access_ensured = Column(String)
+    fire_safety_equipment_nearby = Column(String)
+    waste_disposal_method = Column(String)
+    permit_approved_by = Column(String)
+    date_time_of_approval = Column(String)
+    security_team_notified = Column(String)
+    post_work_area_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    signature_of_contractor = Column(String)
+    signature_of_approving_officer = Column(String)
+    remarks_or_precautions = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Cold Work Permit ---
+
+@app.post("/cold-work-permit/", response_model=ColdWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Cold Work Permit"])
+def create_cold_work_permit(permit: ColdWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new cold work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = ColdWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/cold-work-permit/", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_cold_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all cold work permits with pagination.
+    """
+    permit_records = db.query(ColdWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/cold-work-permit/{permit_id}", response_model=ColdWorkPermit, tags=["Cold Work Permit"])
+def read_cold_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single cold work permit record by its ID.
+    """
+    db_permit = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cold work permit not found")
+    return db_permit
+
+@app.get("/cold-work-permit/permit/{permit_number}", response_model=ColdWorkPermit, tags=["Cold Work Permit"])
+def read_cold_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a cold work permit by its permit number.
+    """
+    db_permit = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cold work permit not found")
+    return db_permit
+
+@app.get("/cold-work-permit/property/{property_id}", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_cold_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all cold work permits for a specific property.
+    """
+    permit_records = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/cold-work-permit/date/{date}", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_cold_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all cold work permits for a specific date.
+    """
+    permit_records = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/cold-work-permit/status/active", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_active_cold_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active cold work permits (current date within validity period).
+    """
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    permit_records = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.date_of_issue == current_date).all()
+    return permit_records
+
+@app.get("/cold-work-permit/contractor/{contractor_name}", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_cold_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all cold work permits for a specific contractor.
+    """
+    permit_records = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.person_or_agency_performing_work.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/cold-work-permit/location/{location}", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_cold_work_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all cold work permits for a specific work location.
+    """
+    permit_records = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.site_location_of_work.contains(location)).all()
+    return permit_records
+
+@app.get("/cold-work-permit/validity/current", response_model=List[ColdWorkPermit], tags=["Cold Work Permit"])
+def read_currently_valid_cold_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all currently valid cold work permits (current time within valid_from and valid_to).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(ColdWorkPermitDB).filter(
+        ColdWorkPermitDB.valid_from <= current_time,
+        ColdWorkPermitDB.valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.put("/cold-work-permit/{permit_id}", response_model=ColdWorkPermit, tags=["Cold Work Permit"])
+def update_cold_work_permit(permit_id: int, permit: ColdWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing cold work permit record.
+    """
+    db_permit = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cold work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/cold-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Cold Work Permit"])
+def delete_cold_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a cold work permit record by its ID.
+    """
+    db_permit = db.query(ColdWorkPermitDB).filter(ColdWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cold work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Electrical Work Permit ---
+
+class ElectricalWorkPermitCreate(BaseModel):
+    """Schema for creating electrical work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="EWP-2025-032")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-13T10:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-13T15:00:00")
+    work_location: str = Field(..., example="Building C / Floor 1 / Zone B")
+    nature_of_work: str = Field(..., example="Maintenance")
+    equipment_panel_area_to_be_worked_on: str = Field(..., example="Main Distribution Panel - MDP-01")
+    voltage_level: str = Field(..., example="High")
+    description_of_electrical_task: str = Field(..., example="Inspection and replacement of faulty circuit breakers")
+    contractor_agency_name: str = Field(..., example="PowerSafe Electrical Services")
+    name_of_electrician_or_technician: str = Field(..., example="Prakash Yadav")
+    electrician_contact_number: str = Field(..., example="+91-9812345678")
+    supervisor_name: str = Field(..., example="Deepak Sharma")
+    supervisor_contact_number: str = Field(..., example="+91-9123456789")
+    number_of_persons_involved: int = Field(..., example=3)
+    work_isolate_point_identified: str = Field(..., example="Yes")
+    lockout_tagout_applied: str = Field(..., example="Yes")
+    isolation_verified: str = Field(..., example="Yes")
+    earthing_discharge_done: str = Field(..., example="Yes")
+    ppe_checked: List[str] = Field(..., example=["Insulated Gloves", "Safety Shoes", "Insulated Tools", "Face Shield"])
+    multimeter_or_electrical_tester_available: str = Field(..., example="Yes")
+    danger_board_displayed: str = Field(..., example="Yes")
+    safety_barricading_done: str = Field(..., example="Yes")
+    emergency_contact_details_available: str = Field(..., example="Yes")
+    work_authorized_by: str = Field(..., example="Chief Engineer - Manoj Kumar")
+    signature_of_contractor: str = Field(..., example="Prakash Yadav")
+    signature_of_supervisor: str = Field(..., example="Deepak Sharma")
+    signature_of_safety_officer: str = Field(..., example="Manoj Kumar")
+    post_work_area_inspection_by: str = Field(..., example="Safety Officer - Manoj Kumar")
+    power_restored_on: str = Field(..., example="2025-08-13T14:45:00")
+    final_clearance_given_by: str = Field(..., example="Manoj Kumar")
+    remarks_or_safety_observations: str = Field(..., example="All replaced breakers tested successfully. Ensure next preventive maintenance is logged for December 2025.")
+
+class ElectricalWorkPermitUpdate(BaseModel):
+    """Schema for updating electrical work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    work_location: Optional[str] = None
+    nature_of_work: Optional[str] = None
+    equipment_panel_area_to_be_worked_on: Optional[str] = None
+    voltage_level: Optional[str] = None
+    description_of_electrical_task: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    name_of_electrician_or_technician: Optional[str] = None
+    electrician_contact_number: Optional[str] = None
+    supervisor_name: Optional[str] = None
+    supervisor_contact_number: Optional[str] = None
+    number_of_persons_involved: Optional[int] = None
+    work_isolate_point_identified: Optional[str] = None
+    lockout_tagout_applied: Optional[str] = None
+    isolation_verified: Optional[str] = None
+    earthing_discharge_done: Optional[str] = None
+    ppe_checked: Optional[List[str]] = None
+    multimeter_or_electrical_tester_available: Optional[str] = None
+    danger_board_displayed: Optional[str] = None
+    safety_barricading_done: Optional[str] = None
+    emergency_contact_details_available: Optional[str] = None
+    work_authorized_by: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    post_work_area_inspection_by: Optional[str] = None
+    power_restored_on: Optional[str] = None
+    final_clearance_given_by: Optional[str] = None
+    remarks_or_safety_observations: Optional[str] = None
+
+class ElectricalWorkPermit(ElectricalWorkPermitCreate):
+    """Schema for reading electrical work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Electrical Work Permit ---
+
+class ElectricalWorkPermitDB(Base):
+    """Database ORM model for the 'electrical_work_permit' table."""
+    __tablename__ = "electrical_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    work_location = Column(String)
+    nature_of_work = Column(String)
+    equipment_panel_area_to_be_worked_on = Column(String)
+    voltage_level = Column(String)
+    description_of_electrical_task = Column(Text)
+    contractor_agency_name = Column(String)
+    name_of_electrician_or_technician = Column(String)
+    electrician_contact_number = Column(String)
+    supervisor_name = Column(String)
+    supervisor_contact_number = Column(String)
+    number_of_persons_involved = Column(Integer)
+    work_isolate_point_identified = Column(String)
+    lockout_tagout_applied = Column(String)
+    isolation_verified = Column(String)
+    earthing_discharge_done = Column(String)
+    ppe_checked = Column(JSON)
+    multimeter_or_electrical_tester_available = Column(String)
+    danger_board_displayed = Column(String)
+    safety_barricading_done = Column(String)
+    emergency_contact_details_available = Column(String)
+    work_authorized_by = Column(String)
+    signature_of_contractor = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    post_work_area_inspection_by = Column(String)
+    power_restored_on = Column(String)
+    final_clearance_given_by = Column(String)
+    remarks_or_safety_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Electrical Work Permit ---
+
+@app.post("/electrical-work-permit/", response_model=ElectricalWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Electrical Work Permit"])
+def create_electrical_work_permit(permit: ElectricalWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new electrical work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = ElectricalWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/electrical-work-permit/", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits with pagination.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/{permit_id}", response_model=ElectricalWorkPermit, tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single electrical work permit record by its ID.
+    """
+    db_permit = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Electrical work permit not found")
+    return db_permit
+
+@app.get("/electrical-work-permit/permit/{permit_number}", response_model=ElectricalWorkPermit, tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve an electrical work permit by its permit number.
+    """
+    db_permit = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Electrical work permit not found")
+    return db_permit
+
+@app.get("/electrical-work-permit/property/{property_id}", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits for a specific property.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/date/{date}", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits for a specific date.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/status/active", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_active_electrical_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active electrical work permits (current date within validity period).
+    """
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.date_of_issue == current_date).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/contractor/{contractor_name}", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits for a specific contractor.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/voltage/{voltage_level}", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_voltage(voltage_level: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits for a specific voltage level.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.voltage_level == voltage_level).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/equipment/{equipment_panel}", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_electrical_work_permit_by_equipment(equipment_panel: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all electrical work permits for a specific equipment or panel area.
+    """
+    permit_records = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.equipment_panel_area_to_be_worked_on.contains(equipment_panel)).all()
+    return permit_records
+
+@app.get("/electrical-work-permit/validity/current", response_model=List[ElectricalWorkPermit], tags=["Electrical Work Permit"])
+def read_currently_valid_electrical_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all currently valid electrical work permits (current time within valid_from and valid_to).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(ElectricalWorkPermitDB).filter(
+        ElectricalWorkPermitDB.permit_valid_from <= current_time,
+        ElectricalWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.put("/electrical-work-permit/{permit_id}", response_model=ElectricalWorkPermit, tags=["Electrical Work Permit"])
+def update_electrical_work_permit(permit_id: int, permit: ElectricalWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing electrical work permit record.
+    """
+    db_permit = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Electrical work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/electrical-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Electrical Work Permit"])
+def delete_electrical_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an electrical work permit record by its ID.
+    """
+    db_permit = db.query(ElectricalWorkPermitDB).filter(ElectricalWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Electrical work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# from datetime import datetime
+# from typing import List
+
+# # --- Pydantic Schemas (Data Validation Models) ---
+# # We create a model for each nested object in the JSON.
+
+# class VisitedBy(BaseModel):
+#     name: str = Field(..., example="Ravi Kumar")
+#     designation: str = Field(..., example="Senior Facility Manager")
+
+# class VisitDetails(BaseModel):
+#     serial_no: str = Field(..., example="001")
+#     date_of_visit: str = Field(..., example="2025-08-13")
+#     site_name: str = Field(..., example="Tech Park Tower A")
+#     client_name: str = Field(..., example="ABC Corp Ltd.")
+#     location: str = Field(..., example="Bengaluru, India")
+#     visited_by: VisitedBy
+#     visit_purpose: str = Field(..., example="Monthly Compliance Check")
+#     time_in: str = Field(..., example="10:00 AM")
+#     time_out: str = Field(..., example="1:30 PM")
+#     duration_hours: str = Field(..., example="3.5")
+
+# class ObservationItem(BaseModel):
+#     department: str = Field(..., example="Security")
+#     staff_met: str = Field(..., example="Ajay Sharma")
+#     observation_summary: str = Field(..., example="Security guards were attentive...")
+#     compliance_with_SOP: str = Field(..., example="Yes")
+#     remarks: str
+#     corrective_action_required: str
+
+# class ChecklistItem(BaseModel):
+#     item: str = Field(..., example="Staff Attendance Register Maintained")
+#     status: str = Field(..., example="Yes")
+#     remarks: str
+
+# class PhotoItem(BaseModel):
+#     location_area: str = Field(..., example="Main Lobby")
+#     photo_description: str = Field(..., example="Clean lobby with reception desk")
+#     photo_file_link: str = Field(..., example="https://example.com/photos/lobby.jpg")
+
+# class ActionPlanItem(BaseModel):
+#     issue_observed: str = Field(..., example="Washroom basin leakage")
+#     assigned_to: str = Field(..., example="Rahul Singh - Maintenance")
+#     target_completion_date: str = Field(..., example="2025-08-13")
+#     status_update: str = Field(..., example="Pending")
+
+# class FinalComments(BaseModel):
+#     team_observations: str
+#     client_feedback: str
+#     suggestions_recommendations: str
+
+# class ReportedBy(BaseModel):
+#     name: str = Field(..., example="Ravi Kumar")
+#     designation: str = Field(..., example="Senior Facility Manager")
+
+# class SignOff(BaseModel):
+#     reported_by: ReportedBy
+#     signature: str = Field(..., example="Ravi_K_Signature.png")
+#     date: str = Field(..., example="2025-08-13")
+
+# class SiteVisitReportContent(BaseModel):
+#     """The main nested object containing all report details."""
+#     visit_details: VisitDetails
+#     observation_interaction_summary: List[ObservationItem]
+#     checklist_review: List[ChecklistItem]
+#     photos: List[PhotoItem]
+#     follow_up_action_plan: List[ActionPlanItem]
+#     final_comments_summary: FinalComments
+#     sign_off: SignOff
+
+# class ReportBase(BaseModel):
+#     """The root model for creating a report (INPUT)."""
+#     property_id: str = Field(..., example="PROP-999")
+#     site_visit_report: SiteVisitReportContent
+
+# class ReportCreate(ReportBase):
+#     pass
+
+# class ReportUpdate(ReportBase):
+#     pass
+
+# class Report(ReportBase):
+#     """The model for reading a report from the DB (OUTPUT)."""
+#     id: int
+#     created_at: datetime
+#     updated_at: datetime
+
+#     class Config:
+#         orm_mode = True
+
+# # --- SQLAlchemy Model (Database Table) ---
+
+# class VisitReportDB(Base):
+#     __tablename__ = "simple_visit_reports"
+
+#     id = Column(Integer, primary_key=True, index=True)
+#     property_id = Column(String, index=True)
+    
+#     # Store the complex, nested site_visit_report object as a single JSON field
+#     site_visit_report = Column(JSON)
+    
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+# # Create the database table
+# Base.metadata.create_all(bind=engine)
+
+
+
+# # --- API Endpoints ---
+
+# @app.post("/simple-visit-reports/", response_model=Report, status_code=status.HTTP_201_CREATED, tags=["Simple Visit Reports"])
+# def create_visit_report(report: ReportCreate, db: Session = Depends(get_db)):
+#     """
+#     Create a new Site Visit Report.
+#     """
+#     # Pydantic's .dict() method is perfect for converting the nested model to a JSON-compatible dict
+#     report_data = report.dict()
+#     db_report = VisitReportDB(**report_data)
+#     db.add(db_report)
+#     db.commit()
+#     db.refresh(db_report)
+#     return db_report
+
+# @app.get("/simple-visit-reports/", response_model=List[Report], tags=["Simple Visit Reports"])
+# def read_visit_reports(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+#     """
+#     Retrieve all Site Visit Reports with pagination.
+#     """
+#     reports = db.query(VisitReportDB).offset(skip).limit(limit).all()
+#     return reports
+
+# @app.get("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
+# def read_visit_report_by_id(report_id: int, db: Session = Depends(get_db)):
+#     """
+#     Retrieve a single Site Visit Report by its ID.
+#     """
+#     db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+#     if db_report is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+#     return db_report
+
+# @app.put("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
+# def update_visit_report(report_id: int, report: ReportUpdate, db: Session = Depends(get_db)):
+#     """
+#     Update an existing Site Visit Report.
+#     """
+#     db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+#     if db_report is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+#     update_data = report.dict(exclude_unset=True)
+#     for key, value in update_data.items():
+#         setattr(db_report, key, value)
+        
+#     db.commit()
+#     db.refresh(db_report)
+#     return db_report
+
+# @app.delete("/simple-visit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Simple Visit Reports"])
+# def delete_visit_report(report_id: int, db: Session = Depends(get_db)):
+#     """
+#     Delete a Site Visit Report by its ID.
+#     """
+#     db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+#     if db_report is None:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    
+#     db.delete(db_report)
+#     db.commit()
+#     return {"ok": True}
+
+# --- Pydantic Schemas for Height Work Permit ---
+
+class HeightWorkPermitCreate(BaseModel):
+    """Schema for creating height work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="HWP-2025-014")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-13T08:30:00")
+    permit_valid_to: str = Field(..., example="2025-08-13T16:30:00")
+    site_location_of_work: str = Field(..., example="Building D / Exterior Facade")
+    exact_height_of_work_meters: int = Field(..., example=18)
+    description_of_task: str = Field(..., example="Glass facade cleaning and minor sealant repair")
+    contractor_agency_name: str = Field(..., example="SkyReach Maintenance Services")
+    worker_names_involved: List[str] = Field(..., example=["Ravi Singh", "Mohit Kumar", "Arun Verma"])
+    contact_details_contractor: str = Field(..., example="+91-9876543215")
+    contact_details_supervisor: str = Field(..., example="+91-9123456784")
+    supervisor_name_on_site: str = Field(..., example="Sanjay Mehta")
+    number_of_persons_working_at_height: int = Field(..., example=3)
+    scaffolding_or_ladder_type_used: str = Field(..., example="Suspended Platform (Gondola)")
+    scaffolding_certified_and_tagged: str = Field(..., example="Yes")
+    full_body_harness_worn: str = Field(..., example="Yes")
+    harness_lanyard_double_hooked: str = Field(..., example="Yes")
+    lifeline_or_anchorage_provided: str = Field(..., example="Yes")
+    safety_helmet_and_non_slip_shoes: str = Field(..., example="Yes")
+    work_platform_with_guardrails_provided: str = Field(..., example="Yes")
+    tools_secured_to_prevent_falling: str = Field(..., example="Yes")
+    fall_protection_equipment_checked_before_use: str = Field(..., example="Yes")
+    emergency_plan_in_place: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    weather_conditions_verified: str = Field(..., example="Yes")
+    area_barricaded_below: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Ajay Sharma")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Sanjay Mehta")
+    signature_of_safety_officer: str = Field(..., example="Ajay Sharma")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-13T16:10:00")
+    post_work_inspection_done_by: str = Field(..., example="Ajay Sharma")
+    final_clearance_given: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="All fall protection measures were in place. No incidents reported.")
+
+class HeightWorkPermitUpdate(BaseModel):
+    """Schema for updating height work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_work: Optional[str] = None
+    exact_height_of_work_meters: Optional[int] = None
+    description_of_task: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    worker_names_involved: Optional[List[str]] = None
+    contact_details_contractor: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    number_of_persons_working_at_height: Optional[int] = None
+    scaffolding_or_ladder_type_used: Optional[str] = None
+    scaffolding_certified_and_tagged: Optional[str] = None
+    full_body_harness_worn: Optional[str] = None
+    harness_lanyard_double_hooked: Optional[str] = None
+    lifeline_or_anchorage_provided: Optional[str] = None
+    safety_helmet_and_non_slip_shoes: Optional[str] = None
+    work_platform_with_guardrails_provided: Optional[str] = None
+    tools_secured_to_prevent_falling: Optional[str] = None
+    fall_protection_equipment_checked_before_use: Optional[str] = None
+    emergency_plan_in_place: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    weather_conditions_verified: Optional[str] = None
+    area_barricaded_below: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class HeightWorkPermit(HeightWorkPermitCreate):
+    """Schema for reading height work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Height Work Permit ---
+
+class HeightWorkPermitDB(Base):
+    """Database ORM model for the 'height_work_permit' table."""
+    __tablename__ = "height_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_work = Column(String)
+    exact_height_of_work_meters = Column(Integer)
+    description_of_task = Column(Text)
+    contractor_agency_name = Column(String)
+    worker_names_involved = Column(JSON)
+    contact_details_contractor = Column(String)
+    contact_details_supervisor = Column(String)
+    supervisor_name_on_site = Column(String)
+    number_of_persons_working_at_height = Column(Integer)
+    scaffolding_or_ladder_type_used = Column(String)
+    scaffolding_certified_and_tagged = Column(String)
+    full_body_harness_worn = Column(String)
+    harness_lanyard_double_hooked = Column(String)
+    lifeline_or_anchorage_provided = Column(String)
+    safety_helmet_and_non_slip_shoes = Column(String)
+    work_platform_with_guardrails_provided = Column(String)
+    tools_secured_to_prevent_falling = Column(String)
+    fall_protection_equipment_checked_before_use = Column(String)
+    emergency_plan_in_place = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    weather_conditions_verified = Column(String)
+    area_barricaded_below = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Height Work Permit ---
+
+@app.post("/height-work-permit/", response_model=HeightWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Height Work Permit"])
+def create_height_work_permit(permit: HeightWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new height work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = HeightWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/height-work-permit/", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_height_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all height work permits with pagination.
+    """
+    permit_records = db.query(HeightWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/height-work-permit/{permit_id}", response_model=HeightWorkPermit, tags=["Height Work Permit"])
+def read_height_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single height work permit record by its ID.
+    """
+    db_permit = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Height work permit not found")
+    return db_permit
+
+@app.get("/height-work-permit/permit/{permit_number}", response_model=HeightWorkPermit, tags=["Height Work Permit"])
+def read_height_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a height work permit by its permit number.
+    """
+    db_permit = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Height work permit not found")
+    return db_permit
+
+@app.get("/height-work-permit/property/{property_id}", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_height_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all height work permits for a specific property.
+    """
+    permit_records = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/height-work-permit/date/{date}", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_height_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all height work permits for a specific date.
+    """
+    permit_records = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/height-work-permit/contractor/{contractor_name}", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_height_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all height work permits for a specific contractor.
+    """
+    permit_records = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/height-work-permit/validity/current", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_currently_valid_height_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all currently valid height work permits (current time within valid_from and valid_to).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(HeightWorkPermitDB).filter(
+        HeightWorkPermitDB.permit_valid_from <= current_time,
+        HeightWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/height-work-permit/height/min/{min_height}", response_model=List[HeightWorkPermit], tags=["Height Work Permit"])
+def read_height_work_permit_by_min_height(min_height: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all height work permits where exact height is greater than or equal to min_height.
+    """
+    permit_records = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.exact_height_of_work_meters >= min_height).all()
+    return permit_records
+
+@app.put("/height-work-permit/{permit_id}", response_model=HeightWorkPermit, tags=["Height Work Permit"])
+def update_height_work_permit(permit_id: int, permit: HeightWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing height work permit record.
+    """
+    db_permit = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Height work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/height-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Height Work Permit"])
+def delete_height_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a height work permit record by its ID.
+    """
+    db_permit = db.query(HeightWorkPermitDB).filter(HeightWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Height work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Confined Space Work Permit ---
+
+class GasTestConductedByBase(BaseModel):
+    """Schema for gas test conductor details."""
+    name: str = Field(..., example="Sandeep Kumar")
+    designation: str = Field(..., example="Safety Engineer")
+
+class PermitIssuedByBase(BaseModel):
+    """Schema for permit issuer details."""
+    name: str = Field(..., example="Ravi Kapoor")
+    designation: str = Field(..., example="Plant Manager")
+
+class AuthorizedByBase(BaseModel):
+    """Schema for authorization details."""
+    name: str = Field(..., example="Ajay Sharma")
+    designation: str = Field(..., example="Safety Officer")
+
+class ConfinedSpaceWorkPermitCreate(BaseModel):
+    """Schema for creating confined space work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="CSWP-2025-007")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    site_location_of_confined_space: str = Field(..., example="Water Treatment Plant / Basement Section")
+    specific_space_name_or_number: str = Field(..., example="Tank #2")
+    nature_of_work: str = Field(..., example="Maintenance and sludge removal")
+    contractor_agency_name: str = Field(..., example="SafeEntry Industrial Services")
+    name_of_person_in_charge: str = Field(..., example="Rohit Verma")
+    contact_number: str = Field(..., example="+91-9876543218")
+    names_of_workers_entering: List[str] = Field(..., example=["Amit Sharma", "Vikas Singh"])
+    number_of_persons_entering: int = Field(..., example=2)
+    entry_time: str = Field(..., example="2025-08-13T09:15:00")
+    expected_exit_time: str = Field(..., example="2025-08-13T12:30:00")
+    work_start_date_time: str = Field(..., example="2025-08-13T09:30:00")
+    work_end_date_time: str = Field(..., example="2025-08-13T12:10:00")
+    atmospheric_testing_done: str = Field(..., example="Yes")
+    oxygen_level_percent: float = Field(..., example=20.9)
+    explosive_gases_lel_percent: float = Field(..., example=0.0)
+    toxic_gases_ppm: dict = Field(..., example={"CO": 2, "H2S": 0})
+    gas_test_conducted_by: GasTestConductedByBase
+    ventilation_arranged: str = Field(..., example="Yes")
+    continuous_gas_monitoring_required: str = Field(..., example="Yes")
+    type_of_ppe_provided: List[str] = Field(..., example=["Helmet", "Gloves", "Chemical Resistant Suit", "Full Face Mask"])
+    communication_device_used: str = Field(..., example="Walkie-Talkie")
+    rescue_equipment_available: List[str] = Field(..., example=["Tripod", "Winch", "Safety Rope"])
+    emergency_contact_details_posted: str = Field(..., example="Yes")
+    trained_standby_person_present: str = Field(..., example="Yes")
+    lockout_tagout_implemented: str = Field(..., example="Yes")
+    barricading_and_signages_installed: str = Field(..., example="Yes")
+    permit_issued_by: PermitIssuedByBase
+    authorized_by: AuthorizedByBase
+    signature_of_worker: str = Field(..., example="Amit Sharma")
+    signature_of_supervisor: str = Field(..., example="Rohit Verma")
+    post_work_gas_test_done: str = Field(..., example="Yes")
+    work_completion_time: str = Field(..., example="2025-08-13T12:10:00")
+    final_clearance_given_by: str = Field(..., example="Ajay Sharma")
+    remarks_or_precautions: str = Field(..., example="Ensure follow-up gas test after 1 hour; PPE to be cleaned before storage.")
+
+class ConfinedSpaceWorkPermitUpdate(BaseModel):
+    """Schema for updating confined space work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    site_location_of_confined_space: Optional[str] = None
+    specific_space_name_or_number: Optional[str] = None
+    nature_of_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    name_of_person_in_charge: Optional[str] = None
+    contact_number: Optional[str] = None
+    names_of_workers_entering: Optional[List[str]] = None
+    number_of_persons_entering: Optional[int] = None
+    entry_time: Optional[str] = None
+    expected_exit_time: Optional[str] = None
+    work_start_date_time: Optional[str] = None
+    work_end_date_time: Optional[str] = None
+    atmospheric_testing_done: Optional[str] = None
+    oxygen_level_percent: Optional[float] = None
+    explosive_gases_lel_percent: Optional[float] = None
+    toxic_gases_ppm: Optional[dict] = None
+    gas_test_conducted_by: Optional[GasTestConductedByBase] = None
+    ventilation_arranged: Optional[str] = None
+    continuous_gas_monitoring_required: Optional[str] = None
+    type_of_ppe_provided: Optional[List[str]] = None
+    communication_device_used: Optional[str] = None
+    rescue_equipment_available: Optional[List[str]] = None
+    emergency_contact_details_posted: Optional[str] = None
+    trained_standby_person_present: Optional[str] = None
+    lockout_tagout_implemented: Optional[str] = None
+    barricading_and_signages_installed: Optional[str] = None
+    permit_issued_by: Optional[PermitIssuedByBase] = None
+    authorized_by: Optional[AuthorizedByBase] = None
+    signature_of_worker: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    post_work_gas_test_done: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    final_clearance_given_by: Optional[str] = None
+    remarks_or_precautions: Optional[str] = None
+
+class ConfinedSpaceWorkPermit(ConfinedSpaceWorkPermitCreate):
+    """Schema for reading confined space work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Confined Space Work Permit ---
+
+class ConfinedSpaceWorkPermitDB(Base):
+    """Database ORM model for the 'confined_space_work_permit' table."""
+    __tablename__ = "confined_space_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    site_location_of_confined_space = Column(String)
+    specific_space_name_or_number = Column(String)
+    nature_of_work = Column(String)
+    contractor_agency_name = Column(String)
+    name_of_person_in_charge = Column(String)
+    contact_number = Column(String)
+    names_of_workers_entering = Column(JSON)
+    number_of_persons_entering = Column(Integer)
+    entry_time = Column(String, index=True)
+    expected_exit_time = Column(String, index=True)
+    work_start_date_time = Column(String, index=True)
+    work_end_date_time = Column(String, index=True)
+    atmospheric_testing_done = Column(String)
+    oxygen_level_percent = Column(Float)
+    explosive_gases_lel_percent = Column(Float)
+    toxic_gases_ppm = Column(JSON)
+    gas_test_conducted_by = Column(JSON)
+    ventilation_arranged = Column(String)
+    continuous_gas_monitoring_required = Column(String)
+    type_of_ppe_provided = Column(JSON)
+    communication_device_used = Column(String)
+    rescue_equipment_available = Column(JSON)
+    emergency_contact_details_posted = Column(String)
+    trained_standby_person_present = Column(String)
+    lockout_tagout_implemented = Column(String)
+    barricading_and_signages_installed = Column(String)
+    permit_issued_by = Column(JSON)
+    authorized_by = Column(JSON)
+    signature_of_worker = Column(String)
+    signature_of_supervisor = Column(String)
+    post_work_gas_test_done = Column(String)
+    work_completion_time = Column(String)
+    final_clearance_given_by = Column(String)
+    remarks_or_precautions = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Confined Space Work Permit ---
+
+@app.post("/confined-space-work-permit/", response_model=ConfinedSpaceWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Confined Space Work Permit"])
+def create_confined_space_work_permit(permit: ConfinedSpaceWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new confined space work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = ConfinedSpaceWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/confined-space-work-permit/", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits with pagination.
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/{permit_id}", response_model=ConfinedSpaceWorkPermit, tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single confined space work permit record by its ID.
+    """
+    db_permit = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Confined space work permit not found")
+    return db_permit
+
+@app.get("/confined-space-work-permit/permit/{permit_number}", response_model=ConfinedSpaceWorkPermit, tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a confined space work permit by its permit number.
+    """
+    db_permit = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Confined space work permit not found")
+    return db_permit
+
+@app.get("/confined-space-work-permit/property/{property_id}", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits for a specific property.
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/date/{date}", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits for a specific date.
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/contractor/{contractor_name}", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits for a specific contractor.
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/space/{space_name}", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_by_space(space_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits for a specific space name or number.
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.specific_space_name_or_number.contains(space_name)).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/status/active", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_active_confined_space_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active confined space work permits (current time within work start and end times).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(
+        ConfinedSpaceWorkPermitDB.work_start_date_time <= current_time,
+        ConfinedSpaceWorkPermitDB.work_end_date_time >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/confined-space-work-permit/oxygen/safe", response_model=List[ConfinedSpaceWorkPermit], tags=["Confined Space Work Permit"])
+def read_confined_space_work_permit_with_safe_oxygen(db: Session = Depends(get_db)):
+    """
+    Retrieve all confined space work permits with safe oxygen levels (19.5% - 23.5%).
+    """
+    permit_records = db.query(ConfinedSpaceWorkPermitDB).filter(
+        ConfinedSpaceWorkPermitDB.oxygen_level_percent >= 19.5,
+        ConfinedSpaceWorkPermitDB.oxygen_level_percent <= 23.5
+    ).all()
+    return permit_records
+
+@app.put("/confined-space-work-permit/{permit_id}", response_model=ConfinedSpaceWorkPermit, tags=["Confined Space Work Permit"])
+def update_confined_space_work_permit(permit_id: int, permit: ConfinedSpaceWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing confined space work permit record.
+    """
+    db_permit = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Confined space work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/confined-space-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Confined Space Work Permit"])
+def delete_confined_space_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a confined space work permit record by its ID.
+    """
+    db_permit = db.query(ConfinedSpaceWorkPermitDB).filter(ConfinedSpaceWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Confined space work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for General Maintenance Permit ---
+
+class GeneralMaintenancePermitCreate(BaseModel):
+    """Schema for creating general maintenance permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="GM-2025-021")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T09:00:00")
+    permit_valid_until: str = Field(..., example="2025-08-14T17:00:00")
+    requesting_department_or_resident_name: str = Field(..., example="Apartment 402 - Mr. Sunil Kapoor")
+    contact_number: str = Field(..., example="+91-9988776655")
+    apartment_block_building: str = Field(..., example="Block B, Tower 2")
+    nature_of_work: str = Field(..., example="Plumbing")
+    detailed_description_of_work: str = Field(..., example="Replacement of leaking kitchen sink pipeline and tap fixture.")
+    location_of_work: str = Field(..., example="Apartment 402 - Kitchen Area")
+    contractor_or_maintenance_agency_name: str = Field(..., example="QuickFix Maintenance Services")
+    contractor_contact_person: str = Field(..., example="Ramesh Kumar")
+    contractor_contact_number: str = Field(..., example="+91-9876543210")
+    no_of_workers_involved: int = Field(..., example=2)
+    workers_id_proof_submitted: str = Field(..., example="Yes")
+    list_of_tools_equipment_used: List[str] = Field(..., example=["Pipe Wrench", "Adjustable Spanner", "Teflon Tape", "PVC Cutter"])
+    electrical_isolation_required: str = Field(..., example="No")
+    water_supply_shutdown_required: str = Field(..., example="Yes")
+    ppe_required: str = Field(..., example="Yes")
+    safety_briefing_given: str = Field(..., example="Yes")
+    material_movement_permission_required: str = Field(..., example="No")
+    precautionary_measures_taken: str = Field(..., example="Floor covered with plastic sheet; water supply isolated before work.")
+    waste_disposal_method: str = Field(..., example="Old pipeline and fittings disposed via building waste collection system.")
+    work_start_date_time: str = Field(..., example="2025-08-14T09:30:00")
+    expected_work_completion_date_time: str = Field(..., example="2025-08-14T12:30:00")
+    supervisor_or_facility_in_charge_name: str = Field(..., example="Anil Mehra")
+    supervisor_signature: str = Field(..., example="Signed")
+    security_informed: str = Field(..., example="Yes")
+    security_personnel_name_signature: str = Field(..., example="K. Singh - Signed")
+    final_inspection_done: str = Field(..., example="Yes")
+    final_inspection_done_by: str = Field(..., example="Anil Mehra")
+    clearance_given: str = Field(..., example="Yes")
+    remarks_observations: str = Field(..., example="Work completed as per scope; no leakage found after testing.")
+    signature_of_requester: str = Field(..., example="Sunil Kapoor")
+    signature_of_approving_authority: str = Field(..., example="Anil Mehra")
+
+class GeneralMaintenancePermitUpdate(BaseModel):
+    """Schema for updating general maintenance permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_until: Optional[str] = None
+    requesting_department_or_resident_name: Optional[str] = None
+    contact_number: Optional[str] = None
+    apartment_block_building: Optional[str] = None
+    nature_of_work: Optional[str] = None
+    detailed_description_of_work: Optional[str] = None
+    location_of_work: Optional[str] = None
+    contractor_or_maintenance_agency_name: Optional[str] = None
+    contractor_contact_person: Optional[str] = None
+    contractor_contact_number: Optional[str] = None
+    no_of_workers_involved: Optional[int] = None
+    workers_id_proof_submitted: Optional[str] = None
+    list_of_tools_equipment_used: Optional[List[str]] = None
+    electrical_isolation_required: Optional[str] = None
+    water_supply_shutdown_required: Optional[str] = None
+    ppe_required: Optional[str] = None
+    safety_briefing_given: Optional[str] = None
+    material_movement_permission_required: Optional[str] = None
+    precautionary_measures_taken: Optional[str] = None
+    waste_disposal_method: Optional[str] = None
+    work_start_date_time: Optional[str] = None
+    expected_work_completion_date_time: Optional[str] = None
+    supervisor_or_facility_in_charge_name: Optional[str] = None
+    supervisor_signature: Optional[str] = None
+    security_informed: Optional[str] = None
+    security_personnel_name_signature: Optional[str] = None
+    final_inspection_done: Optional[str] = None
+    final_inspection_done_by: Optional[str] = None
+    clearance_given: Optional[str] = None
+    remarks_observations: Optional[str] = None
+    signature_of_requester: Optional[str] = None
+    signature_of_approving_authority: Optional[str] = None
+
+class GeneralMaintenancePermit(GeneralMaintenancePermitCreate):
+    """Schema for reading general maintenance permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for General Maintenance Permit ---
+
+class GeneralMaintenancePermitDB(Base):
+    """Database ORM model for the 'general_maintenance_permit' table."""
+    __tablename__ = "general_maintenance_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_until = Column(String, index=True)
+    requesting_department_or_resident_name = Column(String)
+    contact_number = Column(String)
+    apartment_block_building = Column(String)
+    nature_of_work = Column(String, index=True)
+    detailed_description_of_work = Column(Text)
+    location_of_work = Column(String)
+    contractor_or_maintenance_agency_name = Column(String)
+    contractor_contact_person = Column(String)
+    contractor_contact_number = Column(String)
+    no_of_workers_involved = Column(Integer)
+    workers_id_proof_submitted = Column(String)
+    list_of_tools_equipment_used = Column(JSON)
+    electrical_isolation_required = Column(String)
+    water_supply_shutdown_required = Column(String)
+    ppe_required = Column(String)
+    safety_briefing_given = Column(String)
+    material_movement_permission_required = Column(String)
+    precautionary_measures_taken = Column(Text)
+    waste_disposal_method = Column(Text)
+    work_start_date_time = Column(String, index=True)
+    expected_work_completion_date_time = Column(String, index=True)
+    supervisor_or_facility_in_charge_name = Column(String)
+    supervisor_signature = Column(String)
+    security_informed = Column(String)
+    security_personnel_name_signature = Column(String)
+    final_inspection_done = Column(String)
+    final_inspection_done_by = Column(String)
+    clearance_given = Column(String)
+    remarks_observations = Column(Text)
+    signature_of_requester = Column(String)
+    signature_of_approving_authority = Column(String)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for General Maintenance Permit ---
+
+@app.post("/general-maintenance-permit/", response_model=GeneralMaintenancePermit, status_code=status.HTTP_201_CREATED, tags=["General Maintenance Permit"])
+def create_general_maintenance_permit(permit: GeneralMaintenancePermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new general maintenance permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = GeneralMaintenancePermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/general-maintenance-permit/", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits with pagination.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/{permit_id}", response_model=GeneralMaintenancePermit, tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single general maintenance permit record by its ID.
+    """
+    db_permit = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="General maintenance permit not found")
+    return db_permit
+
+@app.get("/general-maintenance-permit/permit/{permit_number}", response_model=GeneralMaintenancePermit, tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a general maintenance permit by its permit number.
+    """
+    db_permit = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="General maintenance permit not found")
+    return db_permit
+
+@app.get("/general-maintenance-permit/property/{property_id}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits for a specific property.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/date/{date}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits for a specific date.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/nature/{nature_of_work}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits for a specific nature of work.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.nature_of_work == nature_of_work).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/contractor/{contractor_name}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits for a specific contractor.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.contractor_or_maintenance_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/resident/{resident_name}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_resident(resident_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits for a specific resident or department.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.requesting_department_or_resident_name.contains(resident_name)).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/status/active", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_active_general_maintenance_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active general maintenance permits (current time within permit validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(
+        GeneralMaintenancePermitDB.permit_valid_from <= current_time,
+        GeneralMaintenancePermitDB.permit_valid_until >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/workers/min/{min_workers}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.no_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.get("/general-maintenance-permit/clearance/{clearance_status}", response_model=List[GeneralMaintenancePermit], tags=["General Maintenance Permit"])
+def read_general_maintenance_permit_by_clearance(clearance_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all general maintenance permits by clearance status.
+    """
+    permit_records = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.clearance_given == clearance_status).all()
+    return permit_records
+
+@app.put("/general-maintenance-permit/{permit_id}", response_model=GeneralMaintenancePermit, tags=["General Maintenance Permit"])
+def update_general_maintenance_permit(permit_id: int, permit: GeneralMaintenancePermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing general maintenance permit record.
+    """
+    db_permit = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="General maintenance permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/general-maintenance-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["General Maintenance Permit"])
+def delete_general_maintenance_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a general maintenance permit record by its ID.
+    """
+    db_permit = db.query(GeneralMaintenancePermitDB).filter(GeneralMaintenancePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="General maintenance permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Working Alone Permit ---
+
+class WorkingAlonePermitCreate(BaseModel):
+    """Schema for creating working alone permit."""
+    property_id: str = Field(..., example="PROP-001")
+    S_No: int = Field(..., example=1)
+    Date: str = Field(..., example="2025-08-13")
+    Employee_Name: str = Field(..., example="Rahul Verma")
+    Employee_ID: str = Field(..., example="EMP-045")
+    Department: str = Field(..., example="Maintenance")
+    Designation: str = Field(..., example="Technician")
+    Contact_Number: str = Field(..., example="+91-9876543210")
+    Site_Location_of_Work: str = Field(..., example="Basement Electrical Room")
+    Nature_of_Task: str = Field(..., example="Electrical panel inspection and maintenance")
+    Reason_for_Working_Alone: str = Field(..., example="Urgent repair during off-hours")
+    Work_Start_Time: str = Field(..., example="21:00")
+    Estimated_Completion_Time: str = Field(..., example="23:30")
+    Supervisor_Name: str = Field(..., example="Vikram Singh")
+    Supervisor_Contact_Number: str = Field(..., example="+91-9123456780")
+    Communication_Method: str = Field(..., example="Radio")
+    Last_Check_In_Time: str = Field(..., example="21:30")
+    Next_Check_In_Schedule: str = Field(..., example="22:30")
+    Emergency_Contact_Name: str = Field(..., example="Suresh Mehta")
+    Emergency_Contact_Number: str = Field(..., example="+91-9012345678")
+    First_Aid_Kit_Available: str = Field(..., example="Yes")
+    Personal_Protective_Equipment_Used: str = Field(..., example="Yes")
+    Lone_Worker_Training_Completed: str = Field(..., example="Yes")
+    Risk_Assessment_Completed: str = Field(..., example="Yes")
+    Emergency_Procedures_Explained: str = Field(..., example="Yes")
+    Safety_Hazards_Identified: str = Field(..., example="High voltage exposure, confined space, poor lighting")
+    Control_Measures_Implemented: str = Field(..., example="Lockout/Tagout, portable lighting, insulated tools")
+    Special_Instructions: str = Field(..., example="Maintain constant radio communication and follow emergency shutdown protocol")
+    Approved_By: str = Field(..., example="Anil Sharma")
+    Approver_Designation: str = Field(..., example="Safety Officer")
+    Approver_Signature: str = Field(..., example="Anil Sharma")
+    Employee_Signature: str = Field(..., example="Rahul Verma")
+    Remarks: str = Field(..., example="Work authorized for tonight only; follow all safety guidelines")
+
+class WorkingAlonePermitUpdate(BaseModel):
+    """Schema for updating working alone permit."""
+    property_id: Optional[str] = None
+    S_No: Optional[int] = None
+    Date: Optional[str] = None
+    Employee_Name: Optional[str] = None
+    Employee_ID: Optional[str] = None
+    Department: Optional[str] = None
+    Designation: Optional[str] = None
+    Contact_Number: Optional[str] = None
+    Site_Location_of_Work: Optional[str] = None
+    Nature_of_Task: Optional[str] = None
+    Reason_for_Working_Alone: Optional[str] = None
+    Work_Start_Time: Optional[str] = None
+    Estimated_Completion_Time: Optional[str] = None
+    Supervisor_Name: Optional[str] = None
+    Supervisor_Contact_Number: Optional[str] = None
+    Communication_Method: Optional[str] = None
+    Last_Check_In_Time: Optional[str] = None
+    Next_Check_In_Schedule: Optional[str] = None
+    Emergency_Contact_Name: Optional[str] = None
+    Emergency_Contact_Number: Optional[str] = None
+    First_Aid_Kit_Available: Optional[str] = None
+    Personal_Protective_Equipment_Used: Optional[str] = None
+    Lone_Worker_Training_Completed: Optional[str] = None
+    Risk_Assessment_Completed: Optional[str] = None
+    Emergency_Procedures_Explained: Optional[str] = None
+    Safety_Hazards_Identified: Optional[str] = None
+    Control_Measures_Implemented: Optional[str] = None
+    Special_Instructions: Optional[str] = None
+    Approved_By: Optional[str] = None
+    Approver_Designation: Optional[str] = None
+    Approver_Signature: Optional[str] = None
+    Employee_Signature: Optional[str] = None
+    Remarks: Optional[str] = None
+
+class WorkingAlonePermit(WorkingAlonePermitCreate):
+    """Schema for reading working alone permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Working Alone Permit ---
+
+class WorkingAlonePermitDB(Base):
+    """Database ORM model for the 'working_alone_permit' table."""
+    __tablename__ = "working_alone_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    S_No = Column(Integer, index=True)
+    Date = Column(String, index=True)
+    Employee_Name = Column(String, index=True)
+    Employee_ID = Column(String, index=True)
+    Department = Column(String, index=True)
+    Designation = Column(String, index=True)
+    Contact_Number = Column(String)
+    Site_Location_of_Work = Column(String, index=True)
+    Nature_of_Task = Column(String, index=True)
+    Reason_for_Working_Alone = Column(Text)
+    Work_Start_Time = Column(String, index=True)
+    Estimated_Completion_Time = Column(String, index=True)
+    Supervisor_Name = Column(String, index=True)
+    Supervisor_Contact_Number = Column(String)
+    Communication_Method = Column(String)
+    Last_Check_In_Time = Column(String)
+    Next_Check_In_Schedule = Column(String)
+    Emergency_Contact_Name = Column(String)
+    Emergency_Contact_Number = Column(String)
+    First_Aid_Kit_Available = Column(String)
+    Personal_Protective_Equipment_Used = Column(String)
+    Lone_Worker_Training_Completed = Column(String)
+    Risk_Assessment_Completed = Column(String)
+    Emergency_Procedures_Explained = Column(String)
+    Safety_Hazards_Identified = Column(Text)
+    Control_Measures_Implemented = Column(Text)
+    Special_Instructions = Column(Text)
+    Approved_By = Column(String, index=True)
+    Approver_Designation = Column(String)
+    Approver_Signature = Column(String)
+    Employee_Signature = Column(String)
+    Remarks = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Working Alone Permit ---
+
+@app.post("/working-alone-permit/", response_model=WorkingAlonePermit, status_code=status.HTTP_201_CREATED, tags=["Working Alone Permit"])
+def create_working_alone_permit(permit: WorkingAlonePermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new working alone permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = WorkingAlonePermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/working-alone-permit/", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits with pagination.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/working-alone-permit/{permit_id}", response_model=WorkingAlonePermit, tags=["Working Alone Permit"])
+def read_working_alone_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single working alone permit record by its ID.
+    """
+    db_permit = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Working alone permit not found")
+    return db_permit
+
+@app.get("/working-alone-permit/property/{property_id}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific property.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/working-alone-permit/date/{date}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific date.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Date == date).all()
+    return permit_records
+
+@app.get("/working-alone-permit/employee/{employee_name}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_employee(employee_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific employee.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Employee_Name.contains(employee_name)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/employee-id/{employee_id}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_employee_id(employee_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific employee ID.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Employee_ID == employee_id).all()
+    return permit_records
+
+@app.get("/working-alone-permit/department/{department}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_department(department: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific department.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Department == department).all()
+    return permit_records
+
+@app.get("/working-alone-permit/designation/{designation}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_designation(designation: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific designation.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Designation == designation).all()
+    return permit_records
+
+@app.get("/working-alone-permit/location/{location}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific work location.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Site_Location_of_Work.contains(location)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/task/{task_type}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_task(task_type: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific nature of task.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Nature_of_Task.contains(task_type)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/supervisor/{supervisor_name}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_supervisor(supervisor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits supervised by a specific supervisor.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Supervisor_Name.contains(supervisor_name)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/communication/{communication_method}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_communication(communication_method: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits using a specific communication method.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Communication_Method == communication_method).all()
+    return permit_records
+
+@app.get("/working-alone-permit/emergency-contact/{contact_name}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_emergency_contact(contact_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits with a specific emergency contact.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Emergency_Contact_Name.contains(contact_name)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/approver/{approver_name}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_approver(approver_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits approved by a specific person.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Approved_By.contains(approver_name)).all()
+    return permit_records
+
+@app.get("/working-alone-permit/approver-designation/{designation}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_approver_designation(designation: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits approved by a specific designation.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Approver_Designation == designation).all()
+    return permit_records
+
+@app.get("/working-alone-permit/training/{training_status}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_training(training_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits by lone worker training completion status.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Lone_Worker_Training_Completed == training_status).all()
+    return permit_records
+
+@app.get("/working-alone-permit/risk-assessment/{assessment_status}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_risk_assessment(assessment_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits by risk assessment completion status.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Risk_Assessment_Completed == assessment_status).all()
+    return permit_records
+
+@app.get("/working-alone-permit/emergency-procedures/{procedures_status}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_emergency_procedures(procedures_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits by emergency procedures explanation status.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Emergency_Procedures_Explained == procedures_status).all()
+    return permit_records
+
+@app.get("/working-alone-permit/first-aid/{first_aid_status}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_first_aid(first_aid_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits by first aid kit availability status.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.First_Aid_Kit_Available == first_aid_status).all()
+    return permit_records
+
+@app.get("/working-alone-permit/ppe/{ppe_status}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_ppe(ppe_status: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits by personal protective equipment usage status.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Personal_Protective_Equipment_Used == ppe_status).all()
+    return permit_records
+
+@app.get("/working-alone-permit/start-time/{start_time}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_start_time(start_time: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific work start time.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Work_Start_Time == start_time).all()
+    return permit_records
+
+@app.get("/working-alone-permit/completion-time/{completion_time}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_completion_time(completion_time: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific estimated completion time.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Estimated_Completion_Time == completion_time).all()
+    return permit_records
+
+@app.get("/working-alone-permit/check-in/{check_in_time}", response_model=List[WorkingAlonePermit], tags=["Working Alone Permit"])
+def read_working_alone_permit_by_check_in_time(check_in_time: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all working alone permits for a specific last check-in time.
+    """
+    permit_records = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.Last_Check_In_Time == check_in_time).all()
+    return permit_records
+
+@app.put("/working-alone-permit/{permit_id}", response_model=WorkingAlonePermit, tags=["Working Alone Permit"])
+def update_working_alone_permit(permit_id: int, permit: WorkingAlonePermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing working alone permit record.
+    """
+    db_permit = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Working alone permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/working-alone-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Working Alone Permit"])
+def delete_working_alone_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a working alone permit record by its ID.
+    """
+    db_permit = db.query(WorkingAlonePermitDB).filter(WorkingAlonePermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Working alone permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Excavation Work Permit ---
+
+class ExcavationWorkPermitCreate(BaseModel):
+    """Schema for creating excavation work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="EWP-2025-008")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-16T18:00:00")
+    site_location_of_excavation: str = Field(..., example="Parking Lot A - North Section")
+    purpose_of_excavation: str = Field(..., example="Underground cable laying for new electrical connection")
+    contractor_agency_name: str = Field(..., example="GroundWorks Construction Ltd.")
+    contact_details_contractor: str = Field(..., example="+91-9876543212")
+    supervisor_name_on_site: str = Field(..., example="Rajesh Kumar")
+    contact_details_supervisor: str = Field(..., example="+91-9123456785")
+    number_of_workers_involved: int = Field(..., example=6)
+    depth_of_excavation_meters: float = Field(..., example=2.5)
+    length_of_excavation_meters: float = Field(..., example=15.0)
+    width_of_excavation_meters: float = Field(..., example=1.2)
+    soil_type: str = Field(..., example="Clay and Sandy Soil")
+    underground_utilities_identified: str = Field(..., example="Yes")
+    utilities_marked_and_protected: str = Field(..., example="Yes")
+    shoring_or_sloping_required: str = Field(..., example="Yes")
+    shoring_equipment_installed: str = Field(..., example="Yes")
+    barricading_and_signages_installed: str = Field(..., example="Yes")
+    safety_helmet_and_ppe_worn: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    emergency_contact_details_posted: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Priya Sharma")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Rajesh Kumar")
+    signature_of_safety_officer: str = Field(..., example="Priya Sharma")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-16T17:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Priya Sharma")
+    final_clearance_given: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="Excavation completed safely. All utilities protected. Site restored.")
+
+class ExcavationWorkPermitUpdate(BaseModel):
+    """Schema for updating excavation work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_excavation: Optional[str] = None
+    purpose_of_excavation: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    depth_of_excavation_meters: Optional[float] = None
+    length_of_excavation_meters: Optional[float] = None
+    width_of_excavation_meters: Optional[float] = None
+    soil_type: Optional[str] = None
+    underground_utilities_identified: Optional[str] = None
+    utilities_marked_and_protected: Optional[str] = None
+    shoring_or_sloping_required: Optional[str] = None
+    shoring_equipment_installed: Optional[str] = None
+    barricading_and_signages_installed: Optional[str] = None
+    safety_helmet_and_ppe_worn: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    emergency_contact_details_posted: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class ExcavationWorkPermit(ExcavationWorkPermitCreate):
+    """Schema for reading excavation work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Excavation Work Permit ---
+
+class ExcavationWorkPermitDB(Base):
+    """Database ORM model for the 'excavation_work_permit' table."""
+    __tablename__ = "excavation_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_excavation = Column(String)
+    purpose_of_excavation = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    depth_of_excavation_meters = Column(Float)
+    length_of_excavation_meters = Column(Float)
+    width_of_excavation_meters = Column(Float)
+    soil_type = Column(String)
+    underground_utilities_identified = Column(String)
+    utilities_marked_and_protected = Column(String)
+    shoring_or_sloping_required = Column(String)
+    shoring_equipment_installed = Column(String)
+    barricading_and_signages_installed = Column(String)
+    safety_helmet_and_ppe_worn = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    emergency_contact_details_posted = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Excavation Work Permit ---
+
+@app.post("/excavation-work-permit/", response_model=ExcavationWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Excavation Work Permit"])
+def create_excavation_work_permit(permit: ExcavationWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new excavation work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = ExcavationWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/excavation-work-permit/", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits with pagination.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/{permit_id}", response_model=ExcavationWorkPermit, tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single excavation work permit record by its ID.
+    """
+    db_permit = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Excavation work permit not found")
+    return db_permit
+
+@app.get("/excavation-work-permit/permit/{permit_number}", response_model=ExcavationWorkPermit, tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve an excavation work permit by its permit number.
+    """
+    db_permit = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Excavation work permit not found")
+    return db_permit
+
+@app.get("/excavation-work-permit/property/{property_id}", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits for a specific property.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/date/{date}", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits for a specific date.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/contractor/{contractor_name}", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits for a specific contractor.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/purpose/{purpose}", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_purpose(purpose: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits for a specific purpose.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.purpose_of_excavation.contains(purpose)).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/status/active", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_active_excavation_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active excavation work permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(ExcavationWorkPermitDB).filter(
+        ExcavationWorkPermitDB.permit_valid_from <= current_time,
+        ExcavationWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/excavation-work-permit/depth/min/{min_depth}", response_model=List[ExcavationWorkPermit], tags=["Excavation Work Permit"])
+def read_excavation_work_permit_by_min_depth(min_depth: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all excavation work permits where depth is greater than or equal to min_depth.
+    """
+    permit_records = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.depth_of_excavation_meters >= min_depth).all()
+    return permit_records
+
+@app.put("/excavation-work-permit/{permit_id}", response_model=ExcavationWorkPermit, tags=["Excavation Work Permit"])
+def update_excavation_work_permit(permit_id: int, permit: ExcavationWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing excavation work permit record.
+    """
+    db_permit = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Excavation work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/excavation-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Excavation Work Permit"])
+def delete_excavation_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an excavation work permit record by its ID.
+    """
+    db_permit = db.query(ExcavationWorkPermitDB).filter(ExcavationWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Excavation work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Lockout/Tagout (LOTO) Permit ---
+
+class LockoutTagoutPermitCreate(BaseModel):
+    """Schema for creating lockout/tagout permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="LOTO-2025-009")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-14T16:00:00")
+    equipment_system_to_be_isolated: str = Field(..., example="Main Electrical Panel - Sub Station A")
+    location_of_equipment: str = Field(..., example="Basement Level - Electrical Room")
+    reason_for_lockout_tagout: str = Field(..., example="Preventive maintenance of circuit breakers")
+    contractor_agency_name: str = Field(..., example="PowerTech Maintenance Services")
+    contact_details_contractor: str = Field(..., example="+91-9876543213")
+    supervisor_name_on_site: str = Field(..., example="Amit Patel")
+    contact_details_supervisor: str = Field(..., example="+91-9123456786")
+    number_of_workers_involved: int = Field(..., example=3)
+    energy_sources_to_be_isolated: List[str] = Field(..., example=["Electrical", "Hydraulic", "Pneumatic"])
+    isolation_points_identified: str = Field(..., example="Yes")
+    lockout_devices_installed: str = Field(..., example="Yes")
+    tagout_devices_installed: str = Field(..., example="Yes")
+    energy_isolation_verified: str = Field(..., example="Yes")
+    zero_energy_state_confirmed: str = Field(..., example="Yes")
+    lockout_tagout_procedure_followed: str = Field(..., example="Yes")
+    authorized_personnel_only: str = Field(..., example="Yes")
+    communication_protocol_established: str = Field(..., example="Yes")
+    emergency_procedures_explained: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Neha Singh")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Amit Patel")
+    signature_of_safety_officer: str = Field(..., example="Neha Singh")
+    signature_of_contractor: str = Field(..., example="Rajesh Verma")
+    work_completion_time: str = Field(..., example="2025-08-14T15:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Neha Singh")
+    final_clearance_given: str = Field(..., example="Yes")
+    energy_restoration_authorized_by: str = Field(..., example="Neha Singh")
+    remarks_or_observations: str = Field(..., example="All isolation points properly secured. Equipment tested after restoration.")
+
+class LockoutTagoutPermitUpdate(BaseModel):
+    """Schema for updating lockout/tagout permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    equipment_system_to_be_isolated: Optional[str] = None
+    location_of_equipment: Optional[str] = None
+    reason_for_lockout_tagout: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    energy_sources_to_be_isolated: Optional[List[str]] = None
+    isolation_points_identified: Optional[str] = None
+    lockout_devices_installed: Optional[str] = None
+    tagout_devices_installed: Optional[str] = None
+    energy_isolation_verified: Optional[str] = None
+    zero_energy_state_confirmed: Optional[str] = None
+    lockout_tagout_procedure_followed: Optional[str] = None
+    authorized_personnel_only: Optional[str] = None
+    communication_protocol_established: Optional[str] = None
+    emergency_procedures_explained: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    energy_restoration_authorized_by: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class LockoutTagoutPermit(LockoutTagoutPermitCreate):
+    """Schema for reading lockout/tagout permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Lockout/Tagout Permit ---
+
+class LockoutTagoutPermitDB(Base):
+    """Database ORM model for the 'lockout_tagout_permit' table."""
+    __tablename__ = "lockout_tagout_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    equipment_system_to_be_isolated = Column(String)
+    location_of_equipment = Column(String)
+    reason_for_lockout_tagout = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    energy_sources_to_be_isolated = Column(JSON)
+    isolation_points_identified = Column(String)
+    lockout_devices_installed = Column(String)
+    tagout_devices_installed = Column(String)
+    energy_isolation_verified = Column(String)
+    zero_energy_state_confirmed = Column(String)
+    lockout_tagout_procedure_followed = Column(String)
+    authorized_personnel_only = Column(String)
+    communication_protocol_established = Column(String)
+    emergency_procedures_explained = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    energy_restoration_authorized_by = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Lockout/Tagout Permit ---
+
+@app.post("/lockout-tagout-permit/", response_model=LockoutTagoutPermit, status_code=status.HTTP_201_CREATED, tags=["Lockout/Tagout Permit"])
+def create_lockout_tagout_permit(permit: LockoutTagoutPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new lockout/tagout permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = LockoutTagoutPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/lockout-tagout-permit/", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits with pagination.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/{permit_id}", response_model=LockoutTagoutPermit, tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single lockout/tagout permit record by its ID.
+    """
+    db_permit = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lockout/tagout permit not found")
+    return db_permit
+
+@app.get("/lockout-tagout-permit/permit/{permit_number}", response_model=LockoutTagoutPermit, tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a lockout/tagout permit by its permit number.
+    """
+    db_permit = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lockout/tagout permit not found")
+    return db_permit
+
+@app.get("/lockout-tagout-permit/property/{property_id}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits for a specific property.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/date/{date}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits for a specific date.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/contractor/{contractor_name}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits for a specific contractor.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/equipment/{equipment_name}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_equipment(equipment_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits for a specific equipment.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.equipment_system_to_be_isolated.contains(equipment_name)).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/location/{location}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits for a specific location.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.location_of_equipment.contains(location)).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/status/active", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_active_lockout_tagout_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active lockout/tagout permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(LockoutTagoutPermitDB).filter(
+        LockoutTagoutPermitDB.permit_valid_from <= current_time,
+        LockoutTagoutPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/lockout-tagout-permit/workers/min/{min_workers}", response_model=List[LockoutTagoutPermit], tags=["Lockout/Tagout Permit"])
+def read_lockout_tagout_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all lockout/tagout permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.put("/lockout-tagout-permit/{permit_id}", response_model=LockoutTagoutPermit, tags=["Lockout/Tagout Permit"])
+def update_lockout_tagout_permit(permit_id: int, permit: LockoutTagoutPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing lockout/tagout permit record.
+    """
+    db_permit = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lockout/tagout permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/lockout-tagout-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Lockout/Tagout Permit"])
+def delete_lockout_tagout_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a lockout/tagout permit record by its ID.
+    """
+    db_permit = db.query(LockoutTagoutPermitDB).filter(LockoutTagoutPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lockout/tagout permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Chemical Handling Permit ---
+
+class ChemicalHandlingPermitCreate(BaseModel):
+    """Schema for creating chemical handling permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="CHP-2025-010")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T09:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-14T17:00:00")
+    site_location_of_work: str = Field(..., example="Laboratory Building - Room 205")
+    nature_of_chemical_work: str = Field(..., example="Acid neutralization and disposal")
+    contractor_agency_name: str = Field(..., example="ChemSafe Environmental Services")
+    contact_details_contractor: str = Field(..., example="+91-9876543214")
+    supervisor_name_on_site: str = Field(..., example="Dr. Priya Sharma")
+    contact_details_supervisor: str = Field(..., example="+91-9123456787")
+    number_of_workers_involved: int = Field(..., example=4)
+    chemicals_to_be_handled: List[str] = Field(..., example=["Sulfuric Acid", "Sodium Hydroxide", "Hydrochloric Acid"])
+    chemical_concentrations: List[str] = Field(..., example=["98%", "50%", "37%"])
+    quantities_involved: List[str] = Field(..., example=["5 liters", "10 liters", "3 liters"])
+    msds_available_and_reviewed: str = Field(..., example="Yes")
+    chemical_compatibility_checked: str = Field(..., example="Yes")
+    ventilation_system_operational: str = Field(..., example="Yes")
+    fume_hood_available: str = Field(..., example="Yes")
+    emergency_shower_eyewash_available: str = Field(..., example="Yes")
+    spill_containment_equipment_available: str = Field(..., example="Yes")
+    chemical_resistant_ppe_provided: str = Field(..., example="Yes")
+    type_of_ppe_provided: List[str] = Field(..., example=["Chemical Resistant Gloves", "Lab Coat", "Safety Goggles", "Face Shield"])
+    emergency_procedures_explained: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    fire_extinguisher_available: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Rajesh Kumar")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Dr. Priya Sharma")
+    signature_of_safety_officer: str = Field(..., example="Rajesh Kumar")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-14T16:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Rajesh Kumar")
+    final_clearance_given: str = Field(..., example="Yes")
+    chemical_waste_disposal_verified: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="All chemicals properly neutralized and disposed. Area cleaned and decontaminated.")
+
+class ChemicalHandlingPermitUpdate(BaseModel):
+    """Schema for updating chemical handling permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_work: Optional[str] = None
+    nature_of_chemical_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    chemicals_to_be_handled: Optional[List[str]] = None
+    chemical_concentrations: Optional[List[str]] = None
+    quantities_involved: Optional[List[str]] = None
+    msds_available_and_reviewed: Optional[str] = None
+    chemical_compatibility_checked: Optional[str] = None
+    ventilation_system_operational: Optional[str] = None
+    fume_hood_available: Optional[str] = None
+    emergency_shower_eyewash_available: Optional[str] = None
+    spill_containment_equipment_available: Optional[str] = None
+    chemical_resistant_ppe_provided: Optional[str] = None
+    type_of_ppe_provided: Optional[List[str]] = None
+    emergency_procedures_explained: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    fire_extinguisher_available: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    chemical_waste_disposal_verified: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class ChemicalHandlingPermit(ChemicalHandlingPermitCreate):
+    """Schema for reading chemical handling permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Chemical Handling Permit ---
+
+class ChemicalHandlingPermitDB(Base):
+    """Database ORM model for the 'chemical_handling_permit' table."""
+    __tablename__ = "chemical_handling_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_work = Column(String)
+    nature_of_chemical_work = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    chemicals_to_be_handled = Column(JSON)
+    chemical_concentrations = Column(JSON)
+    quantities_involved = Column(JSON)
+    msds_available_and_reviewed = Column(String)
+    chemical_compatibility_checked = Column(String)
+    ventilation_system_operational = Column(String)
+    fume_hood_available = Column(String)
+    emergency_shower_eyewash_available = Column(String)
+    spill_containment_equipment_available = Column(String)
+    chemical_resistant_ppe_provided = Column(String)
+    type_of_ppe_provided = Column(JSON)
+    emergency_procedures_explained = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    fire_extinguisher_available = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    chemical_waste_disposal_verified = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Chemical Handling Permit ---
+
+@app.post("/chemical-handling-permit/", response_model=ChemicalHandlingPermit, status_code=status.HTTP_201_CREATED, tags=["Chemical Handling Permit"])
+def create_chemical_handling_permit(permit: ChemicalHandlingPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new chemical handling permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = ChemicalHandlingPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/chemical-handling-permit/", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits with pagination.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/{permit_id}", response_model=ChemicalHandlingPermit, tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single chemical handling permit record by its ID.
+    """
+    db_permit = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chemical handling permit not found")
+    return db_permit
+
+@app.get("/chemical-handling-permit/permit/{permit_number}", response_model=ChemicalHandlingPermit, tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a chemical handling permit by its permit number.
+    """
+    db_permit = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chemical handling permit not found")
+    return db_permit
+
+@app.get("/chemical-handling-permit/property/{property_id}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits for a specific property.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/date/{date}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits for a specific date.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/contractor/{contractor_name}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits for a specific contractor.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/location/{location}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits for a specific location.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.site_location_of_work.contains(location)).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/nature/{nature_of_work}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits for a specific nature of chemical work.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.nature_of_chemical_work.contains(nature_of_work)).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/status/active", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_active_chemical_handling_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active chemical handling permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(
+        ChemicalHandlingPermitDB.permit_valid_from <= current_time,
+        ChemicalHandlingPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/chemical-handling-permit/workers/min/{min_workers}", response_model=List[ChemicalHandlingPermit], tags=["Chemical Handling Permit"])
+def read_chemical_handling_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all chemical handling permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.put("/chemical-handling-permit/{permit_id}", response_model=ChemicalHandlingPermit, tags=["Chemical Handling Permit"])
+def update_chemical_handling_permit(permit_id: int, permit: ChemicalHandlingPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing chemical handling permit record.
+    """
+    db_permit = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chemical handling permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/chemical-handling-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Chemical Handling Permit"])
+def delete_chemical_handling_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a chemical handling permit record by its ID.
+    """
+    db_permit = db.query(ChemicalHandlingPermitDB).filter(ChemicalHandlingPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chemical handling permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Lifting Work Permit ---
+
+class LiftingWorkPermitCreate(BaseModel):
+    """Schema for creating lifting work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="LWP-2025-011")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-14T16:00:00")
+    site_location_of_lifting: str = Field(..., example="Warehouse A - Loading Bay")
+    nature_of_lifting_work: str = Field(..., example="Heavy machinery installation")
+    contractor_agency_name: str = Field(..., example="HeavyLift Industrial Services")
+    contact_details_contractor: str = Field(..., example="+91-9876543215")
+    supervisor_name_on_site: str = Field(..., example="Ramesh Singh")
+    contact_details_supervisor: str = Field(..., example="+91-9123456788")
+    number_of_workers_involved: int = Field(..., example=6)
+    equipment_to_be_lifted: str = Field(..., example="Industrial Compressor Unit")
+    weight_of_equipment_kg: float = Field(..., example=2500.0)
+    dimensions_of_equipment: str = Field(..., example="3m x 2m x 2.5m")
+    lifting_equipment_used: str = Field(..., example="Mobile Crane - 50 Ton Capacity")
+    crane_capacity_tonnes: float = Field(..., example=50.0)
+    crane_certification_valid: str = Field(..., example="Yes")
+    crane_operator_certified: str = Field(..., example="Yes")
+    rigging_equipment_checked: str = Field(..., example="Yes")
+    slings_and_chains_certified: str = Field(..., example="Yes")
+    lifting_plan_prepared: str = Field(..., example="Yes")
+    ground_conditions_assessed: str = Field(..., example="Yes")
+    overhead_obstacles_identified: str = Field(..., example="Yes")
+    exclusion_zone_established: str = Field(..., example="Yes")
+    signal_person_assigned: str = Field(..., example="Yes")
+    communication_method: str = Field(..., example="Radio")
+    weather_conditions_suitable: str = Field(..., example="Yes")
+    wind_speed_acceptable: str = Field(..., example="Yes")
+    emergency_procedures_explained: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Amit Kumar")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Ramesh Singh")
+    signature_of_safety_officer: str = Field(..., example="Amit Kumar")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-14T15:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Amit Kumar")
+    final_clearance_given: str = Field(..., example="Yes")
+    equipment_installed_safely: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="Lifting completed successfully. Equipment properly secured and installed.")
+
+class LiftingWorkPermitUpdate(BaseModel):
+    """Schema for updating lifting work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_lifting: Optional[str] = None
+    nature_of_lifting_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    equipment_to_be_lifted: Optional[str] = None
+    weight_of_equipment_kg: Optional[float] = None
+    dimensions_of_equipment: Optional[str] = None
+    lifting_equipment_used: Optional[str] = None
+    crane_capacity_tonnes: Optional[float] = None
+    crane_certification_valid: Optional[str] = None
+    crane_operator_certified: Optional[str] = None
+    rigging_equipment_checked: Optional[str] = None
+    slings_and_chains_certified: Optional[str] = None
+    lifting_plan_prepared: Optional[str] = None
+    ground_conditions_assessed: Optional[str] = None
+    overhead_obstacles_identified: Optional[str] = None
+    exclusion_zone_established: Optional[str] = None
+    signal_person_assigned: Optional[str] = None
+    communication_method: Optional[str] = None
+    weather_conditions_suitable: Optional[str] = None
+    wind_speed_acceptable: Optional[str] = None
+    emergency_procedures_explained: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    equipment_installed_safely: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class LiftingWorkPermit(LiftingWorkPermitCreate):
+    """Schema for reading lifting work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Lifting Work Permit ---
+
+class LiftingWorkPermitDB(Base):
+    """Database ORM model for the 'lifting_work_permit' table."""
+    __tablename__ = "lifting_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_lifting = Column(String)
+    nature_of_lifting_work = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    equipment_to_be_lifted = Column(String)
+    weight_of_equipment_kg = Column(Float)
+    dimensions_of_equipment = Column(String)
+    lifting_equipment_used = Column(String)
+    crane_capacity_tonnes = Column(Float)
+    crane_certification_valid = Column(String)
+    crane_operator_certified = Column(String)
+    rigging_equipment_checked = Column(String)
+    slings_and_chains_certified = Column(String)
+    lifting_plan_prepared = Column(String)
+    ground_conditions_assessed = Column(String)
+    overhead_obstacles_identified = Column(String)
+    exclusion_zone_established = Column(String)
+    signal_person_assigned = Column(String)
+    communication_method = Column(String)
+    weather_conditions_suitable = Column(String)
+    wind_speed_acceptable = Column(String)
+    emergency_procedures_explained = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    equipment_installed_safely = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Lifting Work Permit ---
+
+@app.post("/lifting-work-permit/", response_model=LiftingWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Lifting Work Permit"])
+def create_lifting_work_permit(permit: LiftingWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new lifting work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = LiftingWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/lifting-work-permit/", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits with pagination.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/{permit_id}", response_model=LiftingWorkPermit, tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single lifting work permit record by its ID.
+    """
+    db_permit = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lifting work permit not found")
+    return db_permit
+
+@app.get("/lifting-work-permit/permit/{permit_number}", response_model=LiftingWorkPermit, tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a lifting work permit by its permit number.
+    """
+    db_permit = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lifting work permit not found")
+    return db_permit
+
+@app.get("/lifting-work-permit/property/{property_id}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific property.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/date/{date}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific date.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/contractor/{contractor_name}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific contractor.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/location/{location}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific location.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.site_location_of_lifting.contains(location)).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/nature/{nature_of_work}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific nature of lifting work.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.nature_of_lifting_work.contains(nature_of_work)).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/equipment/{equipment_name}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_equipment(equipment_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits for a specific equipment.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.equipment_to_be_lifted.contains(equipment_name)).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/status/active", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_active_lifting_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active lifting work permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(LiftingWorkPermitDB).filter(
+        LiftingWorkPermitDB.permit_valid_from <= current_time,
+        LiftingWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/workers/min/{min_workers}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/weight/min/{min_weight}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_min_weight(min_weight: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits where equipment weight is greater than or equal to min_weight.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.weight_of_equipment_kg >= min_weight).all()
+    return permit_records
+
+@app.get("/lifting-work-permit/crane-capacity/min/{min_capacity}", response_model=List[LiftingWorkPermit], tags=["Lifting Work Permit"])
+def read_lifting_work_permit_by_min_crane_capacity(min_capacity: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all lifting work permits where crane capacity is greater than or equal to min_capacity.
+    """
+    permit_records = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.crane_capacity_tonnes >= min_capacity).all()
+    return permit_records
+
+@app.put("/lifting-work-permit/{permit_id}", response_model=LiftingWorkPermit, tags=["Lifting Work Permit"])
+def update_lifting_work_permit(permit_id: int, permit: LiftingWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing lifting work permit record.
+    """
+    db_permit = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lifting work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/lifting-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Lifting Work Permit"])
+def delete_lifting_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a lifting work permit record by its ID.
+    """
+    db_permit = db.query(LiftingWorkPermitDB).filter(LiftingWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lifting work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Demolition Work Permit ---
+
+class DemolitionWorkPermitCreate(BaseModel):
+    """Schema for creating demolition work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="DWP-2025-012")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-20T18:00:00")
+    site_location_of_demolition: str = Field(..., example="Building C - Ground Floor")
+    nature_of_demolition_work: str = Field(..., example="Interior wall demolition and structural modifications")
+    contractor_agency_name: str = Field(..., example="DemolitionPro Construction Services")
+    contact_details_contractor: str = Field(..., example="+91-9876543216")
+    supervisor_name_on_site: str = Field(..., example="Suresh Kumar")
+    contact_details_supervisor: str = Field(..., example="+91-9123456789")
+    number_of_workers_involved: int = Field(..., example=8)
+    structure_to_be_demolished: str = Field(..., example="Interior partition walls and false ceiling")
+    area_to_be_demolished_sqm: float = Field(..., example=150.0)
+    height_of_structure_meters: float = Field(..., example=3.5)
+    demolition_method: str = Field(..., example="Manual demolition with hand tools")
+    heavy_equipment_required: str = Field(..., example="Yes")
+    equipment_to_be_used: List[str] = Field(..., example=["Jack Hammer", "Concrete Cutter", "Excavator"])
+    structural_analysis_done: str = Field(..., example="Yes")
+    load_bearing_walls_identified: str = Field(..., example="Yes")
+    utilities_disconnected: str = Field(..., example="Yes")
+    electrical_isolation_done: str = Field(..., example="Yes")
+    water_supply_isolated: str = Field(..., example="Yes")
+    gas_supply_isolated: str = Field(..., example="Yes")
+    asbestos_survey_done: str = Field(..., example="Yes")
+    hazardous_materials_identified: str = Field(..., example="No")
+    dust_control_measures: str = Field(..., example="Yes")
+    noise_control_measures: str = Field(..., example="Yes")
+    vibration_monitoring: str = Field(..., example="Yes")
+    barricading_and_signages: str = Field(..., example="Yes")
+    safety_helmet_and_ppe_worn: str = Field(..., example="Yes")
+    first_aid_kit_available_onsite: str = Field(..., example="Yes")
+    emergency_procedures_explained: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Neha Sharma")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Suresh Kumar")
+    signature_of_safety_officer: str = Field(..., example="Neha Sharma")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-20T17:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Neha Sharma")
+    final_clearance_given: str = Field(..., example="Yes")
+    debris_removal_verified: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="Demolition completed safely. All debris removed and site cleaned.")
+
+class DemolitionWorkPermitUpdate(BaseModel):
+    """Schema for updating demolition work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_demolition: Optional[str] = None
+    nature_of_demolition_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    structure_to_be_demolished: Optional[str] = None
+    area_to_be_demolished_sqm: Optional[float] = None
+    height_of_structure_meters: Optional[float] = None
+    demolition_method: Optional[str] = None
+    heavy_equipment_required: Optional[str] = None
+    equipment_to_be_used: Optional[List[str]] = None
+    structural_analysis_done: Optional[str] = None
+    load_bearing_walls_identified: Optional[str] = None
+    utilities_disconnected: Optional[str] = None
+    electrical_isolation_done: Optional[str] = None
+    water_supply_isolated: Optional[str] = None
+    gas_supply_isolated: Optional[str] = None
+    asbestos_survey_done: Optional[str] = None
+    hazardous_materials_identified: Optional[str] = None
+    dust_control_measures: Optional[str] = None
+    noise_control_measures: Optional[str] = None
+    vibration_monitoring: Optional[str] = None
+    barricading_and_signages: Optional[str] = None
+    safety_helmet_and_ppe_worn: Optional[str] = None
+    first_aid_kit_available_onsite: Optional[str] = None
+    emergency_procedures_explained: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    debris_removal_verified: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class DemolitionWorkPermit(DemolitionWorkPermitCreate):
+    """Schema for reading demolition work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Demolition Work Permit ---
+
+class DemolitionWorkPermitDB(Base):
+    """Database ORM model for the 'demolition_work_permit' table."""
+    __tablename__ = "demolition_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_demolition = Column(String)
+    nature_of_demolition_work = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    structure_to_be_demolished = Column(String)
+    area_to_be_demolished_sqm = Column(Float)
+    height_of_structure_meters = Column(Float)
+    demolition_method = Column(String)
+    heavy_equipment_required = Column(String)
+    equipment_to_be_used = Column(JSON)
+    structural_analysis_done = Column(String)
+    load_bearing_walls_identified = Column(String)
+    utilities_disconnected = Column(String)
+    electrical_isolation_done = Column(String)
+    water_supply_isolated = Column(String)
+    gas_supply_isolated = Column(String)
+    asbestos_survey_done = Column(String)
+    hazardous_materials_identified = Column(String)
+    dust_control_measures = Column(String)
+    noise_control_measures = Column(String)
+    vibration_monitoring = Column(String)
+    barricading_and_signages = Column(String)
+    safety_helmet_and_ppe_worn = Column(String)
+    first_aid_kit_available_onsite = Column(String)
+    emergency_procedures_explained = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    debris_removal_verified = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Demolition Work Permit ---
+
+@app.post("/demolition-work-permit/", response_model=DemolitionWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Demolition Work Permit"])
+def create_demolition_work_permit(permit: DemolitionWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new demolition work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = DemolitionWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/demolition-work-permit/", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits with pagination.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/{permit_id}", response_model=DemolitionWorkPermit, tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single demolition work permit record by its ID.
+    """
+    db_permit = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demolition work permit not found")
+    return db_permit
+
+@app.get("/demolition-work-permit/permit/{permit_number}", response_model=DemolitionWorkPermit, tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a demolition work permit by its permit number.
+    """
+    db_permit = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demolition work permit not found")
+    return db_permit
+
+@app.get("/demolition-work-permit/property/{property_id}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific property.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/date/{date}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific date.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/contractor/{contractor_name}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific contractor.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/location/{location}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific location.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.site_location_of_demolition.contains(location)).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/nature/{nature_of_work}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific nature of demolition work.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.nature_of_demolition_work.contains(nature_of_work)).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/structure/{structure_name}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_structure(structure_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits for a specific structure.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.structure_to_be_demolished.contains(structure_name)).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/status/active", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_active_demolition_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active demolition work permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(DemolitionWorkPermitDB).filter(
+        DemolitionWorkPermitDB.permit_valid_from <= current_time,
+        DemolitionWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/workers/min/{min_workers}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/area/min/{min_area}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_min_area(min_area: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits where area to be demolished is greater than or equal to min_area.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.area_to_be_demolished_sqm >= min_area).all()
+    return permit_records
+
+@app.get("/demolition-work-permit/height/min/{min_height}", response_model=List[DemolitionWorkPermit], tags=["Demolition Work Permit"])
+def read_demolition_work_permit_by_min_height(min_height: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all demolition work permits where structure height is greater than or equal to min_height.
+    """
+    permit_records = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.height_of_structure_meters >= min_height).all()
+    return permit_records
+
+@app.put("/demolition-work-permit/{permit_id}", response_model=DemolitionWorkPermit, tags=["Demolition Work Permit"])
+def update_demolition_work_permit(permit_id: int, permit: DemolitionWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing demolition work permit record.
+    """
+    db_permit = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demolition work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/demolition-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Demolition Work Permit"])
+def delete_demolition_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a demolition work permit record by its ID.
+    """
+    db_permit = db.query(DemolitionWorkPermitDB).filter(DemolitionWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demolition work permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Temporary Structure Installation Permit ---
+
+class TemporaryStructureInstallationPermitCreate(BaseModel):
+    """Schema for creating temporary structure installation permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="TSIP-2025-013")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-09-14T18:00:00")
+    site_location_of_installation: str = Field(..., example="Construction Site - Zone B")
+    nature_of_temporary_structure: str = Field(..., example="Modular office complex and storage facility")
+    contractor_agency_name: str = Field(..., example="ModularBuild Solutions Ltd.")
+    contact_details_contractor: str = Field(..., example="+91-9876543217")
+    supervisor_name_on_site: str = Field(..., example="Arun Singh")
+    contact_details_supervisor: str = Field(..., example="+91-9123456790")
+    number_of_workers_involved: int = Field(..., example=12)
+    type_of_temporary_structure: str = Field(..., example="Modular Buildings")
+    number_of_units: int = Field(..., example=8)
+    total_area_covered_sqm: float = Field(..., example=320.0)
+    height_of_structure_meters: float = Field(..., example=3.0)
+    foundation_type: str = Field(..., example="Concrete Pads")
+    foundation_analysis_done: str = Field(..., example="Yes")
+    structural_engineering_approval: str = Field(..., example="Yes")
+    wind_load_calculations: str = Field(..., example="Yes")
+    seismic_considerations: str = Field(..., example="Yes")
+    fire_safety_measures: str = Field(..., example="Yes")
+    emergency_exits_planned: str = Field(..., example="Yes")
+    utilities_connection_plan: str = Field(..., example="Yes")
+    electrical_installation_plan: str = Field(..., example="Yes")
+    water_supply_connection: str = Field(..., example="Yes")
+    sewage_disposal_arrangement: str = Field(..., example="Yes")
+    access_roads_planned: str = Field(..., example="Yes")
+    parking_arrangement: str = Field(..., example="Yes")
+    security_measures: str = Field(..., example="Yes")
+    lighting_arrangement: str = Field(..., example="Yes")
+    first_aid_facility: str = Field(..., example="Yes")
+    emergency_contact_details: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Priya Verma")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Arun Singh")
+    signature_of_safety_officer: str = Field(..., example="Priya Verma")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    installation_completion_time: str = Field(..., example="2025-09-10T17:30:00")
+    post_installation_inspection_done_by: str = Field(..., example="Priya Verma")
+    final_clearance_given: str = Field(..., example="Yes")
+    structure_handover_verified: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="Temporary structure installed successfully. All safety measures in place.")
+
+class TemporaryStructureInstallationPermitUpdate(BaseModel):
+    """Schema for updating temporary structure installation permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_installation: Optional[str] = None
+    nature_of_temporary_structure: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    type_of_temporary_structure: Optional[str] = None
+    number_of_units: Optional[int] = None
+    total_area_covered_sqm: Optional[float] = None
+    height_of_structure_meters: Optional[float] = None
+    foundation_type: Optional[str] = None
+    foundation_analysis_done: Optional[str] = None
+    structural_engineering_approval: Optional[str] = None
+    wind_load_calculations: Optional[str] = None
+    seismic_considerations: Optional[str] = None
+    fire_safety_measures: Optional[str] = None
+    emergency_exits_planned: Optional[str] = None
+    utilities_connection_plan: Optional[str] = None
+    electrical_installation_plan: Optional[str] = None
+    water_supply_connection: Optional[str] = None
+    sewage_disposal_arrangement: Optional[str] = None
+    access_roads_planned: Optional[str] = None
+    parking_arrangement: Optional[str] = None
+    security_measures: Optional[str] = None
+    lighting_arrangement: Optional[str] = None
+    first_aid_facility: Optional[str] = None
+    emergency_contact_details: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    installation_completion_time: Optional[str] = None
+    post_installation_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    structure_handover_verified: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class TemporaryStructureInstallationPermit(TemporaryStructureInstallationPermitCreate):
+    """Schema for reading temporary structure installation permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Temporary Structure Installation Permit ---
+
+class TemporaryStructureInstallationPermitDB(Base):
+    """Database ORM model for the 'temporary_structure_installation_permit' table."""
+    __tablename__ = "temporary_structure_installation_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_installation = Column(String)
+    nature_of_temporary_structure = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    type_of_temporary_structure = Column(String)
+    number_of_units = Column(Integer)
+    total_area_covered_sqm = Column(Float)
+    height_of_structure_meters = Column(Float)
+    foundation_type = Column(String)
+    foundation_analysis_done = Column(String)
+    structural_engineering_approval = Column(String)
+    wind_load_calculations = Column(String)
+    seismic_considerations = Column(String)
+    fire_safety_measures = Column(String)
+    emergency_exits_planned = Column(String)
+    utilities_connection_plan = Column(String)
+    electrical_installation_plan = Column(String)
+    water_supply_connection = Column(String)
+    sewage_disposal_arrangement = Column(String)
+    access_roads_planned = Column(String)
+    parking_arrangement = Column(String)
+    security_measures = Column(String)
+    lighting_arrangement = Column(String)
+    first_aid_facility = Column(String)
+    emergency_contact_details = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    installation_completion_time = Column(String)
+    post_installation_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    structure_handover_verified = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Temporary Structure Installation Permit ---
+
+@app.post("/temporary-structure-installation-permit/", response_model=TemporaryStructureInstallationPermit, status_code=status.HTTP_201_CREATED, tags=["Temporary Structure Installation Permit"])
+def create_temporary_structure_installation_permit(permit: TemporaryStructureInstallationPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new temporary structure installation permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = TemporaryStructureInstallationPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/temporary-structure-installation-permit/", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits with pagination.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/{permit_id}", response_model=TemporaryStructureInstallationPermit, tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single temporary structure installation permit record by its ID.
+    """
+    db_permit = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Temporary structure installation permit not found")
+    return db_permit
+
+@app.get("/temporary-structure-installation-permit/permit/{permit_number}", response_model=TemporaryStructureInstallationPermit, tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a temporary structure installation permit by its permit number.
+    """
+    db_permit = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Temporary structure installation permit not found")
+    return db_permit
+
+@app.get("/temporary-structure-installation-permit/property/{property_id}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits for a specific property.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/date/{date}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits for a specific date.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/contractor/{contractor_name}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits for a specific contractor.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/location/{location}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits for a specific location.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.site_location_of_installation.contains(location)).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/type/{structure_type}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_type(structure_type: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits for a specific structure type.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.type_of_temporary_structure.contains(structure_type)).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/status/active", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_active_temporary_structure_installation_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active temporary structure installation permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(
+        TemporaryStructureInstallationPermitDB.permit_valid_from <= current_time,
+        TemporaryStructureInstallationPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/workers/min/{min_workers}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/area/min/{min_area}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_min_area(min_area: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits where total area covered is greater than or equal to min_area.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.total_area_covered_sqm >= min_area).all()
+    return permit_records
+
+@app.get("/temporary-structure-installation-permit/height/min/{min_height}", response_model=List[TemporaryStructureInstallationPermit], tags=["Temporary Structure Installation Permit"])
+def read_temporary_structure_installation_permit_by_min_height(min_height: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all temporary structure installation permits where structure height is greater than or equal to min_height.
+    """
+    permit_records = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.height_of_structure_meters >= min_height).all()
+    return permit_records
+
+@app.put("/temporary-structure-installation-permit/{permit_id}", response_model=TemporaryStructureInstallationPermit, tags=["Temporary Structure Installation Permit"])
+def update_temporary_structure_installation_permit(permit_id: int, permit: TemporaryStructureInstallationPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing temporary structure installation permit record.
+    """
+    db_permit = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Temporary structure installation permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/temporary-structure-installation-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Temporary Structure Installation Permit"])
+def delete_temporary_structure_installation_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a temporary structure installation permit record by its ID.
+    """
+    db_permit = db.query(TemporaryStructureInstallationPermitDB).filter(TemporaryStructureInstallationPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Temporary structure installation permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Vehicle Entry Permit ---
+
+class VehicleEntryPermitCreate(BaseModel):
+    """Schema for creating vehicle entry permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="VEP-2025-014")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-14T18:00:00")
+    site_location_of_entry: str = Field(..., example="Main Gate - Security Checkpoint")
+    nature_of_vehicle_work: str = Field(..., example="Material delivery and equipment transport")
+    contractor_agency_name: str = Field(..., example="LogiTrans Freight Services")
+    contact_details_contractor: str = Field(..., example="+91-9876543218")
+    supervisor_name_on_site: str = Field(..., example="Mohan Das")
+    contact_details_supervisor: str = Field(..., example="+91-9123456791")
+    number_of_vehicles_involved: int = Field(..., example=3)
+    vehicle_types: List[str] = Field(..., example=["Truck", "Pickup Van", "Crane"])
+    vehicle_registration_numbers: List[str] = Field(..., example=["MH-12-AB-1234", "MH-12-CD-5678", "MH-12-EF-9012"])
+    driver_names: List[str] = Field(..., example=["Rajesh Kumar", "Amit Singh", "Vikram Patel"])
+    driver_license_numbers: List[str] = Field(..., example=["DL-1234567890", "DL-0987654321", "DL-1122334455"])
+    driver_contact_numbers: List[str] = Field(..., example=["+91-9876543210", "+91-9876543211", "+91-9876543212"])
+    vehicle_insurance_valid: str = Field(..., example="Yes")
+    vehicle_fitness_certificate_valid: str = Field(..., example="Yes")
+    vehicle_pollution_certificate_valid: str = Field(..., example="Yes")
+    vehicle_permit_valid: str = Field(..., example="Yes")
+    driver_license_valid: str = Field(..., example="Yes")
+    driver_medical_certificate_valid: str = Field(..., example="Yes")
+    vehicle_safety_equipment_checked: str = Field(..., example="Yes")
+    fire_extinguisher_available: str = Field(..., example="Yes")
+    first_aid_kit_available: str = Field(..., example="Yes")
+    emergency_contact_details: str = Field(..., example="Yes")
+    route_plan_approved: str = Field(..., example="Yes")
+    speed_limit_restrictions: str = Field(..., example="Yes")
+    parking_area_assigned: str = Field(..., example="Yes")
+    security_clearance_given: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Security Officer - Sunita Sharma")
+    pre_entry_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Mohan Das")
+    signature_of_security_officer: str = Field(..., example="Sunita Sharma")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    entry_time: str = Field(..., example="2025-08-14T08:30:00")
+    exit_time: str = Field(..., example="2025-08-14T17:30:00")
+    post_exit_inspection_done_by: str = Field(..., example="Sunita Sharma")
+    final_clearance_given: str = Field(..., example="Yes")
+    vehicle_exit_verified: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="All vehicles entered and exited safely. No incidents reported.")
+
+class VehicleEntryPermitUpdate(BaseModel):
+    """Schema for updating vehicle entry permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_entry: Optional[str] = None
+    nature_of_vehicle_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_vehicles_involved: Optional[int] = None
+    vehicle_types: Optional[List[str]] = None
+    vehicle_registration_numbers: Optional[List[str]] = None
+    driver_names: Optional[List[str]] = None
+    driver_license_numbers: Optional[List[str]] = None
+    driver_contact_numbers: Optional[List[str]] = None
+    vehicle_insurance_valid: Optional[str] = None
+    vehicle_fitness_certificate_valid: Optional[str] = None
+    vehicle_pollution_certificate_valid: Optional[str] = None
+    vehicle_permit_valid: Optional[str] = None
+    driver_license_valid: Optional[str] = None
+    driver_medical_certificate_valid: Optional[str] = None
+    vehicle_safety_equipment_checked: Optional[str] = None
+    fire_extinguisher_available: Optional[str] = None
+    first_aid_kit_available: Optional[str] = None
+    emergency_contact_details: Optional[str] = None
+    route_plan_approved: Optional[str] = None
+    speed_limit_restrictions: Optional[str] = None
+    parking_area_assigned: Optional[str] = None
+    security_clearance_given: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_entry_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_security_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    entry_time: Optional[str] = None
+    exit_time: Optional[str] = None
+    post_exit_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    vehicle_exit_verified: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class VehicleEntryPermit(VehicleEntryPermitCreate):
+    """Schema for reading vehicle entry permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Vehicle Entry Permit ---
+
+class VehicleEntryPermitDB(Base):
+    """Database ORM model for the 'vehicle_entry_permit' table."""
+    __tablename__ = "vehicle_entry_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_entry = Column(String)
+    nature_of_vehicle_work = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_vehicles_involved = Column(Integer)
+    vehicle_types = Column(JSON)
+    vehicle_registration_numbers = Column(JSON)
+    driver_names = Column(JSON)
+    driver_license_numbers = Column(JSON)
+    driver_contact_numbers = Column(JSON)
+    vehicle_insurance_valid = Column(String)
+    vehicle_fitness_certificate_valid = Column(String)
+    vehicle_pollution_certificate_valid = Column(String)
+    vehicle_permit_valid = Column(String)
+    driver_license_valid = Column(String)
+    driver_medical_certificate_valid = Column(String)
+    vehicle_safety_equipment_checked = Column(String)
+    fire_extinguisher_available = Column(String)
+    first_aid_kit_available = Column(String)
+    emergency_contact_details = Column(String)
+    route_plan_approved = Column(String)
+    speed_limit_restrictions = Column(String)
+    parking_area_assigned = Column(String)
+    security_clearance_given = Column(String)
+    work_authorization_by = Column(String)
+    pre_entry_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_security_officer = Column(String)
+    signature_of_contractor = Column(String)
+    entry_time = Column(String)
+    exit_time = Column(String)
+    post_exit_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    vehicle_exit_verified = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Vehicle Entry Permit ---
+
+@app.post("/vehicle-entry-permit/", response_model=VehicleEntryPermit, status_code=status.HTTP_201_CREATED, tags=["Vehicle Entry Permit"])
+def create_vehicle_entry_permit(permit: VehicleEntryPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new vehicle entry permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = VehicleEntryPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/vehicle-entry-permit/", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits with pagination.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/{permit_id}", response_model=VehicleEntryPermit, tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single vehicle entry permit record by its ID.
+    """
+    db_permit = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle entry permit not found")
+    return db_permit
+
+@app.get("/vehicle-entry-permit/permit/{permit_number}", response_model=VehicleEntryPermit, tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve a vehicle entry permit by its permit number.
+    """
+    db_permit = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle entry permit not found")
+    return db_permit
+
+@app.get("/vehicle-entry-permit/property/{property_id}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific property.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/date/{date}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific date.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/contractor/{contractor_name}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific contractor.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/location/{location}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific location.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.site_location_of_entry.contains(location)).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/nature/{nature_of_work}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific nature of vehicle work.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.nature_of_vehicle_work.contains(nature_of_work)).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/vehicle-type/{vehicle_type}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_vehicle_type(vehicle_type: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific vehicle type.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.vehicle_types.contains(vehicle_type)).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/driver/{driver_name}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_driver(driver_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits for a specific driver.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.driver_names.contains(driver_name)).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/status/active", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_active_vehicle_entry_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active vehicle entry permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(VehicleEntryPermitDB).filter(
+        VehicleEntryPermitDB.permit_valid_from <= current_time,
+        VehicleEntryPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/vehicle-entry-permit/vehicles/min/{min_vehicles}", response_model=List[VehicleEntryPermit], tags=["Vehicle Entry Permit"])
+def read_vehicle_entry_permit_by_min_vehicles(min_vehicles: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all vehicle entry permits where number of vehicles is greater than or equal to min_vehicles.
+    """
+    permit_records = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.number_of_vehicles_involved >= min_vehicles).all()
+    return permit_records
+
+@app.put("/vehicle-entry-permit/{permit_id}", response_model=VehicleEntryPermit, tags=["Vehicle Entry Permit"])
+def update_vehicle_entry_permit(permit_id: int, permit: VehicleEntryPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing vehicle entry permit record.
+    """
+    db_permit = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle entry permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/vehicle-entry-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Vehicle Entry Permit"])
+def delete_vehicle_entry_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a vehicle entry permit record by its ID.
+    """
+    db_permit = db.query(VehicleEntryPermitDB).filter(VehicleEntryPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle entry permit not found")
+    
+    db.delete(db_permit)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Interior Work Permit ---
+
+class InteriorWorkPermitCreate(BaseModel):
+    """Schema for creating interior work permit."""
+    property_id: str = Field(..., example="PROP-001")
+    permit_number: str = Field(..., example="IWP-2025-015")
+    date_of_issue: str = Field(..., example="2025-08-13")
+    permit_valid_from: str = Field(..., example="2025-08-14T08:00:00")
+    permit_valid_to: str = Field(..., example="2025-08-25T18:00:00")
+    site_location_of_interior_work: str = Field(..., example="Office Building - 3rd Floor")
+    nature_of_interior_work: str = Field(..., example="Renovation and interior finishing work")
+    contractor_agency_name: str = Field(..., example="InteriorCraft Design Solutions")
+    contact_details_contractor: str = Field(..., example="+91-9876543219")
+    supervisor_name_on_site: str = Field(..., example="Sanjay Verma")
+    contact_details_supervisor: str = Field(..., example="+91-9123456792")
+    number_of_workers_involved: int = Field(..., example=15)
+    type_of_interior_work: List[str] = Field(..., example=["Painting", "Flooring", "Ceiling", "Electrical", "Plumbing"])
+    area_to_be_worked_sqm: float = Field(..., example=450.0)
+    existing_finishes_to_be_removed: str = Field(..., example="Yes")
+    new_materials_to_be_installed: str = Field(..., example="Yes")
+    dust_control_measures: str = Field(..., example="Yes")
+    noise_control_measures: str = Field(..., example="Yes")
+    ventilation_system_operational: str = Field(..., example="Yes")
+    electrical_safety_measures: str = Field(..., example="Yes")
+    fire_safety_measures: str = Field(..., example="Yes")
+    emergency_exits_accessible: str = Field(..., example="Yes")
+    first_aid_kit_available: str = Field(..., example="Yes")
+    emergency_contact_details: str = Field(..., example="Yes")
+    work_authorization_by: str = Field(..., example="Safety Officer - Rajesh Kumar")
+    pre_work_site_inspection_done: str = Field(..., example="Yes")
+    signature_of_supervisor: str = Field(..., example="Sanjay Verma")
+    signature_of_safety_officer: str = Field(..., example="Rajesh Kumar")
+    signature_of_contractor: str = Field(..., example="Vikram Malhotra")
+    work_completion_time: str = Field(..., example="2025-08-25T17:30:00")
+    post_work_inspection_done_by: str = Field(..., example="Rajesh Kumar")
+    final_clearance_given: str = Field(..., example="Yes")
+    interior_work_quality_verified: str = Field(..., example="Yes")
+    remarks_or_observations: str = Field(..., example="Interior work completed successfully. All finishes properly installed and site cleaned.")
+
+class InteriorWorkPermitUpdate(BaseModel):
+    """Schema for updating interior work permit."""
+    property_id: Optional[str] = None
+    permit_number: Optional[str] = None
+    date_of_issue: Optional[str] = None
+    permit_valid_from: Optional[str] = None
+    permit_valid_to: Optional[str] = None
+    site_location_of_interior_work: Optional[str] = None
+    nature_of_interior_work: Optional[str] = None
+    contractor_agency_name: Optional[str] = None
+    contact_details_contractor: Optional[str] = None
+    supervisor_name_on_site: Optional[str] = None
+    contact_details_supervisor: Optional[str] = None
+    number_of_workers_involved: Optional[int] = None
+    type_of_interior_work: Optional[List[str]] = None
+    area_to_be_worked_sqm: Optional[float] = None
+    existing_finishes_to_be_removed: Optional[str] = None
+    new_materials_to_be_installed: Optional[str] = None
+    dust_control_measures: Optional[str] = None
+    noise_control_measures: Optional[str] = None
+    ventilation_system_operational: Optional[str] = None
+    electrical_safety_measures: Optional[str] = None
+    fire_safety_measures: Optional[str] = None
+    emergency_exits_accessible: Optional[str] = None
+    first_aid_kit_available: Optional[str] = None
+    emergency_contact_details: Optional[str] = None
+    work_authorization_by: Optional[str] = None
+    pre_work_site_inspection_done: Optional[str] = None
+    signature_of_supervisor: Optional[str] = None
+    signature_of_safety_officer: Optional[str] = None
+    signature_of_contractor: Optional[str] = None
+    work_completion_time: Optional[str] = None
+    post_work_inspection_done_by: Optional[str] = None
+    final_clearance_given: Optional[str] = None
+    interior_work_quality_verified: Optional[str] = None
+    remarks_or_observations: Optional[str] = None
+
+class InteriorWorkPermit(InteriorWorkPermitCreate):
+    """Schema for reading interior work permit from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Interior Work Permit ---
+
+class InteriorWorkPermitDB(Base):
+    """Database ORM model for the 'interior_work_permit' table."""
+    __tablename__ = "interior_work_permit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    permit_number = Column(String, unique=True, index=True)
+    date_of_issue = Column(String, index=True)
+    permit_valid_from = Column(String, index=True)
+    permit_valid_to = Column(String, index=True)
+    site_location_of_interior_work = Column(String)
+    nature_of_interior_work = Column(String)
+    contractor_agency_name = Column(String)
+    contact_details_contractor = Column(String)
+    supervisor_name_on_site = Column(String)
+    contact_details_supervisor = Column(String)
+    number_of_workers_involved = Column(Integer)
+    type_of_interior_work = Column(JSON)
+    area_to_be_worked_sqm = Column(Float)
+    existing_finishes_to_be_removed = Column(String)
+    new_materials_to_be_installed = Column(String)
+    dust_control_measures = Column(String)
+    noise_control_measures = Column(String)
+    ventilation_system_operational = Column(String)
+    electrical_safety_measures = Column(String)
+    fire_safety_measures = Column(String)
+    emergency_exits_accessible = Column(String)
+    first_aid_kit_available = Column(String)
+    emergency_contact_details = Column(String)
+    work_authorization_by = Column(String)
+    pre_work_site_inspection_done = Column(String)
+    signature_of_supervisor = Column(String)
+    signature_of_safety_officer = Column(String)
+    signature_of_contractor = Column(String)
+    work_completion_time = Column(String)
+    post_work_inspection_done_by = Column(String)
+    final_clearance_given = Column(String)
+    interior_work_quality_verified = Column(String)
+    remarks_or_observations = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Interior Work Permit ---
+
+@app.post("/interior-work-permit/", response_model=InteriorWorkPermit, status_code=status.HTTP_201_CREATED, tags=["Interior Work Permit"])
+def create_interior_work_permit(permit: InteriorWorkPermitCreate, db: Session = Depends(get_db)):
+    """
+    Create a new interior work permit record.
+    """
+    permit_data = permit.dict()
+    db_permit = InteriorWorkPermitDB(**permit_data)
+    db.add(db_permit)
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.get("/interior-work-permit/", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits with pagination.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).offset(skip).limit(limit).all()
+    return permit_records
+
+@app.get("/interior-work-permit/{permit_id}", response_model=InteriorWorkPermit, tags=["Interior Work Permit"])
+def read_interior_work_permit_by_id(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single interior work permit record by its ID.
+    """
+    db_permit = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interior work permit not found")
+    return db_permit
+
+@app.get("/interior-work-permit/permit/{permit_number}", response_model=InteriorWorkPermit, tags=["Interior Work Permit"])
+def read_interior_work_permit_by_permit_number(permit_number: str, db: Session = Depends(get_db)):
+    """
+    Retrieve an interior work permit by its permit number.
+    """
+    db_permit = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.permit_number == permit_number).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interior work permit not found")
+    return db_permit
+
+@app.get("/interior-work-permit/property/{property_id}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific property.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.property_id == property_id).all()
+    return permit_records
+
+@app.get("/interior-work-permit/date/{date}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific date.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.date_of_issue == date).all()
+    return permit_records
+
+@app.get("/interior-work-permit/contractor/{contractor_name}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_contractor(contractor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific contractor.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.contractor_agency_name.contains(contractor_name)).all()
+    return permit_records
+
+@app.get("/interior-work-permit/location/{location}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_location(location: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific location.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.site_location_of_interior_work.contains(location)).all()
+    return permit_records
+
+@app.get("/interior-work-permit/nature/{nature_of_work}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_nature(nature_of_work: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific nature of interior work.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.nature_of_interior_work.contains(nature_of_work)).all()
+    return permit_records
+
+@app.get("/interior-work-permit/type/{work_type}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_work_type(work_type: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits for a specific type of interior work.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.type_of_interior_work.contains(work_type)).all()
+    return permit_records
+
+@app.get("/interior-work-permit/status/active", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_active_interior_work_permit(db: Session = Depends(get_db)):
+    """
+    Retrieve all active interior work permits (current time within validity period).
+    """
+    from datetime import datetime
+    current_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    permit_records = db.query(InteriorWorkPermitDB).filter(
+        InteriorWorkPermitDB.permit_valid_from <= current_time,
+        InteriorWorkPermitDB.permit_valid_to >= current_time
+    ).all()
+    return permit_records
+
+@app.get("/interior-work-permit/workers/min/{min_workers}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_min_workers(min_workers: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits where number of workers is greater than or equal to min_workers.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.number_of_workers_involved >= min_workers).all()
+    return permit_records
+
+@app.get("/interior-work-permit/area/min/{min_area}", response_model=List[InteriorWorkPermit], tags=["Interior Work Permit"])
+def read_interior_work_permit_by_min_area(min_area: float, db: Session = Depends(get_db)):
+    """
+    Retrieve all interior work permits where area to be worked is greater than or equal to min_area.
+    """
+    permit_records = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.area_to_be_worked_sqm >= min_area).all()
+    return permit_records
+
+@app.put("/interior-work-permit/{permit_id}", response_model=InteriorWorkPermit, tags=["Interior Work Permit"])
+def update_interior_work_permit(permit_id: int, permit: InteriorWorkPermitUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing interior work permit record.
+    """
+    db_permit = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interior work permit not found")
+
+    update_data = permit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_permit, key, value)
+        
+    db.commit()
+    db.refresh(db_permit)
+    return db_permit
+
+@app.delete("/interior-work-permit/{permit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Interior Work Permit"])
+def delete_interior_work_permit(permit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an interior work permit record by its ID.
+    """
+    db_permit = db.query(InteriorWorkPermitDB).filter(InteriorWorkPermitDB.id == permit_id).first()
+    if db_permit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interior work permit not found")
+    
+    db.delete(db_permit)
     db.commit()
     return {"ok": True}

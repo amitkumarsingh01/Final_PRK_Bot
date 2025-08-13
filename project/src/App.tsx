@@ -150,6 +150,8 @@ import SiteVisitPage from './components/BackOffice/SiteVisit.tsx';
 import EscalationMatrix from './components/BackOffice/EscalationMatrix.tsx';
 import MinutesOfMeetingPage from './components/BackOffice/MinutesofMeeting.tsx';
 import NightPatrollingPage from './components/BackOffice/NightPatrolling.tsx';
+import InteriorWorkPermitPage from './components/Workpermit/Interior.tsx';
+import VehicleEntryPermitPage from './components/Workpermit/Vehicle.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -402,6 +404,12 @@ const AppRoutes = () => {
 
         {/* Escalation Matrix Routes */}
         <Route path="escalation-matrix" element={<EscalationMatrix />} />
+
+        {/* Interior Work Permit Routes */}
+        <Route path="interior-work-permit" element={<InteriorWorkPermitPage />} />
+
+        {/* Vehicle Entry Permit Routes */}
+        <Route path="vehicle-entry-permit" element={<VehicleEntryPermitPage />} />
       </Route>
 
       {/* Catch all unmatched routes */}
