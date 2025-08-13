@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List, Literal, Dict, Any
-from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean, Text, ForeignKey, Float, JSON
+from sqlalchemy import create_engine, Column, String, DateTime, Integer, Boolean, Text, ForeignKey, Float, JSON, Date
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 from datetime import datetime
 import uuid
@@ -12789,5 +12789,1161 @@ def delete_schedule(schedule_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
     
     db.delete(db_schedule)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Training Details ---
+
+class ConductedByBase(BaseModel):
+    """Schema for trainer details."""
+    trainer_name: str = Field(..., example="Ravi Kumar")
+    designation: str = Field(..., example="Senior Security Trainer")
+
+class AttendanceDetailsBase(BaseModel):
+    """Schema for individual attendance details."""
+    employee_name: str = Field(..., example="Amit Sharma")
+    employee_code: str = Field(..., example="SEC101")
+    designation: str = Field(..., example="Security Guard")
+    shift: str = Field(..., example="Day")
+    attendance: str = Field(..., example="Present")
+    signature: str = Field(..., example="Signed")
+
+class TrainingContentBase(BaseModel):
+    """Schema for training content modules."""
+    module_topic: str = Field(..., example="Fire Safety")
+    key_points_discussed: str = Field(..., example="Identifying fire hazards, Using fire extinguishers, Evacuation routes")
+    materials_used: str = Field(..., example="PPT, Video")
+
+class PhotosProofBase(BaseModel):
+    """Schema for training photos proof."""
+    description: str = Field(..., example="Trainer explaining evacuation route using floor plan")
+    file_name_or_link: str = Field(..., example="https://example.com/photos/training_evacuations_001.jpg")
+
+class FeedbackSummaryBase(BaseModel):
+    """Schema for employee feedback."""
+    employee_name: str = Field(..., example="Amit Sharma")
+    clarity_of_content: int = Field(..., ge=1, le=5, example=5)
+    trainer_knowledge: int = Field(..., ge=1, le=5, example=5)
+    usefulness: int = Field(..., ge=1, le=5, example=5)
+    suggestions_comments: str = Field(..., example="Very helpful and practical session.")
+
+class TrainerEvaluationBase(BaseModel):
+    """Schema for trainer's evaluation of employees."""
+    employee_name: str = Field(..., example="Amit Sharma")
+    participation: str = Field(..., example="Active")
+    understanding_level: str = Field(..., example="Good")
+    improvement_area: str = Field(..., example="None")
+
+class SignOffBase(BaseModel):
+    """Schema for training sign-off."""
+    trainer_name: str = Field(..., example="Ravi Kumar")
+    signature: str = Field(..., example="Signed")
+    date: str = Field(..., example="2025-08-13")
+    verified_by: str = Field(..., example="Sandeep Mehra (Site Head)")
+    remarks: str = Field(..., example="Training completed successfully with good engagement.")
+
+class TrainingDetailsBase(BaseModel):
+    """Schema for training details."""
+    s_no: str = Field(..., example="001")
+    date_of_training: str = Field(..., example="2025-08-13")
+    site_name: str = Field(..., example="Sunrise Corporate Tower")
+    client_name: str = Field(..., example="TechNova Solutions Pvt. Ltd.")
+    location: str = Field(..., example="Bengaluru, India")
+    conducted_by: ConductedByBase
+    department: str = Field(..., example="Security")
+    training_topic: str = Field(..., example="Emergency Response & Evacuation Procedures")
+    mode_of_training: str = Field(..., example="Offline")
+    duration_hrs: str = Field(..., example="2")
+
+class TrainingDetailsCreate(BaseModel):
+    """Schema for creating training details."""
+    property_id: str = Field(..., example="PROP-001")
+    training_details: TrainingDetailsBase
+    attendance_details: List[AttendanceDetailsBase]
+    training_content: List[TrainingContentBase]
+    photos_proof: List[PhotosProofBase]
+    feedback_summary: List[FeedbackSummaryBase]
+    trainer_evaluation: List[TrainerEvaluationBase]
+    sign_off: SignOffBase
+
+class TrainingDetailsUpdate(BaseModel):
+    """Schema for updating training details."""
+    property_id: Optional[str] = None
+    training_details: Optional[TrainingDetailsBase] = None
+    attendance_details: Optional[List[AttendanceDetailsBase]] = None
+    training_content: Optional[List[TrainingContentBase]] = None
+    photos_proof: Optional[List[PhotosProofBase]] = None
+    feedback_summary: Optional[List[FeedbackSummaryBase]] = None
+    trainer_evaluation: Optional[List[TrainerEvaluationBase]] = None
+    sign_off: Optional[SignOffBase] = None
+
+class TrainingDetails(TrainingDetailsCreate):
+    """Schema for reading training details from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Training Details ---
+
+class TrainingDetailsDB(Base):
+    """Database ORM model for the 'training_details' table."""
+    __tablename__ = "training_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store all the nested objects as JSON fields
+    training_details = Column(JSON)
+    attendance_details = Column(JSON)
+    training_content = Column(JSON)
+    photos_proof = Column(JSON)
+    feedback_summary = Column(JSON)
+    trainer_evaluation = Column(JSON)
+    sign_off = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Training Details ---
+
+@app.post("/training-details/", response_model=TrainingDetails, status_code=status.HTTP_201_CREATED, tags=["Training Details"])
+def create_training_details(training: TrainingDetailsCreate, db: Session = Depends(get_db)):
+    """
+    Create a new training details record.
+    """
+    training_data = training.dict()
+    db_training = TrainingDetailsDB(**training_data)
+    db.add(db_training)
+    db.commit()
+    db.refresh(db_training)
+    return db_training
+
+@app.get("/training-details/", response_model=List[TrainingDetails], tags=["Training Details"])
+def read_training_details(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all training details with pagination.
+    """
+    training_records = db.query(TrainingDetailsDB).offset(skip).limit(limit).all()
+    return training_records
+
+@app.get("/training-details/{training_id}", response_model=TrainingDetails, tags=["Training Details"])
+def read_training_details_by_id(training_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single training details record by its ID.
+    """
+    db_training = db.query(TrainingDetailsDB).filter(TrainingDetailsDB.id == training_id).first()
+    if db_training is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training details not found")
+    return db_training
+
+@app.get("/training-details/property/{property_id}", response_model=List[TrainingDetails], tags=["Training Details"])
+def read_training_details_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all training details for a specific property.
+    """
+    training_records = db.query(TrainingDetailsDB).filter(TrainingDetailsDB.property_id == property_id).all()
+    return training_records
+
+@app.put("/training-details/{training_id}", response_model=TrainingDetails, tags=["Training Details"])
+def update_training_details(training_id: int, training: TrainingDetailsUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing training details record.
+    """
+    db_training = db.query(TrainingDetailsDB).filter(TrainingDetailsDB.id == training_id).first()
+    if db_training is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training details not found")
+
+    update_data = training.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_training, key, value)
+        
+    db.commit()
+    db.refresh(db_training)
+    return db_training
+
+@app.delete("/training-details/{training_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Training Details"])
+def delete_training_details(training_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a training details record by its ID.
+    """
+    db_training = db.query(TrainingDetailsDB).filter(TrainingDetailsDB.id == training_id).first()
+    if db_training is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training details not found")
+    
+    db.delete(db_training)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Patrolling Details ---
+
+class ReportedByBase(BaseModel):
+    """Schema for person reporting the patrol."""
+    name: str = Field(..., example="Arjun Singh")
+    designation: str = Field(..., example="Security Supervisor")
+
+class PatrollingDetailsBase(BaseModel):
+    """Schema for basic patrolling information."""
+    s_no: str = Field(..., example="001")
+    date: str = Field(..., example="2025-08-13")
+    site_name: str = Field(..., example="Sunrise Corporate Tower")
+    client_name: str = Field(..., example="TechNova Solutions Pvt. Ltd.")
+    location: str = Field(..., example="Bengaluru, India")
+    shift_timing: str = Field(..., example="22:00 - 06:00")
+    reported_by: ReportedByBase
+
+class CheckpointLogBase(BaseModel):
+    """Schema for individual checkpoint logs."""
+    checkpoint_no: int = Field(..., example=1)
+    area_location_name: str = Field(..., example="Main Gate")
+    time_checked: str = Field(..., example="22:15")
+    checked_by: str = Field(..., example="Ravi Kumar")
+    observations: str = Field(..., example="Gate lock functioning properly")
+    status: str = Field(..., example="Clear")
+    action_taken: str = Field(..., example="None")
+
+class PatrolRouteFrequencyBase(BaseModel):
+    """Schema for patrol route frequency details."""
+    route_covered: str = Field(..., example="Tower A to B")
+    no_of_rounds_completed: int = Field(..., example=3)
+    time_of_each_round: List[str] = Field(..., example=["22:00", "00:30", "03:00"])
+    any_skipped_area: str = Field(..., example="No")
+    reason_if_skipped: str = Field(..., example="")
+
+class IncidentsObservationsBase(BaseModel):
+    """Schema for incidents and observations during patrol."""
+    time: str = Field(..., example="00:45")
+    location: str = Field(..., example="Basement 1")
+    description: str = Field(..., example="Suspicious parked vehicle without sticker")
+    severity: str = Field(..., example="Medium")
+    immediate_action_taken: str = Field(..., example="Noted vehicle number and informed supervisor")
+    escalated_to: str = Field(..., example="Duty Manager")
+
+class PhotoVideoEvidenceBase(BaseModel):
+    """Schema for photo/video evidence."""
+    checkpoint_location: str = Field(..., example="Basement 1")
+    file_name_or_link: str = Field(..., example="https://example.com/photos/vehicle_incident_001.jpg")
+    type: str = Field(..., example="Photo")
+    purpose: str = Field(..., example="Incident Proof")
+
+class ChecklistSummaryBase(BaseModel):
+    """Schema for checklist summary items."""
+    description: str = Field(..., example="All Entry/Exit Points Checked")
+    status: str = Field(..., example="Yes")
+    remarks: str = Field(..., example="All gates secure")
+
+class SignOffPatrolBase(BaseModel):
+    """Schema for patrol sign-off."""
+    patrolling_guard_name: str = Field(..., example="Ravi Kumar")
+    patrolling_guard_signature: str = Field(..., example="Signed")
+    supervisor_name: str = Field(..., example="Arjun Singh")
+    supervisor_signature: str = Field(..., example="Signed")
+    date_time_submission: str = Field(..., example="2025-08-13T06:05:00")
+
+class PatrollingDetailsCreate(BaseModel):
+    """Schema for creating patrolling details."""
+    property_id: str = Field(..., example="PROP-001")
+    patrolling_details: PatrollingDetailsBase
+    checkpoint_log: List[CheckpointLogBase]
+    patrol_route_frequency: List[PatrolRouteFrequencyBase]
+    incidents_observations: List[IncidentsObservationsBase]
+    photo_video_evidence: List[PhotoVideoEvidenceBase]
+    checklist_summary: List[ChecklistSummaryBase]
+    final_remarks: str = Field(..., example="Overall night patrol completed successfully. Only issue found was basement light flicker and unregistered vehicle. Both escalated for action.")
+    sign_off: SignOffPatrolBase
+
+class PatrollingDetailsUpdate(BaseModel):
+    """Schema for updating patrolling details."""
+    property_id: Optional[str] = None
+    patrolling_details: Optional[PatrollingDetailsBase] = None
+    checkpoint_log: Optional[List[CheckpointLogBase]] = None
+    patrol_route_frequency: Optional[List[PatrolRouteFrequencyBase]] = None
+    incidents_observations: Optional[List[IncidentsObservationsBase]] = None
+    photo_video_evidence: Optional[List[PhotoVideoEvidenceBase]] = None
+    checklist_summary: Optional[List[ChecklistSummaryBase]] = None
+    final_remarks: Optional[str] = None
+    sign_off: Optional[SignOffPatrolBase] = None
+
+class PatrollingDetails(PatrollingDetailsCreate):
+    """Schema for reading patrolling details from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Patrolling Details ---
+
+class PatrollingDetailsDB(Base):
+    """Database ORM model for the 'patrolling_details' table."""
+    __tablename__ = "patrolling_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store all the nested objects as JSON fields
+    patrolling_details = Column(JSON)
+    checkpoint_log = Column(JSON)
+    patrol_route_frequency = Column(JSON)
+    incidents_observations = Column(JSON)
+    photo_video_evidence = Column(JSON)
+    checklist_summary = Column(JSON)
+    final_remarks = Column(Text)
+    sign_off = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Patrolling Details ---
+
+@app.post("/patrolling-details/", response_model=PatrollingDetails, status_code=status.HTTP_201_CREATED, tags=["Patrolling Details"])
+def create_patrolling_details(patrol: PatrollingDetailsCreate, db: Session = Depends(get_db)):
+    """
+    Create a new patrolling details record.
+    """
+    patrol_data = patrol.dict()
+    db_patrol = PatrollingDetailsDB(**patrol_data)
+    db.add(db_patrol)
+    db.commit()
+    db.refresh(db_patrol)
+    return db_patrol
+
+@app.get("/patrolling-details/", response_model=List[PatrollingDetails], tags=["Patrolling Details"])
+def read_patrolling_details(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all patrolling details with pagination.
+    """
+    patrol_records = db.query(PatrollingDetailsDB).offset(skip).limit(limit).all()
+    return patrol_records
+
+@app.get("/patrolling-details/{patrol_id}", response_model=PatrollingDetails, tags=["Patrolling Details"])
+def read_patrolling_details_by_id(patrol_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single patrolling details record by its ID.
+    """
+    db_patrol = db.query(PatrollingDetailsDB).filter(PatrollingDetailsDB.id == patrol_id).first()
+    if db_patrol is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patrolling details not found")
+    return db_patrol
+
+@app.get("/patrolling-details/property/{property_id}", response_model=List[PatrollingDetails], tags=["Patrolling Details"])
+def read_patrolling_details_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all patrolling details for a specific property.
+    """
+    patrol_records = db.query(PatrollingDetailsDB).filter(PatrollingDetailsDB.property_id == property_id).all()
+    return patrol_records
+
+@app.get("/patrolling-details/date/{date}", response_model=List[PatrollingDetails], tags=["Patrolling Details"])
+def read_patrolling_details_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all patrolling details for a specific date.
+    """
+    patrol_records = db.query(PatrollingDetailsDB).filter(PatrollingDetailsDB.patrolling_details.contains({"date": date})).all()
+    return patrol_records
+
+@app.put("/patrolling-details/{patrol_id}", response_model=PatrollingDetails, tags=["Patrolling Details"])
+def update_patrolling_details(patrol_id: int, patrol: PatrollingDetailsUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing patrolling details record.
+    """
+    db_patrol = db.query(PatrollingDetailsDB).filter(PatrollingDetailsDB.id == patrol_id).first()
+    if db_patrol is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patrolling details not found")
+
+    update_data = patrol.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_patrol, key, value)
+        
+    db.commit()
+    db.refresh(db_patrol)
+    return db_patrol
+
+@app.delete("/patrolling-details/{patrol_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Patrolling Details"])
+def delete_patrolling_details(patrol_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a patrolling details record by its ID.
+    """
+    db_patrol = db.query(PatrollingDetailsDB).filter(PatrollingDetailsDB.id == patrol_id).first()
+    if db_patrol is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patrolling details not found")
+    
+    db.delete(db_patrol)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Escalation Matrix ---
+
+class ClientDetailsBase(BaseModel):
+    """Schema for client and site details."""
+    client_name: str = Field(..., example="TechNova Solutions Pvt. Ltd.")
+    site_name: str = Field(..., example="Sunrise Corporate Tower")
+    location: str = Field(..., example="Bengaluru, India")
+    service_type: str = Field(..., example="Security")
+    prepared_by: str = Field(..., example="Arjun Singh")
+    date: str = Field(..., example="2025-08-13")
+
+class EscalationMatrixBase(BaseModel):
+    """Schema for individual escalation level details."""
+    escalation_level: str = Field(..., example="Level 1")
+    name: str = Field(..., example="Ravi Kumar")
+    designation: str = Field(..., example="Security Supervisor")
+    department: str = Field(..., example="Security")
+    contact_number: str = Field(..., example="+91-9876543210")
+    email_id: str = Field(..., example="ravi.kumar@technova.com")
+    response_time_max: str = Field(..., example="2 hours")
+    availability: str = Field(..., example="Night Shift / All Days")
+    remarks: str = Field(..., example="Handles immediate onsite issues")
+
+class EscalationGuidelinesBase(BaseModel):
+    """Schema for escalation guidelines by issue type."""
+    issue_type: str = Field(..., example="Minor Complaint (e.g., light out)")
+    direct_escalation_level: str = Field(..., example="Level 1")
+    expected_resolution_time: str = Field(..., example="4 hours")
+    mode_of_escalation: str = Field(..., example="Call / WhatsApp")
+
+class SignOffEscalationBase(BaseModel):
+    """Schema for escalation matrix sign-off."""
+    prepared_by: str = Field(..., example="Arjun Singh")
+    verified_by: str = Field(..., example="Sandeep Mehra")
+    approved_by: str = Field(..., example="Rohit Khanna")
+    date_of_approval: str = Field(..., example="2025-08-13")
+
+class EscalationMatrixCreate(BaseModel):
+    """Schema for creating escalation matrix."""
+    property_id: str = Field(..., example="PROP-001")
+    client_details: ClientDetailsBase
+    escalation_matrix: List[EscalationMatrixBase]
+    escalation_guidelines: List[EscalationGuidelinesBase]
+    sign_off: SignOffEscalationBase
+
+class EscalationMatrixUpdate(BaseModel):
+    """Schema for updating escalation matrix."""
+    property_id: Optional[str] = None
+    client_details: Optional[ClientDetailsBase] = None
+    escalation_matrix: Optional[List[EscalationMatrixBase]] = None
+    escalation_guidelines: Optional[List[EscalationGuidelinesBase]] = None
+    sign_off: Optional[SignOffEscalationBase] = None
+
+class EscalationMatrix(EscalationMatrixCreate):
+    """Schema for reading escalation matrix from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Escalation Matrix ---
+
+class EscalationMatrixDB(Base):
+    """Database ORM model for the 'escalation_matrix' table."""
+    __tablename__ = "escalation_matrix"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store all the nested objects as JSON fields
+    client_details = Column(JSON)
+    escalation_matrix = Column(JSON)
+    escalation_guidelines = Column(JSON)
+    sign_off = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Escalation Matrix ---
+
+@app.post("/escalation-matrix/", response_model=EscalationMatrix, status_code=status.HTTP_201_CREATED, tags=["Escalation Matrix"])
+def create_escalation_matrix(escalation: EscalationMatrixCreate, db: Session = Depends(get_db)):
+    """
+    Create a new escalation matrix record.
+    """
+    escalation_data = escalation.dict()
+    db_escalation = EscalationMatrixDB(**escalation_data)
+    db.add(db_escalation)
+    db.commit()
+    db.refresh(db_escalation)
+    return db_escalation
+
+@app.get("/escalation-matrix/", response_model=List[EscalationMatrix], tags=["Escalation Matrix"])
+def read_escalation_matrix(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all escalation matrix records with pagination.
+    """
+    escalation_records = db.query(EscalationMatrixDB).offset(skip).limit(limit).all()
+    return escalation_records
+
+@app.get("/escalation-matrix/{escalation_id}", response_model=EscalationMatrix, tags=["Escalation Matrix"])
+def read_escalation_matrix_by_id(escalation_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single escalation matrix record by its ID.
+    """
+    db_escalation = db.query(EscalationMatrixDB).filter(EscalationMatrixDB.id == escalation_id).first()
+    if db_escalation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escalation matrix not found")
+    return db_escalation
+
+@app.get("/escalation-matrix/property/{property_id}", response_model=EscalationMatrix, tags=["Escalation Matrix"])
+def read_escalation_matrix_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve escalation matrix for a specific property.
+    """
+    db_escalation = db.query(EscalationMatrixDB).filter(EscalationMatrixDB.property_id == property_id).first()
+    if db_escalation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escalation matrix not found for this property")
+    return db_escalation
+
+@app.get("/escalation-matrix/service/{service_type}", response_model=List[EscalationMatrix], tags=["Escalation Matrix"])
+def read_escalation_matrix_by_service(service_type: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all escalation matrices for a specific service type.
+    """
+    escalation_records = db.query(EscalationMatrixDB).filter(EscalationMatrixDB.client_details.contains({"service_type": service_type})).all()
+    return escalation_records
+
+@app.put("/escalation-matrix/{escalation_id}", response_model=EscalationMatrix, tags=["Escalation Matrix"])
+def update_escalation_matrix(escalation_id: int, escalation: EscalationMatrixUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing escalation matrix record.
+    """
+    db_escalation = db.query(EscalationMatrixDB).filter(EscalationMatrixDB.id == escalation_id).first()
+    if db_escalation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escalation matrix not found")
+
+    update_data = escalation.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_escalation, key, value)
+        
+    db.commit()
+    db.refresh(db_escalation)
+    return db_escalation
+
+@app.delete("/escalation-matrix/{escalation_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Escalation Matrix"])
+def delete_escalation_matrix(escalation_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an escalation matrix record by its ID.
+    """
+    db_escalation = db.query(EscalationMatrixDB).filter(EscalationMatrixDB.id == escalation_id).first()
+    if db_escalation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escalation matrix not found")
+    
+    db.delete(db_escalation)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Meeting Details ---
+
+class MeetingDetailsBase(BaseModel):
+    """Schema for basic meeting information."""
+    s_no: str = Field(..., example="001")
+    date_of_meeting: str = Field(..., example="2025-08-13")
+    time: str = Field(..., example="15:00 - 16:30")
+    venue_mode: str = Field(..., example="Online (Zoom)")
+    conducted_by: str = Field(..., example="Arjun Singh")
+    client_department_project: str = Field(..., example="TechNova Solutions - Security Upgrade Project")
+
+class AttendanceListBase(BaseModel):
+    """Schema for meeting attendees."""
+    name: str = Field(..., example="Ravi Kumar")
+    designation: str = Field(..., example="Security Supervisor")
+    department: str = Field(..., example="Security")
+    email_contact: str = Field(..., example="ravi.kumar@technova.com")
+    signature: str = Field(..., example="")
+
+class AgendaBase(BaseModel):
+    """Schema for meeting agenda items."""
+    agenda_point_no: int = Field(..., example=1)
+    topic_description: str = Field(..., example="Review of last month's incident reports")
+    lead_person: str = Field(..., example="Priya Nair")
+    time_allocated_min: int = Field(..., example=30)
+
+class DiscussionPointsBase(BaseModel):
+    """Schema for discussion points and decisions."""
+    topic_agenda: str = Field(..., example="Incident report review")
+    discussion_summary: str = Field(..., example="Discussed 3 incidents reported last month, focusing on security breaches at Tower B.")
+    decision_taken: str = Field(..., example="Increase night patrolling frequency and upgrade main gate locks.")
+    responsible_person: str = Field(..., example="Ravi Kumar")
+    deadline: str = Field(..., example="2025-08-31")
+
+class ActionItemsBase(BaseModel):
+    """Schema for action items and follow-ups."""
+    action_point_no: int = Field(..., example=1)
+    action_item: str = Field(..., example="Procure and install 20 new CCTV cameras")
+    assigned_to: str = Field(..., example="Sandeep Mehra")
+    priority: str = Field(..., example="High")
+    target_completion_date: str = Field(..., example="2025-09-15")
+    remarks_status: str = Field(..., example="Pending vendor confirmation")
+
+class DocumentsSharedBase(BaseModel):
+    """Schema for documents shared during meeting."""
+    document_name: str = Field(..., example="Incident_Report_July2025.pdf")
+    type: str = Field(..., example="PDF")
+    shared_by: str = Field(..., example="Priya Nair")
+    remarks_purpose: str = Field(..., example="Reference for security discussion")
+
+class ClientCommentsBase(BaseModel):
+    """Schema for client feedback and comments."""
+    name: str = Field(..., example="Rohit Khanna")
+    comments_suggestions: str = Field(..., example="Ensure the CCTV upgrade also covers parking areas.")
+
+class PreparedByBase(BaseModel):
+    """Schema for meeting preparation details."""
+    name: str = Field(..., example="Arjun Singh")
+    designation: str = Field(..., example="Security Supervisor")
+    signature: str = Field(..., example="Signed")
+    date: str = Field(..., example="2025-08-13")
+
+class ApprovedByBase(BaseModel):
+    """Schema for meeting approval details."""
+    name: str = Field(..., example="Rohit Khanna")
+    designation: str = Field(..., example="Client RM")
+    signature: str = Field(..., example="Signed")
+    date: str = Field(..., example="2025-08-13")
+
+class SignOffMeetingBase(BaseModel):
+    """Schema for meeting sign-off."""
+    prepared_by: PreparedByBase
+    approved_by: ApprovedByBase
+
+class MeetingDetailsCreate(BaseModel):
+    """Schema for creating meeting details."""
+    property_id: str = Field(..., example="PROP-001")
+    meeting_details: MeetingDetailsBase
+    attendance_list: List[AttendanceListBase]
+    agenda: List[AgendaBase]
+    discussion_points: List[DiscussionPointsBase]
+    action_items: List[ActionItemsBase]
+    documents_shared: List[DocumentsSharedBase]
+    client_comments: List[ClientCommentsBase]
+    sign_off: SignOffMeetingBase
+
+class MeetingDetailsUpdate(BaseModel):
+    """Schema for updating meeting details."""
+    property_id: Optional[str] = None
+    meeting_details: Optional[MeetingDetailsBase] = None
+    attendance_list: Optional[List[AttendanceListBase]] = None
+    agenda: Optional[List[AgendaBase]] = None
+    discussion_points: Optional[List[DiscussionPointsBase]] = None
+    action_items: Optional[List[ActionItemsBase]] = None
+    documents_shared: Optional[List[DocumentsSharedBase]] = None
+    client_comments: Optional[List[ClientCommentsBase]] = None
+    sign_off: Optional[SignOffMeetingBase] = None
+
+class MeetingDetails(MeetingDetailsCreate):
+    """Schema for reading meeting details from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Meeting Details ---
+
+class MeetingDetailsDB(Base):
+    """Database ORM model for the 'meeting_details' table."""
+    __tablename__ = "meeting_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store all the nested objects as JSON fields
+    meeting_details = Column(JSON)
+    attendance_list = Column(JSON)
+    agenda = Column(JSON)
+    discussion_points = Column(JSON)
+    action_items = Column(JSON)
+    documents_shared = Column(JSON)
+    client_comments = Column(JSON)
+    sign_off = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Meeting Details ---
+
+@app.post("/meeting-details/", response_model=MeetingDetails, status_code=status.HTTP_201_CREATED, tags=["Meeting Details"])
+def create_meeting_details(meeting: MeetingDetailsCreate, db: Session = Depends(get_db)):
+    """
+    Create a new meeting details record.
+    """
+    meeting_data = meeting.dict()
+    db_meeting = MeetingDetailsDB(**meeting_data)
+    db.add(db_meeting)
+    db.commit()
+    db.refresh(db_meeting)
+    return db_meeting
+
+@app.get("/meeting-details/", response_model=List[MeetingDetails], tags=["Meeting Details"])
+def read_meeting_details(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all meeting details with pagination.
+    """
+    meeting_records = db.query(MeetingDetailsDB).offset(skip).limit(limit).all()
+    return meeting_records
+
+@app.get("/meeting-details/{meeting_id}", response_model=MeetingDetails, tags=["Meeting Details"])
+def read_meeting_details_by_id(meeting_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single meeting details record by its ID.
+    """
+    db_meeting = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.id == meeting_id).first()
+    if db_meeting is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting details not found")
+    return db_meeting
+
+@app.get("/meeting-details/property/{property_id}", response_model=List[MeetingDetails], tags=["Meeting Details"])
+def read_meeting_details_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all meeting details for a specific property.
+    """
+    meeting_records = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.property_id == property_id).all()
+    return meeting_records
+
+@app.get("/meeting-details/date/{date}", response_model=List[MeetingDetails], tags=["Meeting Details"])
+def read_meeting_details_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all meeting details for a specific date.
+    """
+    meeting_records = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.meeting_details.contains({"date_of_meeting": date})).all()
+    return meeting_records
+
+@app.get("/meeting-details/conducted-by/{conducted_by}", response_model=List[MeetingDetails], tags=["Meeting Details"])
+def read_meeting_details_by_conductor(conducted_by: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all meeting details conducted by a specific person.
+    """
+    meeting_records = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.meeting_details.contains({"conducted_by": conducted_by})).all()
+    return meeting_records
+
+@app.put("/meeting-details/{meeting_id}", response_model=MeetingDetails, tags=["Meeting Details"])
+def update_meeting_details(meeting_id: int, meeting: MeetingDetailsUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing meeting details record.
+    """
+    db_meeting = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.id == meeting_id).first()
+    if db_meeting is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting details not found")
+
+    update_data = meeting.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_meeting, key, value)
+        
+    db.commit()
+    db.refresh(db_meeting)
+    return db_meeting
+
+@app.delete("/meeting-details/{meeting_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Meeting Details"])
+def delete_meeting_details(meeting_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a meeting details record by its ID.
+    """
+    db_meeting = db.query(MeetingDetailsDB).filter(MeetingDetailsDB.id == meeting_id).first()
+    if db_meeting is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting details not found")
+    
+    db.delete(db_meeting)
+    db.commit()
+    return {"ok": True}
+
+# --- Pydantic Schemas for Site Visit Details ---
+
+class VisitedByBase(BaseModel):
+    """Schema for person conducting the site visit."""
+    name: str = Field(..., example="Arjun Singh")
+    designation: str = Field(..., example="Senior Facility Manager")
+
+class SiteVisitDetailsBase(BaseModel):
+    """Schema for basic site visit information."""
+    s_no: str = Field(..., example="001")
+    date_of_visit: str = Field(..., example="2025-08-13")
+    site_name: str = Field(..., example="Sunrise Corporate Tower")
+    client_name: str = Field(..., example="TechNova Solutions Pvt. Ltd.")
+    location: str = Field(..., example="Bengaluru, India")
+    visited_by: VisitedByBase
+    visit_purpose: str = Field(..., example="Monthly site inspection and compliance audit")
+    time_in: str = Field(..., example="10:00")
+    time_out: str = Field(..., example="13:00")
+    duration_hrs: int = Field(..., example=3)
+
+class ObservationInteractionSummaryBase(BaseModel):
+    """Schema for department observations and interactions."""
+    department_visited: str = Field(..., example="Security")
+    staff_met: str = Field(..., example="Ravi Kumar - Security Supervisor")
+    observation_summary: str = Field(..., example="Guards attentive, checkpoint logs updated")
+    compliance_with_sop: str = Field(..., example="Yes")
+    remarks_issues_found: str = Field(..., example="Main gate lock slightly loose")
+    corrective_action_required: str = Field(..., example="Tighten lock within 24 hours")
+
+class ChecklistReviewBase(BaseModel):
+    """Schema for checklist review items."""
+    checklist_item: str = Field(..., example="Staff Attendance Register Maintained")
+    status: str = Field(..., example="Yes")
+    remarks: str = Field(..., example="Updated daily")
+
+class PhotosCapturedBase(BaseModel):
+    """Schema for photos captured during site visit."""
+    location_area: str = Field(..., example="Main Gate")
+    photo_description: str = Field(..., example="Security guard on duty at main gate")
+    photo_file_link: str = Field(..., example="https://example.com/photos/main_gate_001.jpg")
+
+class FollowUpActionPlanBase(BaseModel):
+    """Schema for follow-up action items."""
+    issue_observed: str = Field(..., example="Main gate lock loose")
+    assigned_to: str = Field(..., example="Ravi Kumar")
+    target_completion_date: str = Field(..., example="2025-08-14")
+    status_update: str = Field(..., example="Pending")
+
+class FinalCommentsSummaryBase(BaseModel):
+    """Schema for final visit summary and feedback."""
+    team_observations: str = Field(..., example="Overall site maintenance is satisfactory. Minor maintenance tasks noted.")
+    client_feedback: str = Field(..., example="Appreciates proactive reporting and prompt follow-ups.")
+    suggestions_recommendations: str = Field(..., example="Consider adding extra lighting in parking area.")
+
+class ReportedByBase(BaseModel):
+    """Schema for person reporting the site visit."""
+    name: str = Field(..., example="Arjun Singh")
+    designation: str = Field(..., example="Senior Facility Manager")
+    signature: str = Field(..., example="Signed")
+    date: str = Field(..., example="2025-08-13")
+
+class SignOffSiteVisitBase(BaseModel):
+    """Schema for site visit sign-off."""
+    reported_by: ReportedByBase
+
+class SiteVisitDetailsCreate(BaseModel):
+    """Schema for creating site visit details."""
+    property_id: str = Field(..., example="PROP-001")
+    site_visit_details: SiteVisitDetailsBase
+    observation_interaction_summary: List[ObservationInteractionSummaryBase]
+    checklist_review: List[ChecklistReviewBase]
+    photos_captured: List[PhotosCapturedBase]
+    follow_up_action_plan: List[FollowUpActionPlanBase]
+    final_comments_summary: FinalCommentsSummaryBase
+    sign_off: SignOffSiteVisitBase
+
+class SiteVisitDetailsUpdate(BaseModel):
+    """Schema for updating site visit details."""
+    property_id: Optional[str] = None
+    site_visit_details: Optional[SiteVisitDetailsBase] = None
+    observation_interaction_summary: Optional[List[ObservationInteractionSummaryBase]] = None
+    checklist_review: Optional[List[ChecklistReviewBase]] = None
+    photos_captured: Optional[List[PhotosCapturedBase]] = None
+    follow_up_action_plan: Optional[List[FollowUpActionPlanBase]] = None
+    final_comments_summary: Optional[FinalCommentsSummaryBase] = None
+    sign_off: Optional[SignOffSiteVisitBase] = None
+
+class SiteVisitDetails(SiteVisitDetailsCreate):
+    """Schema for reading site visit details from database."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- SQLAlchemy Model for Site Visit Details ---
+
+class SiteVisitDetailsDB(Base):
+    """Database ORM model for the 'site_visit_details' table."""
+    __tablename__ = "site_visit_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store all the nested objects as JSON fields
+    site_visit_details = Column(JSON)
+    observation_interaction_summary = Column(JSON)
+    checklist_review = Column(JSON)
+    photos_captured = Column(JSON)
+    follow_up_action_plan = Column(JSON)
+    final_comments_summary = Column(JSON)
+    sign_off = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+# --- API Endpoints for Site Visit Details ---
+
+@app.post("/site-visit-details/", response_model=SiteVisitDetails, status_code=status.HTTP_201_CREATED, tags=["Site Visit Details"])
+def create_site_visit_details(site_visit: SiteVisitDetailsCreate, db: Session = Depends(get_db)):
+    """
+    Create a new site visit details record.
+    """
+    site_visit_data = site_visit.dict()
+    db_site_visit = SiteVisitDetailsDB(**site_visit_data)
+    db.add(db_site_visit)
+    db.commit()
+    db.refresh(db_site_visit)
+    return db_site_visit
+
+@app.get("/site-visit-details/", response_model=List[SiteVisitDetails], tags=["Site Visit Details"])
+def read_site_visit_details(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all site visit details with pagination.
+    """
+    site_visit_records = db.query(SiteVisitDetailsDB).offset(skip).limit(limit).all()
+    return site_visit_records
+
+@app.get("/site-visit-details/{site_visit_id}", response_model=SiteVisitDetails, tags=["Site Visit Details"])
+def read_site_visit_details_by_id(site_visit_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single site visit details record by its ID.
+    """
+    db_site_visit = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.id == site_visit_id).first()
+    if db_site_visit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site visit details not found")
+    return db_site_visit
+
+@app.get("/site-visit-details/property/{property_id}", response_model=List[SiteVisitDetails], tags=["Site Visit Details"])
+def read_site_visit_details_by_property(property_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all site visit details for a specific property.
+    """
+    site_visit_records = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.property_id == property_id).all()
+    return site_visit_records
+
+@app.get("/site-visit-details/date/{date}", response_model=List[SiteVisitDetails], tags=["Site Visit Details"])
+def read_site_visit_details_by_date(date: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all site visit details for a specific date.
+    """
+    site_visit_records = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.site_visit_details.contains({"date_of_visit": date})).all()
+    return site_visit_records
+
+@app.get("/site-visit-details/visitor/{visitor_name}", response_model=List[SiteVisitDetails], tags=["Site Visit Details"])
+def read_site_visit_details_by_visitor(visitor_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all site visit details conducted by a specific visitor.
+    """
+    site_visit_records = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.site_visit_details.contains({"visited_by": {"name": visitor_name}})).all()
+    return site_visit_records
+
+@app.get("/site-visit-details/department/{department}", response_model=List[SiteVisitDetails], tags=["Site Visit Details"])
+def read_site_visit_details_by_department(department: str, db: Session = Depends(get_db)):
+    """
+    Retrieve all site visit details that include observations for a specific department.
+    """
+    site_visit_records = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.observation_interaction_summary.contains([{"department_visited": department}])).all()
+    return site_visit_records
+
+@app.put("/site-visit-details/{site_visit_id}", response_model=SiteVisitDetails, tags=["Site Visit Details"])
+def update_site_visit_details(site_visit_id: int, site_visit: SiteVisitDetailsUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing site visit details record.
+    """
+    db_site_visit = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.id == site_visit_id).first()
+    if db_site_visit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site visit details not found")
+
+    update_data = site_visit.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_site_visit, key, value)
+        
+    db.commit()
+    db.refresh(db_site_visit)
+    return db_site_visit
+
+@app.delete("/site-visit-details/{site_visit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Site Visit Details"])
+def delete_site_visit_details(site_visit_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a site visit details record by its ID.
+    """
+    db_site_visit = db.query(SiteVisitDetailsDB).filter(SiteVisitDetailsDB.id == site_visit_id).first()
+    if db_site_visit is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site visit details not found")
+    
+    db.delete(db_site_visit)
+    db.commit()
+    return {"ok": True}
+
+from datetime import datetime
+from typing import List
+
+# --- Pydantic Schemas (Data Validation Models) ---
+# We create a model for each nested object in the JSON.
+
+class VisitedBy(BaseModel):
+    name: str = Field(..., example="Ravi Kumar")
+    designation: str = Field(..., example="Senior Facility Manager")
+
+class VisitDetails(BaseModel):
+    serial_no: str = Field(..., example="001")
+    date_of_visit: str = Field(..., example="2025-08-13")
+    site_name: str = Field(..., example="Tech Park Tower A")
+    client_name: str = Field(..., example="ABC Corp Ltd.")
+    location: str = Field(..., example="Bengaluru, India")
+    visited_by: VisitedBy
+    visit_purpose: str = Field(..., example="Monthly Compliance Check")
+    time_in: str = Field(..., example="10:00 AM")
+    time_out: str = Field(..., example="1:30 PM")
+    duration_hours: str = Field(..., example="3.5")
+
+class ObservationItem(BaseModel):
+    department: str = Field(..., example="Security")
+    staff_met: str = Field(..., example="Ajay Sharma")
+    observation_summary: str = Field(..., example="Security guards were attentive...")
+    compliance_with_SOP: str = Field(..., example="Yes")
+    remarks: str
+    corrective_action_required: str
+
+class ChecklistItem(BaseModel):
+    item: str = Field(..., example="Staff Attendance Register Maintained")
+    status: str = Field(..., example="Yes")
+    remarks: str
+
+class PhotoItem(BaseModel):
+    location_area: str = Field(..., example="Main Lobby")
+    photo_description: str = Field(..., example="Clean lobby with reception desk")
+    photo_file_link: str = Field(..., example="https://example.com/photos/lobby.jpg")
+
+class ActionPlanItem(BaseModel):
+    issue_observed: str = Field(..., example="Washroom basin leakage")
+    assigned_to: str = Field(..., example="Rahul Singh - Maintenance")
+    target_completion_date: str = Field(..., example="2025-08-13")
+    status_update: str = Field(..., example="Pending")
+
+class FinalComments(BaseModel):
+    team_observations: str
+    client_feedback: str
+    suggestions_recommendations: str
+
+class ReportedBy(BaseModel):
+    name: str = Field(..., example="Ravi Kumar")
+    designation: str = Field(..., example="Senior Facility Manager")
+
+class SignOff(BaseModel):
+    reported_by: ReportedBy
+    signature: str = Field(..., example="Ravi_K_Signature.png")
+    date: str = Field(..., example="2025-08-13")
+
+class SiteVisitReportContent(BaseModel):
+    """The main nested object containing all report details."""
+    visit_details: VisitDetails
+    observation_interaction_summary: List[ObservationItem]
+    checklist_review: List[ChecklistItem]
+    photos: List[PhotoItem]
+    follow_up_action_plan: List[ActionPlanItem]
+    final_comments_summary: FinalComments
+    sign_off: SignOff
+
+class ReportBase(BaseModel):
+    """The root model for creating a report (INPUT)."""
+    property_id: str = Field(..., example="PROP-999")
+    site_visit_report: SiteVisitReportContent
+
+class ReportCreate(ReportBase):
+    pass
+
+class ReportUpdate(ReportBase):
+    pass
+
+class Report(ReportBase):
+    """The model for reading a report from the DB (OUTPUT)."""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# --- SQLAlchemy Model (Database Table) ---
+
+class VisitReportDB(Base):
+    __tablename__ = "simple_visit_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(String, index=True)
+    
+    # Store the complex, nested site_visit_report object as a single JSON field
+    site_visit_report = Column(JSON)
+    
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+# Create the database table
+Base.metadata.create_all(bind=engine)
+
+
+
+# --- API Endpoints ---
+
+@app.post("/simple-visit-reports/", response_model=Report, status_code=status.HTTP_201_CREATED, tags=["Simple Visit Reports"])
+def create_visit_report(report: ReportCreate, db: Session = Depends(get_db)):
+    """
+    Create a new Site Visit Report.
+    """
+    # Pydantic's .dict() method is perfect for converting the nested model to a JSON-compatible dict
+    report_data = report.dict()
+    db_report = VisitReportDB(**report_data)
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@app.get("/simple-visit-reports/", response_model=List[Report], tags=["Simple Visit Reports"])
+def read_visit_reports(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retrieve all Site Visit Reports with pagination.
+    """
+    reports = db.query(VisitReportDB).offset(skip).limit(limit).all()
+    return reports
+
+@app.get("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
+def read_visit_report_by_id(report_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve a single Site Visit Report by its ID.
+    """
+    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    return db_report
+
+@app.put("/simple-visit-reports/{report_id}", response_model=Report, tags=["Simple Visit Reports"])
+def update_visit_report(report_id: int, report: ReportUpdate, db: Session = Depends(get_db)):
+    """
+    Update an existing Site Visit Report.
+    """
+    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+    update_data = report.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_report, key, value)
+        
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+@app.delete("/simple-visit-reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Simple Visit Reports"])
+def delete_visit_report(report_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a Site Visit Report by its ID.
+    """
+    db_report = db.query(VisitReportDB).filter(VisitReportDB.id == report_id).first()
+    if db_report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    
+    db.delete(db_report)
     db.commit()
     return {"ok": True}

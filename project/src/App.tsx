@@ -145,6 +145,11 @@ import ComplaintPage from './components/Complaint/Complaint';
 import TransitionChecklistsPage from './components/TransitionChecklist/TransitionChecklists';
 import PostTransitionChecklistsPage from './components/TransitionChecklist/PostTransitionChecklists';
 import DailyReportsPage from './components/DailyTaskManagement/DailyReports.tsx';
+import TrainingReportPage from './components/BackOffice/TrainingReport.tsx';
+import SiteVisitPage from './components/BackOffice/SiteVisit.tsx';
+import EscalationMatrix from './components/BackOffice/EscalationMatrix.tsx';
+import MinutesOfMeetingPage from './components/BackOffice/MinutesofMeeting.tsx';
+import NightPatrollingPage from './components/BackOffice/NightPatrolling.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -382,6 +387,21 @@ const AppRoutes = () => {
 
         {/* 52 Week Training Routes */}
         <Route path="52-week-training-calendar" element={<WeekTraining />} />
+
+        {/* Training Reports Routes */}
+        <Route path="training-reports" element={<TrainingReportPage />} />
+
+        {/* Site Visit Reports Routes */}
+        <Route path="site-visit-reports" element={<SiteVisitPage />} />
+
+        {/* Night Patrolling Reports Routes */}
+        <Route path="night-patrolling-reports" element={<NightPatrollingPage />} />
+
+        {/* Minutes of Meetings Routes */}
+        <Route path="minutes-of-meetings" element={<MinutesOfMeetingPage />} />
+
+        {/* Escalation Matrix Routes */}
+        <Route path="escalation-matrix" element={<EscalationMatrix />} />
       </Route>
 
       {/* Catch all unmatched routes */}
