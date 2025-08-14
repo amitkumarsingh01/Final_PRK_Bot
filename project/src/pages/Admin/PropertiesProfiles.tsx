@@ -189,18 +189,31 @@ const PropertiesProfiles: React.FC = () => {
     <div className="min-h-screen p-4" style={{ backgroundColor: '#FFFFFF' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold" style={{ color: '#060C18' }}>
-            Properties Dashboard
-          </h1>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#DD6A1A' }}
-          >
-            <Plus size={20} />
-            <span>Add Property</span>
-          </button>
+        <div className="relative overflow-hidden rounded-2xl p-8 mb-8" style={{ backgroundColor: '#F8FAFC' }}>
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{ 
+              backgroundImage: 'radial-gradient(circle at 25% 25%, #DD6A1A 0%, transparent 50%), radial-gradient(circle at 75% 75%, #DB7723 0%, transparent 50%)',
+              backgroundSize: '200px 200px'
+            }}></div>
+          </div>
+          <div className="relative flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2" style={{ color: '#060C18' }}>
+                Properties Dashboard
+              </h1>
+              <p className="text-lg" style={{ color: '#6B7280' }}>
+                Manage your properties and their configurations
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="flex items-center space-x-3 px-8 py-4 rounded-xl text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
+              style={{ backgroundColor: '#DD6A1A' }}
+            >
+              <Plus size={24} />
+              <span>Add Property</span>
+            </button>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -219,9 +232,9 @@ const PropertiesProfiles: React.FC = () => {
         {/* Create/Edit Form */}
         {showCreateForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold" style={{ color: '#060C18' }}>
+            <div className="bg-white rounded-xl p-8 w-full max-w-lg shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold" style={{ color: '#060C18' }}>
                   {editingProperty ? 'Edit Property' : 'Add Property'}
                 </h2>
                 <button
@@ -230,79 +243,109 @@ const PropertiesProfiles: React.FC = () => {
                     setEditingProperty(null);
                     resetForm();
                   }}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X size={24} />
                 </button>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    Name
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#060C18' }}>
+                    Property Name
                   </label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-[#DD6A1A] transition-all duration-200"
+                    placeholder="Enter property name"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    Title
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#060C18' }}>
+                    Property Title
                   </label>
                   <input
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-[#DD6A1A] transition-all duration-200"
+                    placeholder="Enter property title"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#060C18' }}>
                     Description
                   </label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent min-h-[100px]"
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-[#DD6A1A] transition-all duration-200 min-h-[120px] resize-none"
+                    placeholder="Enter property description"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    Logo Image
+                  <label className="block text-sm font-semibold mb-3" style={{ color: '#060C18' }}>
+                    Property Logo
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                  />
-                  {formData.logo_base64 && (
-                    <img
-                      src={formData.logo_base64}
-                      alt="Logo Preview"
-                      className="mt-2 w-20 h-20 object-contain border rounded"
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#DD6A1A] transition-colors duration-200">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="logo-upload"
                     />
-                  )}
+                    <label htmlFor="logo-upload" className="cursor-pointer">
+                      {formData.logo_base64 ? (
+                        <div className="space-y-3">
+                          <div className="relative inline-block">
+                            <img
+                              src={formData.logo_base64}
+                              alt="Logo Preview"
+                              className="w-32 h-32 object-contain border-2 border-gray-200 rounded-xl shadow-md mx-auto"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, logo_base64: '' }))}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-600">Click to change logo</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="w-32 h-32 bg-gray-100 rounded-xl flex items-center justify-center mx-auto">
+                            <Building2 size={48} className="text-gray-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600 mb-1">Upload your property logo</p>
+                            <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
                 
-                <div className="flex space-x-3 pt-4">
+                <div className="flex space-x-4 pt-6">
                   <button
                     type="submit"
-                    className="flex-1 py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-opacity"
+                    className="flex-1 py-4 px-6 rounded-lg text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
                     style={{ backgroundColor: '#DD6A1A' }}
                   >
-                    {editingProperty ? 'Update' : 'Create'}
+                    {editingProperty ? 'Update Property' : 'Create Property'}
                   </button>
                   <button
                     type="button"
@@ -311,9 +354,9 @@ const PropertiesProfiles: React.FC = () => {
                       setEditingProperty(null);
                       resetForm();
                     }}
-                    className="flex-1 py-3 px-4 rounded-lg font-semibold transition-colors"
+                    className="flex-1 py-4 px-6 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 border-2"
                     style={{ 
-                      backgroundColor: '#F3F4F6',
+                      borderColor: '#E5E7EB',
                       color: '#060C18'
                     }}
                   >
@@ -330,67 +373,72 @@ const PropertiesProfiles: React.FC = () => {
           {properties.map((property) => (
             <div
               key={property.id}
-              className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+              className="border rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
               style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
                   {property.logo_base64 ? (
-                    <img
-                      src={property.logo_base64}
-                      alt="Logo"
-                      className="w-10 h-10 rounded-full object-cover border"
-                    />
+                    <div className="relative">
+                      <img
+                        src={property.logo_base64}
+                        alt="Logo"
+                        className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200 shadow-md"
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    </div>
                   ) : (
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      className="w-24 h-24 rounded-xl flex items-center justify-center shadow-md"
                       style={{ backgroundColor: '#060C18' }}
                     >
-                      <Building2 size={20} className="text-white" />
+                      <Building2 size={36} className="text-white" />
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold" style={{ color: '#060C18' }}>
+                    <h3 className="text-lg font-bold" style={{ color: '#060C18' }}>
                       {property.name}
                     </h3>
-                    <p className="text-sm" style={{ color: '#6B7280' }}>
+                    <p className="text-sm font-medium" style={{ color: '#6B7280' }}>
                       {property.title}
                     </p>
                   </div>
                 </div>
               </div>
               
-              <div className="space-y-2 mb-4">
-                <p className="text-sm" style={{ color: '#6B7280' }}>
+              <div className="space-y-3 mb-6">
+                <p className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>
                   {property.description || 'No description provided'}
                 </p>
               </div>
               
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <button
                   onClick={() => handleViewUsers(property.id)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+                  className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
                   style={{ backgroundColor: '#DD6A1A' }}
                 >
-                  <Users size={16} />
+                  <Users size={18} />
                   <span>Users</span>
                 </button>
                 
                 <button
                   onClick={() => startEditing(property)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+                  className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
                   style={{ backgroundColor: '#DB7723' }}
                 >
-                  <Edit size={16} />
+                  <Edit size={18} />
                   <span>Edit</span>
                 </button>
                 
                 <button
                   onClick={() => deleteProperty(property.id)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+                  className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
                   style={{ backgroundColor: '#DF5F0D' }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={18} />
                   <span>Delete</span>
                 </button>
               </div>
@@ -399,11 +447,24 @@ const PropertiesProfiles: React.FC = () => {
         </div>
 
         {properties.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Building2 size={48} style={{ color: '#6B7280' }} className="mx-auto mb-4" />
-            <p className="text-lg" style={{ color: '#6B7280' }}>
-              No properties found. Add your first property!
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Building2 size={48} style={{ color: '#6B7280' }} />
+            </div>
+            <h3 className="text-2xl font-bold mb-3" style={{ color: '#060C18' }}>
+              No Properties Found
+            </h3>
+            <p className="text-lg mb-6" style={{ color: '#6B7280' }}>
+              Get started by adding your first property to the system
             </p>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
+              style={{ backgroundColor: '#DD6A1A' }}
+            >
+              <Plus size={20} />
+              <span>Add Your First Property</span>
+            </button>
           </div>
         )}
       </div>

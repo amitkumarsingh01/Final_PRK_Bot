@@ -17,7 +17,27 @@ import {
   ChevronRight as ChevronRightIcon,
   User,
   Heart,
-  Search
+  Search,
+  Calendar,
+  FileText,
+  Shield,
+  Camera,
+  Flame,
+  ShoppingCart,
+  Handshake,
+  Target,
+  MessageSquare,
+  Database,
+  FolderOpen,
+  FileCheck,
+  BarChart3,
+  AlertTriangle,
+  HardHat,
+  Package,
+  RefreshCw,
+  Award,
+  Building,
+  Key
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -174,6 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     const adminItems: NavItem[] = [
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
+      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       // { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
       { 
@@ -191,13 +212,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
         ]
       },
-      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
-      { path: '/assets-management', icon: <Users size={20} />, label: 'Assets Management' },
-      { path: '/inventory-management', icon: <Users size={20} />, label: 'Inventory Management' },
+      // { path: '/assets-management', icon: <Database size={20} />, label: 'Assets Management' },
+      // { path: '/inventory-management', icon: <Package size={20} />, label: 'Inventory Management' },
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: 'Daily Task Management',
         hasSubmenu: true,
         submenuItems: [
@@ -209,7 +229,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: 'Monthly Task Management',
         hasSubmenu: true,
         submenuItems: [
@@ -219,7 +239,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: '52 Week',
         hasSubmenu: true,
         submenuItems: [
@@ -227,10 +247,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/52-week-training-calendar', label: '52 week training calendar format' },
         ]
       },
-      { path: '/incident-report', icon: <ClipboardList size={20} />, label: 'Incident Report' },
+      { path: '/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Shield size={20} />,
         label: 'Patrolling Report',
         hasSubmenu: true,
         submenuItems: [
@@ -241,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <FileCheck size={20} />,
         label: 'Reports and Audit',
         hasSubmenu: true,
         submenuItems: [
@@ -536,7 +556,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 09. Transition Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <RefreshCw size={20} />,
         label: 'Transition Management',
         hasSubmenu: true,
         submenuItems: [
@@ -547,7 +567,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 10. Gate Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Key size={20} />,
         label: 'Gate Management',
         hasSubmenu: true,
         submenuItems: [
@@ -571,7 +591,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 11. Helpdesk and Front Desk
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <MessageSquare size={20} />,
         label: 'Helpdesk and Front Desk',
         hasSubmenu: true,
         submenuItems: [
@@ -589,7 +609,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 12. Inventory Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Package size={20} />,
         label: 'Inventory Management',
         hasSubmenu: true,
         submenuItems: [
@@ -603,7 +623,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 13. Asset Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Database size={20} />,
         label: 'Asset Management',
         hasSubmenu: true,
         submenuItems: [
@@ -618,7 +638,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 14. Project Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <FolderOpen size={20} />,
         label: 'Project Management',
         hasSubmenu: true,
         submenuItems: [
@@ -635,7 +655,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 15. Quality and Process Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Award size={20} />,
         label: 'Quality and Process Management',
         hasSubmenu: true,
         submenuItems: [
@@ -650,7 +670,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 16. CCTV Department
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Camera size={20} />,
         label: 'CCTV Department',
         hasSubmenu: true,
         submenuItems: [
@@ -667,7 +687,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 17. Fire and Safety
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Flame size={20} />,
         label: 'Fire and Safety',
         hasSubmenu: true,
         submenuItems: [
@@ -687,7 +707,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 18. Procurement Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <ShoppingCart size={20} />,
         label: 'Procurement Management',
         hasSubmenu: true,
         submenuItems: [
@@ -706,7 +726,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 19. Vendor Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Handshake size={20} />,
         label: 'Vendor Management',
         hasSubmenu: true,
         submenuItems: [
@@ -724,7 +744,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 20. Service Level Agreement (SLA)
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <FileText size={20} />,
         label: 'Service Level Agreement (SLA)',
         hasSubmenu: true,
         submenuItems: [
@@ -739,46 +759,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 21. Key Performance Indicators (KPI)
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Target size={20} />,
         label: 'Key Performance Indicators (KPI)',
         hasSubmenu: true,
         submenuItems: [
           { path: '/kpi', label: 'KPI' },
         ]
-        // submenuItems: [
-        //   { path: '#', label: 'Facility Department KPI' },
-        //   { path: '#', label: 'Security Department KPI' },
-        //   { path: '#', label: 'Procurement KPI' },
-        //   { path: '#', label: 'Admin Department KPI' },
-        //   { path: '#', label: 'Finance Department KPI' },
-        //   { path: '#', label: 'Vendor Management KPI' },
-        //   { path: '#', label: 'Training & Development KPI' },
-        //   { path: '#', label: 'Company-Wide KPI' },
-        //   { path: '#', label: 'Individual Staff KPI' },
-        // ]
       },
       // 22. Raise Complaints and Solutions
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <MessageSquare size={20} />,
         label: 'Raise Complaints and Solutions',
         hasSubmenu: true,
         submenuItems: [
           { path: '/complaint-management', label: 'Complaint' },
         ]
-        // submenuItems: [
-        //   { path: '#', label: 'Client Complaint Management' },
-        //   { path: '#', label: 'Staff Complaint Management' },
-        //   { path: '#', label: 'Client Complaint Resolution' },
-        //   { path: '#', label: 'Staff Complaint Resolution' },
-        //   { path: '#', label: 'Escalation Tracking' },
-        //   { path: '#', label: 'Root Cause & Corrective Action' },
-        // ]
       },
       // 23. Back-End Office Management
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Building size={20} />,
         label: 'Back-End Office Management',
         hasSubmenu: true,
         submenuItems: [
@@ -787,21 +788,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/night-patrolling-reports', label: 'Night Patrolling Reports' },
           { path: '/minutes-of-meetings', label: 'Minutes of Meetings' },
           { path: '/escalation-matrix', label: 'Escalation Matrix' },
-          // { path: '#', label: 'Background Verication Reports' },
-          // { path: '#', label: 'Loss Prevention & Investigation Reports' },
-          // { path: '#', label: 'Emergency Response Team (ERT) Details' },
-          // { path: '#', label: 'Site Staff Details' },
-          // { path: '#', label: 'Back-Oce Task Management' },
-          // { path: '#', label: 'Field Staff Daily Reports' },
-          // { path: '#', label: 'Oce Staff Daily Reports' },
-          // { path: '#', label: 'Field Staff Monthly Reports' },
-          // { path: '#', label: 'Oce Staff Monthly Reports' },
         ]
       },
       // 24. Work Permit
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <HardHat size={20} />,
         label: 'Work Permit',
         hasSubmenu: true,
         submenuItems: [
@@ -818,7 +810,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // 25. All Reports
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <BarChart3 size={20} />,
         label: 'All Reports',
         hasSubmenu: true,
         submenuItems: [
@@ -851,12 +843,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         ]
       },
       { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
-      { path: '/cadmin/assets-management', icon: <Users size={20} />, label: 'Assets Management' },
-      { path: '/cadmin/inventory-management', icon: <Users size={20} />, label: 'Inventory Management' },
+      { path: '/cadmin/assets-management', icon: <Database size={20} />, label: 'Assets Management' },
+      { path: '/cadmin/inventory-management', icon: <Package size={20} />, label: 'Inventory Management' },
       { path: '/cadmin/profile', icon: <User size={20} />, label: 'Profile' },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: 'Daily Task Management',
         hasSubmenu: true,
         submenuItems: [
@@ -868,7 +860,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: 'Monthly Task Management',
         hasSubmenu: true,
         submenuItems: [
@@ -878,7 +870,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <Calendar size={20} />,
         label: '52 Week',
         hasSubmenu: true,
         submenuItems: [
@@ -886,10 +878,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '#', label: '52 week training calendar format' },
         ]
       },
-      { path: '/incident-report', icon: <ClipboardList size={20} />, label: 'Incident Report' },
+      { path: '/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },
       {
         path: '#',
-        icon: <ClipboardList size={20} />,
+        icon: <Shield size={20} />,
         label: 'Patrolling Report',
         hasSubmenu: true,
         submenuItems: [
@@ -900,7 +892,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       },
       {
         path: '#',
-        icon: <ClipboardList size={20} />, // You can change the icon if needed
+        icon: <FileCheck size={20} />,
         label: 'Reports and Audit',
         hasSubmenu: true,
         submenuItems: [

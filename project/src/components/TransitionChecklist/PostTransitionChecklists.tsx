@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Layers } from 'lucide-react';
+import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Layers, Edit3 } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -45,6 +45,68 @@ interface TransitionChecklistReport {
 const API_URL = 'https://server.prktechindia.in/transition-checklists/';
 const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
+// Helper function to format field names
+const formatFieldName = (fieldName: string): string => {
+  const fieldMappings: { [key: string]: string } = {
+    'sr_no': 'Sr No',
+    'description': 'Description',
+    'critical_important_desirable': 'Critical/Important/Desirable',
+    'applicable': 'Applicable',
+    'availability_status': 'Availability Status',
+    'details': 'Details',
+    'remarks': 'Remarks',
+    'site_name': 'Site Name',
+    'transition_details': 'Transition Details',
+    'prepared_by': 'Prepared By',
+    'company_logo': 'Company Logo',
+    'client_logo': 'Client Logo',
+    'created_at': 'Created At',
+    'updated_at': 'Updated At'
+  };
+
+  // Check if we have a specific mapping
+  if (fieldMappings[fieldName]) {
+    return fieldMappings[fieldName];
+  }
+
+  // Fallback formatting for unmapped fields
+  return fieldName
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+    .replace(/\bSr No\b/g, 'Sr No')
+    .replace(/\bCritical Important Desirable\b/g, 'Critical/Important/Desirable')
+    .replace(/\bAvailability Status\b/g, 'Availability Status');
+};
+
+// Helper function to format section names from backend (camelCase to proper format)
+const formatSectionName = (sectionName: string): string => {
+  const sectionMappings: { [key: string]: string } = {
+    'consumableManagement': 'Consumable Management',
+    'dgSystem': 'DG System',
+    'electricalDepartment': 'Electrical Department',
+    'fireAndSafety': 'Fire & Safety',
+    'gardeningDepartment': 'Gardening Department',
+    'helpdesk': 'Help Desk',
+    'housekeepingDepartment': 'Housekeeping Department',
+    'inventory': 'Inventory',
+    'lift': 'Lift',
+    'plumbing': 'Plumbing',
+    'ups': 'UPS'
+  };
+
+  // Check if we have a specific mapping
+  if (sectionMappings[sectionName]) {
+    return sectionMappings[sectionName];
+  }
+
+  // Fallback formatting for unmapped sections
+  return sectionName
+    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+    .replace(/^./, (str) => str.toUpperCase()) // Capitalize first letter
+    .replace(/\s+/g, ' ') // Remove extra spaces
+    .trim();
+};
+
 const PostTransitionChecklistsPage: React.FC = () => {
   const { user } = useAuth();
 
@@ -65,6 +127,12 @@ const PostTransitionChecklistsPage: React.FC = () => {
     data: ChecklistItem | null;
     isNew: boolean;
   }>({ open: false, section: '', data: null, isNew: false });
+  
+  // New state for editing site details
+  const [editSiteModal, setEditSiteModal] = useState<{
+    open: boolean;
+    data: Partial<TransitionChecklistReport>;
+  }>({ open: false, data: {} });
 
   // Load properties
   useEffect(() => {
@@ -100,13 +168,19 @@ const PostTransitionChecklistsPage: React.FC = () => {
 
   // Fetch reports for property
   const fetchReports = async (propertyId: string) => {
+    if (!propertyId) return;
+    
     setLoading(true);
     setError(null);
+    setReports([]); // Clear previous reports when switching properties
+    
     try {
       const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
       setReports(res.data || []);
     } catch (e) {
+      console.error('Error fetching reports:', e);
       setError('Failed to fetch transition checklists');
+      setReports([]); // Ensure reports is empty on error
     } finally {
       setLoading(false);
     }
@@ -156,9 +230,23 @@ const PostTransitionChecklistsPage: React.FC = () => {
     setEditModal({ open: true, section, data: { ...item }, isNew: false });
   };
 
+  const openEditSite = () => {
+    if (!isAdmin) return alert('Only admins can edit site details');
+    if (!currentReport) return;
+    setEditSiteModal({
+      open: true,
+      data: {
+        site_name: currentReport.site_name,
+        transition_details: currentReport.transition_details,
+        prepared_by: currentReport.prepared_by,
+      }
+    });
+  };
+
   const closeModals = () => {
     setViewModal({ open: false, data: null });
     setEditModal({ open: false, section: '', data: null, isNew: false });
+    setEditSiteModal({ open: false, data: {} });
   };
 
   const handleDelete = async (section: string, srNo: number) => {
@@ -213,6 +301,21 @@ const PostTransitionChecklistsPage: React.FC = () => {
     }
   };
 
+  const handleSaveSite = async () => {
+    if (!currentReport || !editSiteModal.data) return;
+
+    try {
+      setLoading(true);
+      await axios.put(`${API_URL}${currentReport.id}`, editSiteModal.data);
+      closeModals();
+      await fetchReports(selectedPropertyId);
+    } catch (e) {
+      setError('Failed to save site details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -234,16 +337,38 @@ const PostTransitionChecklistsPage: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Transition Checklists</h1>
                 <p className="text-gray-600">View and manage transition checklist sections and items</p>
+                {loading && selectedPropertyId && (
+                  <p className="text-sm text-blue-600 mt-1">Loading reports for selected property...</p>
+                )}
               </div>
             </div>
-            {isAdmin && currentReport && activeSection && (
-              <button
-                onClick={() => openAdd(activeSection)}
-                className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add Item</span>
-              </button>
+            {isAdmin && (
+              <div className="flex space-x-3">
+                <button
+                  onClick={openEditSite}
+                  disabled={!currentReport}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                    currentReport 
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <Edit3 className="h-4 w-4" />
+                  <span>Edit Site</span>
+                </button>
+                <button
+                  onClick={() => activeSection ? openAdd(activeSection) : alert('Please select a section first')}
+                  disabled={!selectedPropertyId || !activeSection}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                    selectedPropertyId && activeSection
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Item</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -307,8 +432,23 @@ const PostTransitionChecklistsPage: React.FC = () => {
 
         {/* Empty state */}
         {!currentReport && (
-          <div className="bg-white rounded-lg shadow-sm p-6 text-center text-gray-600">
-            No transition checklist report found for the selected property.
+          <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Transition Checklist Found</h3>
+            <p className="text-gray-600 mb-4">
+              {selectedPropertyId 
+                ? `No transition checklist report found for the selected property. ${isAdmin ? 'You can create one or wait for data to be loaded.' : ''}`
+                : 'Please select a property to view its transition checklist.'
+              }
+            </p>
+            {isAdmin && selectedPropertyId && (
+              <div className="text-sm text-gray-500">
+                <p>• The Add Item button will be enabled once a section is selected</p>
+                <p>• The Edit Site button will be enabled once a report is loaded</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -327,7 +467,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    {name}
+                    {formatSectionName(name)}
                     <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
                       {sectionsMap[name]?.documents_to_be_customised?.length || 0}
                     </span>
@@ -404,7 +544,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(viewModal.data).map(([key, value]) => (
                 <div key={key}>
-                  <b>{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}:</b> {String(value)}
+                  <b>{formatFieldName(key)}:</b> {String(value)}
                 </div>
               ))}
             </div>
@@ -437,7 +577,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
               ).map(([key, value]) => (
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                    {formatFieldName(key)}
                   </label>
                   <input
                     type={typeof value === 'number' ? 'number' : 'text'}
@@ -461,6 +601,66 @@ const PostTransitionChecklistsPage: React.FC = () => {
                 Cancel
               </button>
               <button onClick={handleSave} className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                <Save className="h-4 w-4" />
+                <span>Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Site Modal */}
+      {editSiteModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Site Details</h2>
+              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Site Name</label>
+                <input
+                  type="text"
+                  value={editSiteModal.data.site_name || ''}
+                  onChange={(e) =>
+                    setEditSiteModal((m) => m && { ...m, data: { ...m.data, site_name: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Transition Details</label>
+                <textarea
+                  value={editSiteModal.data.transition_details || ''}
+                  onChange={(e) =>
+                    setEditSiteModal((m) => m && { ...m, data: { ...m.data, transition_details: e.target.value } })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prepared By</label>
+                <input
+                  type="text"
+                  value={editSiteModal.data.prepared_by || ''}
+                  onChange={(e) =>
+                    setEditSiteModal((m) => m && { ...m, data: { ...m.data, prepared_by: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button onClick={closeModals} className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleSaveSite} className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                 <Save className="h-4 w-4" />
                 <span>Save</span>
               </button>

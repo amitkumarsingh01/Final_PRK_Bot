@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -160,6 +160,7 @@ import ConfinedSpaceWorkPage from './components/Workpermit/ConfinedSpacework.tsx
 import ExcavationPermitPage from './components/Workpermit/ExcavationPermit.tsx';
 import LockoutTagoutPermitPage from './components/Workpermit/LockoutTagout.tsx';
 import ChemicalWorkPermitPage from './components/Workpermit/Chemical.tsx'; 
+import Preloader from './components/Preloader';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -457,14 +458,23 @@ const AppRoutes = () => {
 };
 
 function App() {
+  const [showPreloader, setShowPreloader] = useState(true);
+
+  const handlePreloaderComplete = () => {
+    setShowPreloader(false);
+  };
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ProfileProvider>
-          <AppRoutes />
-        </ProfileProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <>
+      {showPreloader && <Preloader onComplete={handlePreloaderComplete} />}
+      <BrowserRouter>
+        <AuthProvider>
+          <ProfileProvider>
+            <AppRoutes />
+          </ProfileProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </>
   );
 }
 
