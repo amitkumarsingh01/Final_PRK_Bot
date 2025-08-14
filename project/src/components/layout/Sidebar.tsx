@@ -185,6 +185,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     fetchUserProfile();
   }, [user]);
 
+  // Helper function to check if any submenu item matches the current path
+  const isSubmenuActive = (submenuItems: SubMenuItem[], currentPath: string): boolean => {
+    return submenuItems.some(item => {
+      if (item.path === currentPath) return true;
+      if (item.hasSubmenu && item.submenuItems) {
+        return isSubmenuActive(item.submenuItems, currentPath);
+      }
+      return false;
+    });
+  };
+
   const getNavItems = (): NavItem[] => {
     const baseItems: NavItem[] = [
       { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
@@ -197,21 +208,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       // { path: '/reports', icon: <ClipboardList size={20} />, label: 'Reports' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
-      { 
-        path: '/daily-logs', 
-        icon: <CheckSquare size={20} />, 
-        label: 'Daily Logs',
-        hasSubmenu: true,
-        submenuItems: [
-          { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
-          { path: '/daily-logs/generator', label: 'Generator' },
-          // { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
-          { path: '/daily-logs/stp', label: 'STP' },
-          { path: '/daily-logs/wtp', label: 'WTP' },
-          { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
-          { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
-        ]
-      },
+      // { 
+      //   path: '/daily-logs', 
+      //   icon: <CheckSquare size={20} />, 
+      //   label: 'Daily Logs',
+      //   hasSubmenu: true,
+      //   submenuItems: [
+      //     { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
+      //     { path: '/daily-logs/generator', label: 'Generator' },
+      //     // { path: '/daily-logs/stp-wtp', label: 'STP-WTP' },
+      //     { path: '/daily-logs/stp', label: 'STP' },
+      //     { path: '/daily-logs/wtp', label: 'WTP' },
+      //     { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
+      //     { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
+      //   ]
+      // },
       // { path: '/assets-management', icon: <Database size={20} />, label: 'Assets Management' },
       // { path: '/inventory-management', icon: <Package size={20} />, label: 'Inventory Management' },
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
@@ -222,7 +233,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '/daily-task-management-all-department', label: 'Daily Task Management of all department' },
-          { path: '/tasks', label: 'Daily logs of all department' },
+          { 
+            path: '#', 
+            label: 'Daily logs of all department',
+            hasSubmenu: true,
+            submenuItems: [
+              { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
+              { path: '/daily-logs/generator', label: 'Generator' },
+              { path: '/daily-logs/stp', label: 'STP' },
+              { path: '/daily-logs/wtp', label: 'WTP' },
+              { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
+              { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
+            ]
+          },
           { path: '/daily-management-report', label: 'Daily Management Report' },
           { path: '/daily-reports', label: 'Daily Complete work Details ' },
         ]
@@ -1289,7 +1312,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               to={item.hasSubmenu ? '#' : item.path}
               icon={item.icon}
               label={!isCollapsed ? item.label : ''}
-              active={location.pathname === item.path || (!!item.hasSubmenu && location.pathname.startsWith(item.path + '/'))}
+              active={location.pathname === item.path || (!!item.hasSubmenu && (location.pathname.startsWith(item.path + '/') || (!!item.submenuItems && isSubmenuActive(item.submenuItems, location.pathname))))}
               hasSubmenu={item.hasSubmenu && !isCollapsed}
               isOpen={item.hasSubmenu && openKeys.includes(`nav-${item.label}-${index}`)}
               onClick={() => {
