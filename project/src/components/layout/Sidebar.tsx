@@ -805,9 +805,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Work Permit',
         hasSubmenu: true,
         submenuItems: [
-          { path: '#', label: 'All Work Permit' },
-          { path: '/interior-work-permit', label: 'Interior Work Permit' },
-          { path: '/vehicle-entry-permit', label: 'Vehicle Entry Permit' },
+          { path: '/hot-work-permit', label: 'Hot Work Permit' },
+          { path: '/cold-work-permit', label: 'Cold Work Permit' },
+          { path: '/electrical-work-permit', label: 'Electrical Work Permit' },
+          { path: '/height-work-permit', label: 'Height Work Permit' },
+          { path: '/confined-space-work-permit', label: 'Confined Space Work Permit' },
+          { path: '/excavation-permit', label: 'Excavation Permit' },
+          { path: '/lockout-tagout-permit', label: 'Lockout Tagout Permit' },
+          { path: '/chemical-work-permit', label: 'Chemical Work Permit' },
         ]
       },
       // 25. All Reports

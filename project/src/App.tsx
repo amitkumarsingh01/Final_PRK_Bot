@@ -152,6 +152,14 @@ import MinutesOfMeetingPage from './components/BackOffice/MinutesofMeeting.tsx';
 import NightPatrollingPage from './components/BackOffice/NightPatrolling.tsx';
 import InteriorWorkPermitPage from './components/Workpermit/Interior.tsx';
 import VehicleEntryPermitPage from './components/Workpermit/Vehicle.tsx';
+import HotWorkPermitPage from './components/Workpermit/HotWork.tsx';
+import ColdWorkPermitPage from './components/Workpermit/ColdWork.tsx';
+import ElectricalWorkPermitPage from './components/Workpermit/ElectricalWork.tsx';
+import HeightWorkPermitPage from './components/Workpermit/HeightWork.tsx';
+import ConfinedSpaceWorkPage from './components/Workpermit/ConfinedSpacework.tsx';
+import ExcavationPermitPage from './components/Workpermit/ExcavationPermit.tsx';
+import LockoutTagoutPermitPage from './components/Workpermit/LockoutTagout.tsx';
+import ChemicalWorkPermitPage from './components/Workpermit/Chemical.tsx'; 
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -410,6 +418,31 @@ const AppRoutes = () => {
 
         {/* Vehicle Entry Permit Routes */}
         <Route path="vehicle-entry-permit" element={<VehicleEntryPermitPage />} />
+
+        {/* Hot Work Permit Routes */}
+        <Route path="hot-work-permit" element={<HotWorkPermitPage />} />
+
+        {/* Cold Work Permit Routes */}
+        <Route path="cold-work-permit" element={<ColdWorkPermitPage />} />
+
+        {/* Electrical Work Permit Routes */}
+        <Route path="electrical-work-permit" element={<ElectricalWorkPermitPage />} />
+
+        {/* Height Work Permit Routes */}
+        <Route path="height-work-permit" element={<HeightWorkPermitPage />} />
+        
+        {/* Confined Space Work Permit Routes */}
+        <Route path="confined-space-work-permit" element={<ConfinedSpaceWorkPage />} />
+
+        {/* Excavation Permit Routes */}
+        <Route path="excavation-permit" element={<ExcavationPermitPage />} />
+        
+        {/* Lockout Tagout Permit Routes */}
+        <Route path="lockout-tagout-permit" element={<LockoutTagoutPermitPage />} />
+
+        {/* Chemical Work Permit Routes */}
+        <Route path="chemical-work-permit" element={<ChemicalWorkPermitPage />} />
+        
       </Route>
 
       {/* Catch all unmatched routes */}
