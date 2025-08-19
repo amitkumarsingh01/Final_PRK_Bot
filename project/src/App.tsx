@@ -161,6 +161,10 @@ import ExcavationPermitPage from './components/Workpermit/ExcavationPermit.tsx';
 import LockoutTagoutPermitPage from './components/Workpermit/LockoutTagout.tsx';
 import ChemicalWorkPermitPage from './components/Workpermit/Chemical.tsx'; 
 import Preloader from './components/Preloader';
+import LiftingPage from './components/Workpermit/Lifting.tsx';
+import DemolitionPage from './components/Workpermit/Demolition.tsx';
+import TemporaryStructurePage from './components/Workpermit/TemporaryStrucure.tsx';
+import GeneralMaintenancePage from './components/Workpermit/GeneralMaintainence.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -443,7 +447,29 @@ const AppRoutes = () => {
 
         {/* Chemical Work Permit Routes */}
         <Route path="chemical-work-permit" element={<ChemicalWorkPermitPage />} />
+
+        {/* Lift Work Permit Routes */}
+        <Route path="lift-work-permit" element={<LiftingPage />} />
+
+        {/* Demolition Work Permit Routes */}
+        <Route path="demolition-work-permit" element={<DemolitionPage />} />
         
+        {/* General Maintainence Work Permit Routes */}
+        <Route path="general-maintainence-work-permit" element={<GeneralMaintenancePage />} />
+
+        {/* Temporary Structure Work Permit Routes */}
+        <Route path="temporary-structure-work-permit" element={<TemporaryStructurePage />} />
+        
+        {/* Vehicle Work Permit Routes */}
+        <Route path="vehicle-work-permit" element={<VehicleEntryPermitPage />} />
+
+        {/* Interior Work Permit Routes */}
+        <Route path="interior-work-permit" element={<InteriorWorkPermitPage />} />
+
+        {/* Working Alone Work Permit Routes */}
+        <Route path="working-alone-work-permit" element={<VehicleEntryPermitPage />} />
+        
+
       </Route>
 
       {/* Catch all unmatched routes */}

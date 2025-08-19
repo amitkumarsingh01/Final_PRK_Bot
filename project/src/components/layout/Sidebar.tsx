@@ -828,6 +828,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/excavation-permit', label: 'Excavation Permit' },
           { path: '/lockout-tagout-permit', label: 'Lockout Tagout Permit' },
           { path: '/chemical-work-permit', label: 'Chemical Work Permit' },
+          { path: '/lift-work-permit', label: 'Lift Work Permit' },
+          { path: '/demolition-work-permit', label: 'Demolition Work Permit' },
+          { path: '/general-maintainence-work-permit', label: 'General Maintainence Work Permit' },
+          { path: '/temporary-structure-work-permit', label: 'Temporary Structure Work Permit' },
+          { path: '/vehicle-work-permit', label: 'Vehicle Work Permit' },
+          { path: '/interior-work-permit', label: 'Interior Work Permit' },
+          { path: '/working-alone-work-permit', label: 'Working Alone Work Permit' },
         ]
       },
       // 25. All Reports
