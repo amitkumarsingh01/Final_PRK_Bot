@@ -1093,11 +1093,66 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         token = str(uuid.uuid4())  # Simulated token
-        return {"user_id": user.user_id, "token": token, "status": user.status}
+        return {
+            "user_id": user.user_id, 
+            "token": token, 
+            "status": user.status,
+            "property_id": user.property_id,
+            "user_role": user.user_role,
+            "user_type": user.user_type
+        }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during login: {str(e)}")
+
+# --- Property User Management Routes ---
+@app.post("/create-property-user", tags=["Property Users"])
+def create_property_user(user_data: dict, db: Session = Depends(get_db)):
+    try:
+        # Generate unique user_id and email
+        user_id = str(uuid.uuid4())
+        email = f"{user_data['name'].lower().replace(' ', '.')}@{user_data['property_id']}.prktech.com"
+        
+        # Create new user
+        new_user = User(
+            id=str(uuid.uuid4()),
+            name=user_data['name'],
+            email=email,
+            phone_no=user_data.get('phone_no', ''),
+            password=user_data['password'],
+            user_id=user_id,
+            user_role='user',
+            user_type='property_user',
+            property_id=user_data['property_id'],
+            status='active'
+        )
+        
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        return {
+            "message": "Property user created successfully",
+            "user_id": user_id,
+            "email": email,
+            "password": user_data['password'],
+            "property_id": user_data['property_id']
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating property user: {str(e)}")
+
+@app.get("/property-users/{property_id}", tags=["Property Users"])
+def get_property_users(property_id: str, db: Session = Depends(get_db)):
+    try:
+        users = db.query(User).filter(
+            User.property_id == property_id,
+            User.user_type == 'property_user'
+        ).all()
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching property users: {str(e)}")
 
 # --- Profile Routes ---
 @app.get("/profile", response_model=List[ProfileSchema], tags=["Profile"])

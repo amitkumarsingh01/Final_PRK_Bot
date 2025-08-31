@@ -133,6 +133,11 @@ const Tasks: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [selectedPropertyName, setSelectedPropertyName] = useState<string>('');
 
+  // Check if current user is admin or property user
+  const isAdmin = user?.userType === 'admin';
+  const isPropertyUser = user?.userType === 'property_user';
+  const currentUserPropertyId = user?.propertyId;
+
   // Activity form state
   const [activityForm, setActivityForm] = useState<{
     name: string;
@@ -174,8 +179,21 @@ const Tasks: React.FC = () => {
   // Add property fetching
   const fetchProperties = async () => {
     try {
-      const data = await api.getProperties(user?.token || undefined);
-      setProperties(data);
+      if (isAdmin) {
+        // Admin sees all properties
+        const data = await api.getProperties(user?.token || undefined);
+        setProperties(data);
+      } else if (isPropertyUser && currentUserPropertyId) {
+        // Property user only sees their assigned property
+        const response = await fetch(`${API_BASE_URL}/properties/${currentUserPropertyId}`);
+        if (response.ok) {
+          const property = await response.json();
+          setProperties([property]);
+          // Automatically set the property for property users
+          setSelectedPropertyId(currentUserPropertyId);
+          setSelectedPropertyName(`${property.name} - ${property.title}`);
+        }
+      }
     } catch (error) {
       console.error('Error loading properties:', error);
     }
@@ -530,32 +548,51 @@ const Tasks: React.FC = () => {
         </div>
 
         {/* Property Selection */}
-        <div className="mb-6">
-          <label htmlFor="propertySelect" className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-            Select Property
-          </label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5" style={{ color: '#6B7280' }} />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="flex-1 max-w-md p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+        {isAdmin ? (
+          <div className="mb-6">
+            <label htmlFor="propertySelect" className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+              Select Property
+            </label>
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5" style={{ color: '#6B7280' }} />
+              <select
+                id="propertySelect"
+                value={selectedPropertyId}
+                onChange={(e) => handlePropertyChange(e.target.value)}
+                className="flex-1 max-w-md p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+              >
+                <option value="">Select a property...</option>
+                {properties.map(property => (
+                  <option key={property.id} value={property.id}>
+                    {property.name} - {property.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedPropertyId && (
+              <p className="text-xs mt-1 text-blue-600">
+                Debug: Selected Property ID: {selectedPropertyId}
+              </p>
+            )}
           </div>
-          {selectedPropertyId && (
-            <p className="text-xs mt-1 text-blue-600">
-              Debug: Selected Property ID: {selectedPropertyId}
-            </p>
-          )}
-        </div>
+        ) : (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+              Property
+            </label>
+            <div className="flex items-center gap-2">
+              <Building className="h-5 w-5" style={{ color: '#6B7280' }} />
+              <div className="flex-1 max-w-md p-3 border border-gray-300 rounded-lg bg-gray-100">
+                {selectedPropertyName || 'Loading...'}
+              </div>
+            </div>
+            {selectedPropertyId && (
+              <p className="text-xs mt-1 text-blue-600">
+                Property ID: {selectedPropertyId}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Activities List */}
         {!selectedPropertyId ? (

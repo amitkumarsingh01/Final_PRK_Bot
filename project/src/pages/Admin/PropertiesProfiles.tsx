@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Edit, Trash2, Plus, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -32,6 +33,7 @@ interface PropertyFormData {
 
 const PropertiesProfiles: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +46,35 @@ const PropertiesProfiles: React.FC = () => {
     logo_base64: ''
   });
 
-  // Fetch all properties
+  // Check if current user is admin or property user
+  const isAdmin = user?.userType === 'admin';
+  const isPropertyUser = user?.userType === 'property_user';
+  const currentUserPropertyId = user?.propertyId;
+
+  // Fetch properties based on user type
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/properties`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Failed to fetch properties');
+      
+      if (isPropertyUser && currentUserPropertyId) {
+        // Property user only sees their assigned property
+        const response = await fetch(`${API_BASE_URL}/properties/${currentUserPropertyId}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || 'Failed to fetch property');
+        }
+        const property = await response.json();
+        setProperties([property]);
+      } else {
+        // Admin sees all properties
+        const response = await fetch(`${API_BASE_URL}/properties`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || 'Failed to fetch properties');
+        }
+        const data = await response.json();
+        setProperties(data);
       }
-      const data = await response.json();
-      setProperties(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch properties');
     } finally {
@@ -205,14 +225,16 @@ const PropertiesProfiles: React.FC = () => {
                 Manage your properties and their configurations
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center space-x-3 px-8 py-4 rounded-xl text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
-              style={{ backgroundColor: '#DD6A1A' }}
-            >
-              <Plus size={24} />
-              <span>Add Property</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center space-x-3 px-8 py-4 rounded-xl text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                style={{ backgroundColor: '#DD6A1A' }}
+              >
+                <Plus size={24} />
+                <span>Add Property</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -424,23 +446,27 @@ const PropertiesProfiles: React.FC = () => {
                   <span>Users</span>
                 </button>
                 
-                <button
-                  onClick={() => startEditing(property)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
-                  style={{ backgroundColor: '#DB7723' }}
-                >
-                  <Edit size={18} />
-                  <span>Edit</span>
-                </button>
-                
-                <button
-                  onClick={() => deleteProperty(property.id)}
-                  className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
-                  style={{ backgroundColor: '#DF5F0D' }}
-                >
-                  <Trash2 size={18} />
-                  <span>Delete</span>
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => startEditing(property)}
+                      className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
+                      style={{ backgroundColor: '#DB7723' }}
+                    >
+                      <Edit size={18} />
+                      <span>Edit</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => deleteProperty(property.id)}
+                      className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium hover:opacity-90 transition-all duration-200 transform hover:scale-105"
+                      style={{ backgroundColor: '#DF5F0D' }}
+                    >
+                      <Trash2 size={18} />
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -457,14 +483,16 @@ const PropertiesProfiles: React.FC = () => {
             <p className="text-lg mb-6" style={{ color: '#6B7280' }}>
               Get started by adding your first property to the system
             </p>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
-              style={{ backgroundColor: '#DD6A1A' }}
-            >
-              <Plus size={20} />
-              <span>Add Your First Property</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                style={{ backgroundColor: '#DD6A1A' }}
+              >
+                <Plus size={20} />
+                <span>Add Your First Property</span>
+              </button>
+            )}
           </div>
         )}
       </div>

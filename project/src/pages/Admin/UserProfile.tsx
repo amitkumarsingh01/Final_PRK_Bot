@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
 import { UserRole } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -31,6 +32,7 @@ interface ProfileFormData {
 }
 
 const UserProfile: React.FC = () => {
+  const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,31 +48,64 @@ const UserProfile: React.FC = () => {
     property_id: ''
   });
 
-  // Fetch all properties
+  // Check if current user is admin or property user
+  const isAdmin = user?.userType === 'admin';
+  const isPropertyUser = user?.userType === 'property_user';
+  const currentUserPropertyId = user?.propertyId;
+
+  // Fetch properties based on user type
   const fetchProperties = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/properties`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch properties');
+      if (isAdmin) {
+        // Admin sees all properties
+        const response = await fetch(`${API_BASE_URL}/properties`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties');
+        }
+        const data = await response.json();
+        setProperties(data);
+      } else if (isPropertyUser && currentUserPropertyId) {
+        // Property user only sees their assigned property
+        const response = await fetch(`${API_BASE_URL}/properties/${currentUserPropertyId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch property');
+        }
+        const property = await response.json();
+        setProperties([property]);
       }
-      const data = await response.json();
-      setProperties(data);
     } catch (err) {
       console.error('Error fetching properties:', err);
     }
   };
 
-  // Fetch all profiles
+  // Fetch profiles based on user type
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/profile`);
+      
+      let url = `${API_BASE_URL}/profile`;
+      
+      // If property user, filter by their property_id
+      if (isPropertyUser && currentUserPropertyId) {
+        url = `${API_BASE_URL}/users?property_id=${currentUserPropertyId}`;
+      }
+      
+      const response = await fetch(url);
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.message || 'Failed to fetch profiles');
       }
       const data = await response.json();
-      setProfiles(data);
+      
+      // For property users, ensure we only show users from their property
+      if (isPropertyUser && currentUserPropertyId) {
+        const filteredData = data.filter((profile: Profile) => 
+          profile.property_id === currentUserPropertyId
+        );
+        setProfiles(filteredData);
+      } else {
+        setProfiles(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profiles');
     } finally {
@@ -169,7 +204,7 @@ const UserProfile: React.FC = () => {
       phone_no: '',
       user_role: '',
       user_type: '',
-      property_id: ''
+      property_id: isPropertyUser && currentUserPropertyId ? currentUserPropertyId : ''
     });
   };
 
@@ -343,25 +378,44 @@ const UserProfile: React.FC = () => {
                   </select>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-                    Property *
-                  </label>
-                  <select
-                    name="property_id"
-                    value={formData.property_id}
-                    onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a property...</option>
-                    {properties.map((property) => (
-                      <option key={property.id} value={property.id}>
-                        {property.name} - {property.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {isAdmin ? (
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+                      Property *
+                    </label>
+                    <select
+                      name="property_id"
+                      value={formData.property_id}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select a property...</option>
+                      {properties.map((property) => (
+                        <option key={property.id} value={property.id}>
+                          {property.name} - {property.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
+                      Property *
+                    </label>
+                    <input
+                      type="text"
+                      value={properties.find(p => p.id === currentUserPropertyId)?.name || currentUserPropertyId || 'N/A'}
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100"
+                      disabled
+                    />
+                    <input
+                      type="hidden"
+                      name="property_id"
+                      value={currentUserPropertyId || ''}
+                    />
+                  </div>
+                )}
                 
                 <div className="flex space-x-3 pt-4">
                   <button

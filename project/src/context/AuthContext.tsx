@@ -7,8 +7,10 @@ interface AuthContextType {
     userId: string | null;
     token: string | null;
     status: string | null;
+    propertyId: string | null;
+    userType: string | null;
   } | null;
-  login: (userId: string, token: string, status: string) => void;
+  login: (userId: string, token: string, status: string, propertyId: string, userType: string) => void;
   logout: () => void;
 }
 
@@ -22,8 +24,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user?.token;
 
-  const login = (user_id: string, token: string, status: string) => {
-    const userData = { userId: user_id, token, status, role: 'user' };
+  const login = (user_id: string, token: string, status: string, propertyId: string, userType: string) => {
+    const userData = { userId: user_id, token, status, role: 'user', propertyId, userType };
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaPlus, FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
 import { UserRole } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 // Define the base URL for API calls
 const BASE_URL = 'https://server.prktechindia.in';
@@ -44,6 +45,8 @@ const colors = {
 };
 
 const Staff: React.FC = () => {
+  const { user } = useAuth();
+  
   // State management
   const [categories, setCategories] = useState<StaffCategory[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -59,22 +62,57 @@ const Staff: React.FC = () => {
     property_id: '',
   });
 
+  // Check if current user is admin or property user
+  const isAdmin = user?.userType === 'admin';
+  const isPropertyUser = user?.userType === 'property_user';
+  const currentUserPropertyId = user?.propertyId;
+
   // Fetch all required data on component mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch staff categories
-        const categoriesRes = await axios.get(`${BASE_URL}/staff-categories`);
-        setCategories(categoriesRes.data);
+        // Fetch staff categories based on user type
+        if (isPropertyUser && currentUserPropertyId) {
+          // Property user only sees categories from their property
+          const categoriesRes = await axios.get(`${BASE_URL}/staff-categories`);
+          const filteredCategories = categoriesRes.data.filter(
+            (category: StaffCategory) => category.property_id === currentUserPropertyId
+          );
+          setCategories(filteredCategories);
+        } else {
+          // Admin sees all categories
+          const categoriesRes = await axios.get(`${BASE_URL}/staff-categories`);
+          setCategories(categoriesRes.data);
+        }
 
-        // Fetch users
-        const usersRes = await axios.get(`${BASE_URL}/profile`);
-        setUsers(usersRes.data);
+        // Fetch users based on user type
+        if (isPropertyUser && currentUserPropertyId) {
+          // Property user only sees users from their property
+          const usersRes = await axios.get(`${BASE_URL}/profile`);
+          const filteredUsers = usersRes.data.filter(
+            (user: User) => user.property_id === currentUserPropertyId
+          );
+          setUsers(filteredUsers);
+        } else {
+          // Admin sees all users
+          const usersRes = await axios.get(`${BASE_URL}/profile`);
+          setUsers(usersRes.data);
+        }
 
-        // Fetch properties
-        const propertiesRes = await axios.get(`${BASE_URL}/properties`);
-        setProperties(propertiesRes.data);
+        // Fetch properties based on user type
+        if (isAdmin) {
+          // Admin sees all properties
+          const propertiesRes = await axios.get(`${BASE_URL}/properties`);
+          setProperties(propertiesRes.data);
+        } else if (isPropertyUser && currentUserPropertyId) {
+          // Property user only sees their assigned property
+          const propertiesRes = await axios.get(`${BASE_URL}/properties/${currentUserPropertyId}`);
+          const property = propertiesRes.data;
+          setProperties([{ id: property.id, name: property.name }]);
+          // Automatically set the property for property users
+          setFormData(prev => ({ ...prev, property_id: currentUserPropertyId }));
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load data. Please try again later.');
@@ -84,7 +122,7 @@ const Staff: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
 
   // Update filtered users when property_id changes
   useEffect(() => {
@@ -310,26 +348,45 @@ const Staff: React.FC = () => {
                 </select>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2" htmlFor="property_id">
-                  Property
-                </label>
-                <select
-                  id="property_id"
-                  name="property_id"
-                  value={formData.property_id}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded"
-                  required
-                >
-                  <option value="">Select Property</option>
-                  {properties.map(property => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isAdmin ? (
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2" htmlFor="property_id">
+                    Property
+                  </label>
+                  <select
+                    id="property_id"
+                    name="property_id"
+                    value={formData.property_id}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border rounded"
+                    required
+                  >
+                    <option value="">Select Property</option>
+                    {properties.map(property => (
+                      <option key={property.id} value={property.id}>
+                        {property.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2" htmlFor="property_id">
+                    Property
+                  </label>
+                  <input
+                    type="text"
+                    value={properties.find(p => p.id === currentUserPropertyId)?.name || currentUserPropertyId || 'N/A'}
+                    className="w-full px-3 py-2 border rounded bg-gray-100"
+                    disabled
+                  />
+                  <input
+                    type="hidden"
+                    name="property_id"
+                    value={currentUserPropertyId || ''}
+                  />
+                </div>
+              )}
 
               <div className="mb-4 md:col-span-2">
                 <label className="block text-gray-700 mb-2" htmlFor="user_ids">

@@ -33,7 +33,7 @@ const Login: React.FC = () => {
       }
 
       // Store auth data using AuthContext
-      login(data.user_id, data.token, data.status);
+      login(data.user_id, data.token, data.status, data.property_id, data.user_type);
 
       // Redirect based on status
       if (data.status === 'active') {

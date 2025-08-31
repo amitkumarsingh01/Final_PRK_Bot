@@ -35,6 +35,7 @@ import CadminTasks from './pages/Cadmin/CadminTasks';
 import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 import UserTasks from './pages/Users/UserTasks';
+import PropertyUserManagement from './pages/PropertyUserManagement';
 import DailyTaskManagementAllDepartment from './components/DailyTaskManagement/DailyTaskManagementAllDepartment';
 import DailyManagementReport from './components/DailyTaskManagement/DailyManagementReport';
 import DailyReports from './components/DailyTaskManagement/DailyReports';
@@ -217,6 +218,7 @@ const AppRoutes = () => {
         <Route path="staff-categories" element={<Staff />} />
         <Route path="properties" element={<PropertiesProfiles />} />
         <Route path="properties/:propertyId/users" element={<PropertyUsers />} />
+        <Route path="property-user-management" element={<PropertyUserManagement />} />
         {/* <Route path="tasks/categories" element={<div className="p-4">Task Categories Page</div>} />
         <Route path="tasks/all" element={<div className="p-4">All Tasks Page</div>} />
         <Route path="tasks/assigned" element={<div className="p-4">Tasks Assigned To Me Page</div>} />

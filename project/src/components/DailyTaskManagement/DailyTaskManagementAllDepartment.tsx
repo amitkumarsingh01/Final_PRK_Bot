@@ -77,14 +77,21 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
+        if (user?.userType === 'admin') {
+          // Admin sees all properties
+          const res = await axios.get(PROPERTIES_URL);
+          setProperties(res.data);
+        } else if (user?.userType === 'property_user' && user?.propertyId) {
+          // Property user only sees their assigned property
+          const res = await axios.get(`${PROPERTIES_URL}/${user.propertyId}`);
+          setProperties([res.data]);
+        }
       } catch (e) {
         setError('Failed to fetch properties');
       }
     };
     fetchProperties();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     // Fetch user's default property_id from profile
@@ -108,6 +115,14 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
       }
     };
     fetchUserProperty();
+  }, [user]);
+
+  // For property users, automatically set their property and fetch only their data
+  useEffect(() => {
+    if (user?.userType === 'property_user' && user?.propertyId) {
+      setSelectedPropertyId(user.propertyId);
+      setIsAdmin(false);
+    }
   }, [user]);
 
   // Fetch checklist data for selected property
@@ -626,25 +641,37 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Daily Task Management of All Departments</h2>
       {/* Property Selection Dropdown */}
-      <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+      {isAdmin ? (
+        <div className="mb-6 max-w-md">
+          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <select
+              id="propertySelect"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+            >
+              <option value="">Select a property...</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name} - {property.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
+            </div>
+          </div>
+        </div>
+      )}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
         <table className="min-w-full text-sm">
