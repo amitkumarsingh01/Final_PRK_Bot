@@ -1122,8 +1122,8 @@ def create_property_user(user_data: dict, db: Session = Depends(get_db)):
             phone_no=user_data.get('phone_no', ''),
             password=user_data['password'],
             user_id=user_id,
-            user_role='user',
-            user_type='property_user',
+            user_role=user_data.get('user_role', 'user'),
+            user_type=user_data.get('user_type', 'property_user'),
             property_id=user_data['property_id'],
             status='active'
         )
@@ -1151,6 +1151,32 @@ def get_property_users(property_id: str, db: Session = Depends(get_db)):
             User.user_type == 'property_user'
         ).all()
         return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching property users: {str(e)}")
+
+@app.get("/properties/{property_id}/users", tags=["Property Users"])
+def get_all_property_users(property_id: str, db: Session = Depends(get_db)):
+    try:
+        users = db.query(User).filter(
+            User.property_id == property_id
+        ).all()
+        
+        # Convert to response format
+        user_list = []
+        for user in users:
+            user_list.append({
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "phone_no": user.phone_no,
+                "user_role": user.user_role,
+                "user_type": user.user_type,
+                "property_id": user.property_id,
+                "status": user.status,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            })
+        
+        return user_list
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching property users: {str(e)}")
 

@@ -17,7 +17,12 @@ const Login: React.FC = () => {
     setError('');
     setIsLoading(true);
 
+    console.log('🔐 LOGIN ATTEMPT STARTED');
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
+
     try {
+      console.log('🌐 Making login request to server...');
       const response = await fetch('https://server.prktechindia.in/login', {
         method: 'POST',
         headers: {
@@ -26,24 +31,41 @@ const Login: React.FC = () => {
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('📦 Full response data:', data);
 
       if (!response.ok) {
+        console.error('❌ Login failed:', data.detail || 'Login failed');
         throw new Error(data.detail || 'Login failed');
       }
 
+      console.log('✅ Login successful!');
+      console.log('👤 User ID:', data.user_id);
+      console.log('🎫 Token:', data.token ? 'Present' : 'Missing');
+      console.log('📊 Status:', data.status);
+      console.log('🏢 Property ID:', data.property_id);
+      console.log('👥 User Type:', data.user_type);
+
       // Store auth data using AuthContext
+      console.log('💾 Storing auth data in context...');
       login(data.user_id, data.token, data.status, data.property_id, data.user_type);
 
       // Redirect based on status
       if (data.status === 'active') {
+        console.log('🔄 Redirecting to /profile (user is active)');
         navigate('/profile');
       } else {
+        console.log('🔄 Redirecting to /verify (user needs verification)');
         navigate('/verify');
       }
     } catch (err) {
+      console.error('💥 Login error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred during login');
     } finally {
+      console.log('🏁 Login attempt finished');
       setIsLoading(false);
     }
   };

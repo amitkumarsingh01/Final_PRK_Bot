@@ -15,7 +15,7 @@ import Staff from './pages/Admin/Staff';
 import FreshWater from './pages/Admin/DailyLogs/FreshWater';
 import Profile from './pages/Profile';
 import DieselGeneratorManager from './pages/Admin/DailyLogs/Generator';
-import StpWtp from './pages/Admin/DailyLogs/StpWtp';
+// import StpWtp from './pages/Admin/DailyLogs/StpWtp';
 import AssetManagement from './pages/Admin/Products/AssetsManagement';
 import InventoryManagement from './pages/Admin/Products/InventoryManagement';
 import STPDashboard from './pages/Admin/DailyLogs/STPDashboard';
@@ -36,6 +36,7 @@ import CadminPropertiesProfiles from './pages/Cadmin/CadminPropertiesProfiles';
 import CadminUserProfile from './pages/Cadmin/CadminUserProfile';
 import UserTasks from './pages/Users/UserTasks';
 import PropertyUserManagement from './pages/PropertyUserManagement';
+import UserRoleManagement from './pages/UserRoleManagement';
 import DailyTaskManagementAllDepartment from './components/DailyTaskManagement/DailyTaskManagementAllDepartment';
 import DailyManagementReport from './components/DailyTaskManagement/DailyManagementReport';
 import DailyReports from './components/DailyTaskManagement/DailyReports';
@@ -162,6 +163,7 @@ import ExcavationPermitPage from './components/Workpermit/ExcavationPermit.tsx';
 import LockoutTagoutPermitPage from './components/Workpermit/LockoutTagout.tsx';
 import ChemicalWorkPermitPage from './components/Workpermit/Chemical.tsx'; 
 import Preloader from './components/Preloader';
+import Unauthorized from './pages/Unauthorized';
 import LiftingPage from './components/Workpermit/Lifting.tsx';
 import DemolitionPage from './components/Workpermit/Demolition.tsx';
 import TemporaryStructurePage from './components/Workpermit/TemporaryStrucure.tsx';
@@ -223,6 +225,7 @@ const AppRoutes = () => {
         <Route path="properties" element={<PropertiesProfiles />} />
         <Route path="properties/:propertyId/users" element={<PropertyUsers />} />
         <Route path="property-user-management" element={<PropertyUserManagement />} />
+        <Route path="user-role-management" element={<UserRoleManagement />} />
         {/* <Route path="tasks/categories" element={<div className="p-4">Task Categories Page</div>} />
         <Route path="tasks/all" element={<div className="p-4">All Tasks Page</div>} />
         <Route path="tasks/assigned" element={<div className="p-4">Tasks Assigned To Me Page</div>} />
@@ -317,8 +320,183 @@ const AppRoutes = () => {
         <Route path="cadmin/notifications" element={<div className="p-4">Notifications Page</div>} />
         <Route path="cadmin/settings" element={<div className="p-4">Settings Page</div>} />
         <Route path="*" element={<Navigate to="/cadmin/users" replace />} />
+        {/* Cadmin - Property User Management */}
+        <Route path="cadmin/property-user-management" element={<PropertyUserManagement />} />
+        <Route path="cadmin/user-role-management" element={<UserRoleManagement />} />
         <Route path="cadmin/assets-management" element={<CadminAssetManagement />} />
         <Route path="cadmin/inventory-management" element={<CadminInventoryManagement />} />
+
+        {/* Cadmin - Daily Task Management */}
+        <Route path="cadmin/daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
+        <Route path="cadmin/daily-management-report" element={<DailyManagementReport />} />
+        <Route path="cadmin/daily-reports" element={<DailyReports />} />
+
+        {/* Cadmin - Monthly Task Management */}
+        <Route path="cadmin/monthly-task-management" element={<MonthlyTask />} />
+
+        {/* Cadmin - 52 Week */}
+        <Route path="cadmin/52-week-work-calendar" element={<WeekCalendar />} />
+        <Route path="cadmin/52-week-training" element={<WeekTraining />} />
+        <Route path="cadmin/52-week-training-calendar" element={<WeekTraining />} />
+
+        {/* Cadmin - Incident & Patrolling */}
+        <Route path="cadmin/incident-report" element={<IncidentReportPage />} />
+        <Route path="cadmin/night-patrolling-report" element={<NightIncidentPage />} />
+        <Route path="cadmin/site-security-patrolling-report" element={<SiteSecurityPage />} />
+        <Route path="cadmin/technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
+
+        {/* Cadmin - Reports and Audit */}
+        <Route path="cadmin/audit-reports" element={<AuditReportPage />} />
+
+        {/* Cadmin - Transition Management */}
+        <Route path="cadmin/transition-checklists" element={<TransitionChecklistsPage />} />
+        <Route path="cadmin/post-transition-checklist" element={<PostTransitionChecklistsPage />} />
+
+        {/* Cadmin - Gate Management */}
+        <Route path="cadmin/visitor-management" element={<VisitorManagement />} />
+        <Route path="cadmin/inward-non-returnable" element={<InwardNonReturnable />} />
+        <Route path="cadmin/inward-returnable" element={<InwardReturnable />} />
+        <Route path="cadmin/outward-non-returnable" element={<OutwardNonReturnable />} />
+        <Route path="cadmin/outward-returnable" element={<OutwardReturnable />} />
+        <Route path="cadmin/move-in" element={<MoveIn />} />
+        <Route path="cadmin/move-out" element={<MoveOut />} />
+        <Route path="cadmin/interior-work-tracking" element={<InteriorWorkTracking />} />
+        <Route path="cadmin/work-permit-issuance" element={<WorkPermitIssuance />} />
+        <Route path="cadmin/gate-pass-management" element={<GatePassManagement />} />  
+        <Route path="cadmin/blocklist-management" element={<BlocklistManagement />} />
+        <Route path="cadmin/daily-entry-details" element={<DailyEntryDetails />} />
+        <Route path="cadmin/water-tanker-management" element={<WaterTankerManagement />} />
+        <Route path="cadmin/vendor-entry-management" element={<VendorEntryManagement />} />
+        <Route path="cadmin/sta-entry-management" element={<StaEntryManagement />} />
+        <Route path="cadmin/emergency-contact-details" element={<EmergencyContactDetails />} />
+
+        {/* Cadmin - Community Management */}
+        <Route path="cadmin/tickets-management" element={<TicketsManagement />} />
+        <Route path="cadmin/ticket-assignment" element={<TicketAssignment />} />
+        <Route path="cadmin/notice-management" element={<NoticeManagement />} />
+        <Route path="cadmin/parking-sticker-management" element={<ParkingStickerManagement />} />
+        <Route path="cadmin/communication-announcements" element={<CommunicationAnnouncements />} />
+        <Route path="cadmin/move-in-coordination" element={<MoveInCoordination />} />
+        <Route path="cadmin/move-out-coordination" element={<MoveOutCoordination />} />
+        <Route path="cadmin/interior-work-approvals" element={<InteriorWorkApprovals />} />
+        <Route path="cadmin/work-permit-tracking" element={<WorkPermitTracking />} />  
+
+        {/* Cadmin - Asset Management */}
+        <Route path="cadmin/asset-tagging-management" element={<AssetTaggingManagement />} />
+        <Route path="cadmin/asset-movement-log" element={<AssetMovementLog />} />
+        <Route path="cadmin/amc-warranty-tracker" element={<AMCWarrantyTracker />} />
+        <Route path="cadmin/maintenance-schedule" element={<MaintenanceSchedule />} />
+        <Route path="cadmin/asset-audit" element={<AssetAudit />} />
+        <Route path="cadmin/depreciation-replacement" element={<DepreciationReplacement />} />
+
+        {/* Cadmin - Inventory Management */}
+        <Route path="cadmin/inventory-tracking" element={<InventoryTracking />} />
+        <Route path="cadmin/stock-entry-issue" element={<StockEntryIssue />} />
+        <Route path="cadmin/min-max-level-monitoring" element={<MinMaxLevelMonitoring />} />
+        <Route path="cadmin/consumption-reports" element={<ConsumptionReports />} />
+        <Route path="cadmin/expiry-damage-log" element={<ExpiryDamageLog />} />
+
+        {/* Cadmin - Quality and Process Management */}
+        <Route path="cadmin/quality-planning" element={<QualityPlanning />} />
+        <Route path="cadmin/process-management-setup" element={<ProcessManagementSetup />} />
+        <Route path="cadmin/quality-assurance" element={<QualityAssurance />} />
+        <Route path="cadmin/quality-control" element={<QualityControl />} />
+        <Route path="cadmin/performance-monitoring" element={<PerformanceMonitoring />} />
+        <Route path="cadmin/documentation-and-reporting" element={<DocumentationReporting />} />
+
+        {/* Cadmin - Fire and Safety */}
+        <Route path="cadmin/site-assessment-and-planning" element={<SiteAssessmentAndPlanning />} />
+        <Route path="cadmin/installation-and-equipment-setup" element={<InstallationAndEquipmentSetup />} />
+        <Route path="cadmin/fire-safety-documents" element={<FireSafetyDocuments />} />
+        <Route path="cadmin/compliance-reports" element={<ComplianceReports />} />
+        <Route path="cadmin/fire-and-safety-training" element={<FireAndSafetyTraining />} />
+        <Route path="cadmin/daily-checklist" element={<DailyChecklist />} />
+        <Route path="cadmin/weekly-checklist" element={<WeeklyChecklist />} />
+        <Route path="cadmin/monthly-checklist" element={<MonthlyChecklist />} />
+        <Route path="cadmin/quarterly-checklist" element={<QuarterlyChecklist />} />
+        <Route path="cadmin/emergency-preparedness-plan" element={<EmergencyPreparednessPlan />} />
+        <Route path="cadmin/record-keeping" element={<RecordKeeping />} />
+
+        {/* Cadmin - CCTV Department */}
+        <Route path="cadmin/site-assessment" element={<SiteAssessment />} />
+        <Route path="cadmin/system-design-and-planning" element={<SystemDesignPlanningPage />} />
+        <Route path="cadmin/installation-checklist" element={<InstallationChecklist />} />
+        <Route path="cadmin/configuration-and-testing" element={<ConfigurationTestingPage />} />
+        <Route path="cadmin/daily-operations-and-monitoring" element={<DailyOperationsMonitoringPage />} />
+        <Route path="cadmin/maintenance-schedule" element={<MaintenanceSchedulePage />} />
+        <Route path="cadmin/documentation" element={<Documentation />} />
+        <Route path="cadmin/amc-and-compliance" element={<AmcAndCompliance />} />
+
+        {/* Cadmin - Project Management */}
+        <Route path="cadmin/project-management" element={<ProjectManagement />} />
+        <Route path="cadmin/project-initiation" element={<ProjectInitiation />} />
+        <Route path="cadmin/project-planning" element={<ProjectPlanning />} />
+        <Route path="cadmin/team-resource-allocation" element={<TeamResourceAllocation />} />
+        <Route path="cadmin/execution-and-implementation" element={<ExecutionAndImplementation />} />
+        <Route path="cadmin/monitoring-and-control" element={<MonitoringAndControl />} />
+        <Route path="cadmin/documentation-and-reporting" element={<DocumentationAndReporting />} />
+        <Route path="cadmin/project-closure" element={<ProjectClosure />} />
+
+        {/* Cadmin - Procurement Management */}
+        <Route path="cadmin/procurement-planning" element={<ProcurementPlanning />} />
+        <Route path="cadmin/vendor-management" element={<VendorManagement />} />
+        <Route path="cadmin/purchase-requisition-to-order" element={<PurchaseRequisitionToOrder />} />
+        <Route path="cadmin/goods-receipt-and-inspection" element={<GoodsReceiptAndInspection />} /> 
+        <Route path="cadmin/inventory-and-stock-management" element={<InventoryAndStockManagement />} />
+        <Route path="cadmin/payment-tracking" element={<PaymentTracking />} />
+        <Route path="cadmin/procurement-documentation" element={<ProcurementDocumentation />} />
+        <Route path="cadmin/compliance-and-policy" element={<ComplianceAndPolicy />} />
+        <Route path="cadmin/reporting-and-analysis" element={<ReportingAndAnalysis />} />
+        <Route path="cadmin/procurement-categories" element={<ProcurementCategories />} />
+
+        {/* Cadmin - Vendor Management */}
+        <Route path="cadmin/vendor-master-management" element={<VendorMasterManagement />} />
+        <Route path="cadmin/vendor-classification" element={<VendorClassication />} />
+        <Route path="cadmin/vendor-evaluation" element={<VendorEvaluation />} />
+        <Route path="cadmin/integration-with-purchase-process" element={<IntegrationWithPurchaseProcess />} />
+        <Route path="cadmin/vendor-relationship-management" element={<VendorRelationshipManagement />} />
+        <Route path="cadmin/compliance-and-legal-check" element={<ComplianceAndLegalCheck />} />
+        <Route path="cadmin/vendor-documentation" element={<VendorDocumentation />} />
+        <Route path="cadmin/vendor-reporting-and-analysis" element={<Vendor_Reporting_and_Analysis />} />
+
+        {/* Cadmin - SLA Management */}
+        <Route path="cadmin/sla-planning-and-definition" element={<SLA_Planning_and_Denition />} />
+        <Route path="cadmin/key-sla-components" element={<Key_SLA_Components />} />
+        <Route path="cadmin/sla-implementation" element={<SLA_Implementation />} />
+        <Route path="cadmin/sla-monitoring" element={<SLA_Monitoring />} />
+        <Route path="cadmin/sla-evaluation" element={<SLA_Evaluation />} />
+        <Route path="cadmin/sla-renewal-and-exit-process" element={<SLA_Renewal_and_Exit_Process />} />
+
+        {/* Cadmin - KPI */}
+        <Route path="cadmin/kpi" element={<KPIPage />} />
+
+        {/* Cadmin - Complaint */}
+        <Route path="cadmin/complaint-management" element={<ComplaintPage />} />
+
+        {/* Cadmin - Back Office */}
+        <Route path="cadmin/site-visit-reports" element={<SiteVisitPage />} />
+        <Route path="cadmin/training-reports" element={<TrainingReportPage />} />
+        <Route path="cadmin/night-patrolling-reports" element={<NightPatrollingPage />} />
+        <Route path="cadmin/minutes-of-meetings" element={<MinutesOfMeetingPage />} />
+        <Route path="cadmin/escalation-matrix" element={<EscalationMatrix />} />
+
+        {/* Cadmin - Work Permit */}
+        <Route path="cadmin/interior-work-permit" element={<InteriorWorkPermitPage />} />
+        <Route path="cadmin/vehicle-entry-permit" element={<VehicleEntryPermitPage />} />
+        <Route path="cadmin/hot-work-permit" element={<HotWorkPermitPage />} />
+        <Route path="cadmin/cold-work-permit" element={<ColdWorkPermitPage />} />
+        <Route path="cadmin/electrical-work-permit" element={<ElectricalWorkPermitPage />} />
+        <Route path="cadmin/height-work-permit" element={<HeightWorkPermitPage />} />
+        <Route path="cadmin/confined-space-work-permit" element={<ConfinedSpaceWorkPage />} />
+        <Route path="cadmin/excavation-permit" element={<ExcavationPermitPage />} />
+        <Route path="cadmin/lockout-tagout-permit" element={<LockoutTagoutPermitPage />} />
+        <Route path="cadmin/chemical-work-permit" element={<ChemicalWorkPermitPage />} />
+        <Route path="cadmin/lift-work-permit" element={<LiftingPage />} />
+        <Route path="cadmin/demolition-work-permit" element={<DemolitionPage />} />
+        <Route path="cadmin/general-maintainence-work-permit" element={<GeneralMaintenancePage />} />
+        <Route path="cadmin/temporary-structure-work-permit" element={<TemporaryStructurePage />} />
+        <Route path="cadmin/vehicle-work-permit" element={<VehicleEntryPermitPage />} />
+        <Route path="cadmin/working-alone-work-permit" element={<VehicleEntryPermitPage />} />
 
         <Route path="user/tasks" element={<UserTasks />} />
         
@@ -647,6 +825,8 @@ const AppRoutes = () => {
             "/verify"
         } replace />  
       } />
+      {/* Unauthorized route */}
+      <Route path="/unauthorized" element={<Unauthorized />} />
     </Routes>
   );
 };

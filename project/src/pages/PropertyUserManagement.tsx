@@ -112,7 +112,8 @@ const PropertyUserManagement: React.FC = () => {
           name: newUser.name,
           phone_no: newUser.phone_no,
           password: newUser.password,
-          property_id: selectedProperty
+          property_id: selectedProperty,
+          user_type: 'cadmin'
         }),
       });
 

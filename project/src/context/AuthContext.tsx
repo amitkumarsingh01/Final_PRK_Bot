@@ -25,9 +25,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user?.token;
 
   const login = (user_id: string, token: string, status: string, propertyId: string, userType: string) => {
+    console.log('🔐 AUTH CONTEXT - Login called with:');
+    console.log('👤 User ID:', user_id);
+    console.log('🎫 Token:', token ? 'Present' : 'Missing');
+    console.log('📊 Status:', status);
+    console.log('🏢 Property ID:', propertyId);
+    console.log('👥 User Type:', userType);
+    
     const userData = { userId: user_id, token, status, role: 'user', propertyId, userType };
+    console.log('💾 Storing user data:', userData);
+    
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    console.log('✅ User data stored in localStorage');
   };
 
   const logout = () => {
@@ -37,9 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check if user data exists in localStorage on initial load
+    console.log('🔄 AUTH CONTEXT - Checking localStorage for existing user...');
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
+      console.log('👤 Found stored user data:', JSON.parse(storedUser));
       setUser(JSON.parse(storedUser));
+    } else {
+      console.log('❌ No stored user data found');
     }
   }, []);
 
