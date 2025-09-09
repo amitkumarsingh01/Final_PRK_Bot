@@ -28,7 +28,7 @@ interface ProjectInitiation {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -50,64 +50,9 @@ const ProjectInitiationPage: React.FC = () => {
   const [projects, setProjects] = useState<ProjectInitiation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; project: ProjectInitiation | null }>({ open: false, project: null });
   const [editModal, setEditModal] = useState<{ open: boolean; project: Omit<ProjectInitiation, 'id' | 'created_at' | 'updated_at'> | null; isNew: boolean }>({ open: false, project: null, isNew: false });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      const projectInitiations = res.data.map((project: any) => project.project_initiation);
-      setProjects(projectInitiations);
-    } catch (e) {
-      setError('Failed to fetch projects');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (project: ProjectInitiation) => {
     const { id, created_at, updated_at, ...projectData } = project;
@@ -126,7 +71,7 @@ const ProjectInitiationPage: React.FC = () => {
     if (!window.confirm('Delete this project?')) return;
     try {
       await axios.delete(`${API_URL}${projectId}`);
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete project');
     }
@@ -141,7 +86,7 @@ const ProjectInitiationPage: React.FC = () => {
     try {
       if (editModal.isNew) {
         await axios.post(API_URL, {
-          property_id: selectedPropertyId,
+          property_id: user?.propertyId,
           project_initiation: editModal.project,
           project_planning: null,
           team_resource_allocation: [],
@@ -162,7 +107,7 @@ const ProjectInitiationPage: React.FC = () => {
         }
       }
       setEditModal({ open: false, project: null, isNew: false });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save project');
     }
@@ -183,26 +128,16 @@ const ProjectInitiationPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Project Initiation</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
 
@@ -336,19 +271,7 @@ const ProjectInitiationPage: React.FC = () => {
                   onChange={e => setEditModal(m => m && { ...m, project: { ...m.project!, budget: parseFloat(e.target.value) || 0 } })} 
                   required 
                 />
-                <select 
-                  className="border rounded px-3 py-2" 
-                  value={editModal.project.status} 
-                  onChange={e => setEditModal(m => m && { ...m, project: { ...m.project!, status: e.target.value } })} 
-                  required
-                >
-                  <option value="">Select Status</option>
-                  <option value="Planning">Planning</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="On Hold">On Hold</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
+                
                 <input 
                   className="border rounded px-3 py-2" 
                   placeholder="Stakeholders (comma-separated)" 

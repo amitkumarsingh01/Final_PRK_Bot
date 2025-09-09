@@ -27,8 +27,6 @@ const Vendor_Relationship_Management: React.FC = () => {
   const [data, setData] = useState<VendorRelationshipManagement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<VendorRelationshipManagement | null>(null);
@@ -36,20 +34,7 @@ const Vendor_Relationship_Management: React.FC = () => {
 
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    }, []);
 
   // Fetch relationship management data
   useEffect(() => {
@@ -59,8 +44,7 @@ const Vendor_Relationship_Management: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
+        const response = await axios.get(`https:        
         // Filter vendors that have relationship management data and map it
         const relationshipData = response.data
           .filter((vendor: any) => vendor.vendor_relationship_management)
@@ -122,8 +106,7 @@ const Vendor_Relationship_Management: React.FC = () => {
 
     try {
       // Find the vendor that has this relationship management
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === item.id);
+      const response = await axios.get(`https:      const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === item.id);
       
       if (vendor) {
         // Update the vendor with relationship management set to null
@@ -146,8 +129,7 @@ const Vendor_Relationship_Management: React.FC = () => {
     try {
       if (editingItem.id) {
         // Update existing relationship management
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === editingItem.id);
+        const response = await axios.get(`https:        const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === editingItem.id);
         
         if (vendor) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
@@ -167,8 +149,7 @@ const Vendor_Relationship_Management: React.FC = () => {
       } else {
         // Create new relationship management - we need to select a vendor first
         // For now, we'll use the first vendor without relationship management
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutRelationship = response.data.find((v: any) => !v.vendor_relationship_management);
+        const response = await axios.get(`https:        const vendorWithoutRelationship = response.data.find((v: any) => !v.vendor_relationship_management);
         
         if (vendorWithoutRelationship) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutRelationship.id}`, {
@@ -188,8 +169,7 @@ const Vendor_Relationship_Management: React.FC = () => {
       }
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const relationshipData = refreshResponse.data
+      const refreshResponse = await axios.get(`https:      const relationshipData = refreshResponse.data
         .filter((vendor: any) => vendor.vendor_relationship_management)
         .map((vendor: any) => ({
           id: vendor.vendor_relationship_management.id,
@@ -213,8 +193,7 @@ const Vendor_Relationship_Management: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedProperty(propertyId);
+  
   };
 
   const getRelationshipStatusColor = (status: string) => {
@@ -354,18 +333,8 @@ const Vendor_Relationship_Management: React.FC = () => {
 
       {/* Property Selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
-        <select
-          value={selectedProperty}
-          onChange={(e) => handlePropertyChange(e.target.value)}
-          className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          {properties.map((property) => (
-            <option key={property.id} value={property.id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Property</label>
+        
       </div>
 
       {/* Error Message */}
@@ -536,32 +505,11 @@ const Vendor_Relationship_Management: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Relationship Type</label>
-                  <select
-                    value={editingItem.relationship_type || ''}
-                    onChange={(e) => setEditingItem({...editingItem, relationship_type: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Strategic">Strategic</option>
-                    <option value="Preferred">Preferred</option>
-                    <option value="Regular">Regular</option>
-                    <option value="Occasional">Occasional</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Communication Frequency</label>
-                  <select
-                    value={editingItem.communication_frequency || ''}
-                    onChange={(e) => setEditingItem({...editingItem, communication_frequency: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Frequency</option>
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annually">Annually</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Last Contact</label>
@@ -583,17 +531,7 @@ const Vendor_Relationship_Management: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Relationship Status</label>
-                  <select
-                    value={editingItem.relationship_status || ''}
-                    onChange={(e) => setEditingItem({...editingItem, relationship_status: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Suspended">Suspended</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Responsible Person</label>

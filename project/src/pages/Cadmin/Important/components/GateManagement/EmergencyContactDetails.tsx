@@ -31,7 +31,7 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -51,64 +51,14 @@ const CEmergencyContactDetailsPage: React.FC = () => {
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: EmergencyContactDetails | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: EmergencyContactDetails | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
-  // Check if current user is admin or property user
-  const isPropertyUser = user?.userType === 'property_user';
-  const currentUserPropertyId = user?.propertyId;
+    const  = user?.userType === 'property_user';
+  const  = user?.propertyId;
 
   // Fetch properties based on user type
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (isAdmin) {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
-          const property = res.data;
-          setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-  // For property users, automatically set their property
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch visitor management reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
-
   const handleEdit = (item: EmergencyContactDetails, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
@@ -127,7 +77,7 @@ const CEmergencyContactDetailsPage: React.FC = () => {
       if (!report) return;
       const newArr = report.emergency_contact_details.filter(i => i.id !== itemId);
       await axios.put(`${API_URL}${reportId}`, { emergency_contact_details: newArr });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -151,7 +101,7 @@ const CEmergencyContactDetailsPage: React.FC = () => {
       }
       await axios.put(`${API_URL}${editModal.reportId}`, { emergency_contact_details: newArr });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -162,22 +112,12 @@ const CEmergencyContactDetailsPage: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Emergency Contact Details</h2>
       {isAdmin ? (
         <div className="mb-6 max-w-md">
-          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
           <div className="flex items-center gap-2">
             <Building className="h-5 w-5 text-gray-400" />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
         </div>
       ) : (
@@ -186,9 +126,10 @@ const CEmergencyContactDetailsPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Building className="h-5 w-5 text-gray-400" />
             <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
             </div>
           </div>
+        </div>
         </div>
       )}
       {error && <div className="mb-2 text-red-600">{error}</div>}

@@ -27,7 +27,7 @@ interface VendorEvaluation {
 }
 
 const API_URL = 'https://server.prktechindia.in/vendor-masters/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -49,80 +49,9 @@ const VendorEvaluationPage: React.FC = () => {
   const [data, setData] = useState<VendorEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; evaluation: VendorEvaluation | null }>({ open: false, evaluation: null });
   const [editModal, setEditModal] = useState<{ open: boolean; evaluation: VendorEvaluation | null; isNew: boolean; vendorMasterId: string | null }>({ open: false, evaluation: null, isNew: false, vendorMasterId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      const evaluations = res.data
-        .filter((vendor: any) => vendor.evaluation)
-        .map((vendor: any) => ({
-          id: vendor.evaluation.id,
-          vendor_master_id: vendor.id,
-          evaluation_id: vendor.evaluation.evaluation_id,
-          vendor_id: vendor.vendor_master_management.vendor_id,
-          vendor_name: vendor.vendor_master_management.vendor_name,
-          evaluation_date: vendor.evaluation.evaluation_date,
-          criteria: vendor.evaluation.criteria || [],
-          score_quality: vendor.evaluation.score_quality,
-          score_delivery_time: vendor.evaluation.score_delivery_time,
-          outcome: vendor.evaluation.outcome,
-          evaluator: vendor.evaluation.evaluator,
-          remarks: vendor.evaluation.remarks,
-        }));
-      setData(evaluations);
-    } catch (e) {
-      setError('Failed to fetch vendor evaluations');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (evaluation: VendorEvaluation, vendorMasterId: string) => {
     setEditModal({ open: true, evaluation: { ...evaluation }, isNew: false, vendorMasterId });
@@ -205,8 +134,7 @@ const VendorEvaluationPage: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
+  
   };
 
   const getAverageScore = (evaluation: VendorEvaluation) => {
@@ -234,23 +162,16 @@ const VendorEvaluationPage: React.FC = () => {
               <Star size={32} style={{ color: orange }} />
               <h1 className="text-3xl font-bold text-gray-900">Vendor Evaluation</h1>
             </div>
-            {isAdmin && (
-              <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Select Property:</label>
-                <select
-                  value={selectedPropertyId}
-                  onChange={(e) => handlePropertyChange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Select a property</option>
-                  {properties.map((property) => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
+          </div>
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+          </div>
+        </div>
           </div>
           
           {/* Statistics */}
@@ -292,7 +213,7 @@ const VendorEvaluationPage: React.FC = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Vendor Evaluations</h2>
-              {isAdmin && selectedPropertyId && (
+              {isAdmin && user?.propertyId && (
                 <button
                   onClick={() => {
                     alert('Please select a vendor to add evaluation');
@@ -548,12 +469,12 @@ const VendorEvaluationPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, evaluation: { ...editModal.evaluation!, outcome: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="">Select Outcome</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Conditional Approval">Conditional Approval</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Under Review">Under Review</option>
-                    <option value="Suspended">Suspended</option>
+                    
+                    
+                    
+                    
+                    
+                    
                   </select>
                 </div>
                 <div>

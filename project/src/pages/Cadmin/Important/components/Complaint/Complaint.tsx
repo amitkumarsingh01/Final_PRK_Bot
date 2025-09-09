@@ -113,7 +113,7 @@ interface ComplaintManagementRecord {
 }
 
 const API_URL = 'https://server.prktechindia.in/complaint-management-records/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -122,65 +122,10 @@ const ComplaintPage: React.FC = () => {
   const [data, setData] = useState<ComplaintManagementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState('client-complaints');
   const [viewModal, setViewModal] = useState<{ open: boolean; data: any; type: string }>({ open: false, data: null, type: '' });
   const [editModal, setEditModal] = useState<{ open: boolean; data: any; type: string; isNew: boolean }>({ open: false, data: null, type: '', isNew: false });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch complaint records');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: any, type: string) => {
     setEditModal({ open: true, data: { ...item }, type, isNew: false });
@@ -202,7 +147,7 @@ const ComplaintPage: React.FC = () => {
         // For now, we'll need to update the entire record
         // This is a simplified approach - in a real app, you'd have individual endpoints
         await axios.delete(`${API_URL}${itemId}`);
-        fetchData(selectedPropertyId);
+        fetchData();
       } catch (e) {
         setError('Failed to delete record');
       }
@@ -221,7 +166,7 @@ const ComplaintPage: React.FC = () => {
       if (editModal.isNew) {
         // Create new record
         const newRecord = {
-          property_id: selectedPropertyId,
+          property_id: user?.propertyId,
           complaint_management: {
             [editModal.type]: [editModal.data]
           }
@@ -233,14 +178,13 @@ const ComplaintPage: React.FC = () => {
         await axios.put(`${API_URL}${editModal.data.id}`, editModal.data);
       }
       setEditModal({ open: false, data: null, type: '', isNew: false });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save record');
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
+  
   };
 
   const getEmptyData = (type: string) => {
@@ -364,8 +308,7 @@ const ComplaintPage: React.FC = () => {
 
   const getAllData = () => {
     if (data.length === 0) return { client_complaints: [], staff_complaints: [], client_complaint_resolutions: [], staff_complaint_resolutions: [], escalation_tracking: [], root_cause_analysis: [] };
-    // The API returns data with complaint_management_data property
-    return data[0]?.complaint_management_data || { client_complaints: [], staff_complaints: [], client_complaint_resolutions: [], staff_complaint_resolutions: [], escalation_tracking: [], root_cause_analysis: [] };
+        return data[0]?.complaint_management_data || { client_complaints: [], staff_complaints: [], client_complaint_resolutions: [], staff_complaint_resolutions: [], escalation_tracking: [], root_cause_analysis: [] };
   };
 
   const currentData = getAllData();
@@ -406,26 +349,16 @@ const ComplaintPage: React.FC = () => {
         </div>
 
         {/* Property Selector */}
-        {isAdmin && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Select Property</h2>
-            </div>
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Select a property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+        {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
           </div>
-        )}
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+          </div>
+        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">

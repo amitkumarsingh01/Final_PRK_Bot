@@ -35,7 +35,7 @@ interface CctvAuditReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/cctv-audit-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -57,63 +57,9 @@ const AmcCompliancePage: React.FC = () => {
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: AmcComplianceFormat | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: AmcComplianceFormat | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch CCTV audit reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: AmcComplianceFormat, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
@@ -137,7 +83,7 @@ const AmcCompliancePage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         CCTV_Audit: { AMC_Compliance_Format: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -164,7 +110,7 @@ const AmcCompliancePage: React.FC = () => {
         CCTV_Audit: { AMC_Compliance_Format: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -174,26 +120,16 @@ const AmcCompliancePage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>AMC & Compliance</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -279,14 +215,7 @@ const AmcCompliancePage: React.FC = () => {
                 <input className="border rounded px-3 py-2" placeholder="SL No" type="number" value={editModal.item.SL_No} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, SL_No: parseInt(e.target.value) } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Category" value={editModal.item.Category} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Category: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Checklist Description" value={editModal.item.Checklist_Description} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checklist_Description: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Details_Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Details_Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Compliant">Compliant</option>
-                  <option value="Non-Compliant">Non-Compliant</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Expired">Expired</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Last Updated" type="date" value={editModal.item.Last_Updated} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Last_Updated: e.target.value } })} />
                 <input className="border rounded px-3 py-2" placeholder="Next Due Date" type="date" value={editModal.item.Next_Due_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Next_Due_Date: e.target.value } })} />
                 <textarea className="border rounded px-3 py-2" placeholder="Observations/Non-Compliance" value={editModal.item.Observations_Non_Compliance} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Observations_Non_Compliance: e.target.value } })} required />

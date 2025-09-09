@@ -34,8 +34,6 @@ const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const CWeekTrainingPage: React.FC = () => {
   const { user } = useAuth();
 
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const [schedules, setSchedules] = useState<TrainingSchedule[]>([]);
@@ -104,11 +102,14 @@ const CWeekTrainingPage: React.FC = () => {
   }, [user]);
 
   // Fetch schedules for property
-  const fetchSchedules = async (propertyId: string) => {
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL
+  }?property_id=${propertyId}`);
       setSchedules(res.data || []);
     } catch (e) {
       setError('Failed to fetch training schedules');
@@ -118,15 +119,15 @@ const CWeekTrainingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedPropertyId) fetchSchedules(selectedPropertyId);
-  }, [selectedPropertyId]);
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
 
-  const handlePropertyChange = (propertyId: string) => setSelectedPropertyId(propertyId);
+  
 
   const openView = (schedule: TrainingSchedule) => setViewModal({ open: true, data: schedule, title: 'Training Schedule Details' });
 
   const getEmptySchedule = (): Omit<TrainingSchedule, 'id' | 'created_at' | 'updated_at'> => ({
-    property_id: selectedPropertyId,
+    property_id: user?.propertyId,
     year: new Date().getFullYear(),
     training_schedule: [],
   });
@@ -153,7 +154,7 @@ const CWeekTrainingPage: React.FC = () => {
     try {
       setLoading(true);
       await axios.delete(`${API_URL}${scheduleId}`);
-      await fetchSchedules(selectedPropertyId);
+      await fetchData();
     } catch (e) {
       setError('Failed to delete schedule');
     } finally {
@@ -172,7 +173,7 @@ const CWeekTrainingPage: React.FC = () => {
         await axios.put(`${API_URL}${editModal.data.id}`, editModal.data);
       }
       closeModals();
-      await fetchSchedules(selectedPropertyId);
+      await fetchData();
     } catch (e) {
       setError('Failed to save schedule');
     } finally {
@@ -242,7 +243,7 @@ const CWeekTrainingPage: React.FC = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const currentSchedule = schedules.find(s => s.property_id === selectedPropertyId);
+  const currentSchedule = schedules.find(s => s.property_id === user?.propertyId);
 
   if (loading) {
     return (
@@ -280,26 +281,16 @@ const CWeekTrainingPage: React.FC = () => {
         </div>
 
         {/* Property Selector */}
-        {isAdmin && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Select Property</h2>
-            </div>
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Select a property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+        {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
           </div>
-        )}
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">

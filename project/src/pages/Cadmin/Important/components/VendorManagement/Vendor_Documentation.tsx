@@ -28,8 +28,6 @@ const Vendor_Documentation: React.FC = () => {
   const [data, setData] = useState<VendorDocumentation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<VendorDocumentation | null>(null);
@@ -37,20 +35,7 @@ const Vendor_Documentation: React.FC = () => {
 
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    }, []);
 
   // Fetch vendor documentation data
   useEffect(() => {
@@ -60,8 +45,7 @@ const Vendor_Documentation: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
+        const response = await axios.get(`https:        
         // Filter vendors that have documentation data and map it
         const documentationData = response.data
           .filter((vendor: any) => vendor.vendor_documentation)
@@ -125,8 +109,7 @@ const Vendor_Documentation: React.FC = () => {
 
     try {
       // Find the vendor that has this documentation
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.vendor_documentation?.id === item.id);
+      const response = await axios.get(`https:      const vendor = response.data.find((v: any) => v.vendor_documentation?.id === item.id);
       
       if (vendor) {
         // Update the vendor with documentation set to null
@@ -149,8 +132,7 @@ const Vendor_Documentation: React.FC = () => {
     try {
       if (editingItem.id) {
         // Update existing documentation
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.vendor_documentation?.id === editingItem.id);
+        const response = await axios.get(`https:        const vendor = response.data.find((v: any) => v.vendor_documentation?.id === editingItem.id);
         
         if (vendor) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
@@ -171,8 +153,7 @@ const Vendor_Documentation: React.FC = () => {
       } else {
         // Create new documentation - we need to select a vendor first
         // For now, we'll use the first vendor without documentation
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutDocumentation = response.data.find((v: any) => !v.vendor_documentation);
+        const response = await axios.get(`https:        const vendorWithoutDocumentation = response.data.find((v: any) => !v.vendor_documentation);
         
         if (vendorWithoutDocumentation) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutDocumentation.id}`, {
@@ -193,8 +174,7 @@ const Vendor_Documentation: React.FC = () => {
       }
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const documentationData = refreshResponse.data
+      const refreshResponse = await axios.get(`https:      const documentationData = refreshResponse.data
         .filter((vendor: any) => vendor.vendor_documentation)
         .map((vendor: any) => ({
           id: vendor.vendor_documentation.id,
@@ -219,8 +199,7 @@ const Vendor_Documentation: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedProperty(propertyId);
+  
   };
 
   const getDocumentStatusColor = (status: string) => {
@@ -351,18 +330,8 @@ const Vendor_Documentation: React.FC = () => {
 
       {/* Property Selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
-        <select
-          value={selectedProperty}
-          onChange={(e) => handlePropertyChange(e.target.value)}
-          className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          {properties.map((property) => (
-            <option key={property.id} value={property.id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Property</label>
+        
       </div>
 
       {/* Error Message */}
@@ -543,18 +512,7 @@ const Vendor_Documentation: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Document Type</label>
-                  <select
-                    value={editingItem.document_type || ''}
-                    onChange={(e) => setEditingItem({...editingItem, document_type: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Contract">Contract</option>
-                    <option value="License">License</option>
-                    <option value="Certificate">Certificate</option>
-                    <option value="Insurance">Insurance</option>
-                    <option value="Tax">Tax</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Upload Date</label>
@@ -576,17 +534,7 @@ const Vendor_Documentation: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Document Status</label>
-                  <select
-                    value={editingItem.document_status || ''}
-                    onChange={(e) => setEditingItem({...editingItem, document_status: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Expired">Expired</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Draft">Draft</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">File Reference</label>

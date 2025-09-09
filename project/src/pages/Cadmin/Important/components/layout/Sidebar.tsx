@@ -146,11 +146,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           
           if (currentUserProfile) {
             setUserProfile(currentUserProfile);
-            // Fetch property logo for cadmin/user
-            if (currentUserProfile.user_type !== 'admin' && currentUserProfile.property_id) {
+                        if (currentUserProfile.user_type !== 'admin' && currentUserProfile.property_id) {
               try {
-                const propRes = await fetch(`https://server.prktechindia.in/properties/${currentUserProfile.property_id}`);
-                if (propRes.ok) {
+                const propRes = await fetch(`https:                if (propRes.ok) {
                   const propData = await propRes.json();
                   if (propData.logo_base64) {
                     setPropertyLogo(propData.logo_base64);
@@ -917,8 +915,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       return [...baseItems, ...cadminItems];
     }
 
-    // If user is property user (not admin), show limited items
-    if (userProfile?.user_type === 'property_user' && userProfile?.property_id) {
+        if (userProfile?.user_type === 'property_user' && userProfile?.property_id) {
       const propertyUserItems: NavItem[] = [
         { path: '/users', icon: <Users size={20} />, label: 'Users' },
         { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },

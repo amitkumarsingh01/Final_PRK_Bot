@@ -34,7 +34,7 @@ interface FireSafetyReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/fire-safety-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -57,63 +57,9 @@ const InstallationAndEquipmentSetupPage: React.FC = () => {
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: InstallationAndEquipmentSetup | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: InstallationAndEquipmentSetup | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch fire safety reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: InstallationAndEquipmentSetup, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
@@ -137,7 +83,7 @@ const InstallationAndEquipmentSetupPage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Installation_and_Equipment_Setup: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -164,7 +110,7 @@ const InstallationAndEquipmentSetupPage: React.FC = () => {
         Fire_Safety_Management: { Installation_and_Equipment_Setup: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -174,26 +120,16 @@ const InstallationAndEquipmentSetupPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Installation and Equipment Setup</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -279,35 +215,12 @@ const InstallationAndEquipmentSetupPage: React.FC = () => {
                 <input className="border rounded px-3 py-2" placeholder="Installation ID" value={editModal.item.Installation_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Installation_ID: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Site Name" value={editModal.item.Site_Name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Site_Name: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Equipment ID" value={editModal.item.Equipment_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Equipment_ID: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Equipment_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Equipment_Type: e.target.value } })} required>
-                  <option value="">Select Equipment Type</option>
-                  <option value="Fire Extinguisher">Fire Extinguisher</option>
-                  <option value="Smoke Detector">Smoke Detector</option>
-                  <option value="Fire Alarm System">Fire Alarm System</option>
-                  <option value="Sprinkler System">Sprinkler System</option>
-                  <option value="Emergency Lighting">Emergency Lighting</option>
-                  <option value="Fire Hydrant">Fire Hydrant</option>
-                  <option value="Fire Door">Fire Door</option>
-                  <option value="Other">Other</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Location" value={editModal.item.Location} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Location: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Installation Date" type="date" value={editModal.item.Installation_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Installation_Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Installer" value={editModal.item.Installer} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Installer: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Testing">Testing</option>
-                  <option value="Commissioned">Commissioned</option>
-                </select>
-                <select className="border rounded px-3 py-2" value={editModal.item.Compliance_Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_Status: e.target.value } })} required>
-                  <option value="">Select Compliance Status</option>
-                  <option value="Compliant">Compliant</option>
-                  <option value="Non-Compliant">Non-Compliant</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Pending Verification">Pending Verification</option>
-                </select>
+                
+                
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Checklist Items" value={editModal.item.Checklist_Items} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checklist_Items: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
               </div>

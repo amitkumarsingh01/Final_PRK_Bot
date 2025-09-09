@@ -252,7 +252,7 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   // Property dropdown label
   const propertyLabel = (id: string) => {
     const prop = properties.find((p) => p.id === id);
-    return prop ? `${prop.name} - ${prop.title}` : 'Select Property';
+    return prop ? `${prop.name} - ${prop.title}` : 'Property';
   };
 
   const getPeriodString = (date: Date, freq: string) => {
@@ -613,11 +613,12 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Daily Task Management of All Departments</h2>
       {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
         </div>
       </div>
@@ -648,35 +649,11 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
                     <td className="border px-2 py-1">{editId === item.id ? <input name="action_required" value={editRow?.action_required ?? ''} onChange={handleEditChange} className="w-32 border rounded px-1" /> : item.action_required}</td>
                     <td className="border px-2 py-1">{editId === item.id ? <input name="standard" value={editRow?.standard ?? ''} onChange={handleEditChange} className="w-40 border rounded px-1" /> : item.standard}</td>
                     <td className="border px-2 py-1">{editId === item.id ? (
-                      <select
-                        name="frequency"
-                        value={editRow?.frequency ?? ''}
-                        onChange={e => {
-                          const freq = e.target.value;
-                          setEditRow({
-                            ...editRow!,
-                            frequency: freq,
-                          });
-                        }}
-                        className="w-24 border rounded px-1"
-                      >
-                        <option value="">Select</option>
-                        {frequencyOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                      
                     ) : item.frequency}</td>
                     {/* User editable dropdown */}
                     <td className="border px-2 py-1 text-center">{editId === item.id ? (
-                      <select
-                        name="user_required"
-                        value={editRow?.user_required ? 'Yes' : 'No'}
-                        onChange={e => setEditRow({ ...editRow!, user_required: e.target.value === 'Yes' })}
-                        className="border rounded px-1"
-                      >
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
+                      
                     ) : item.user_required ? 'Yes' : 'No'}</td>
                     {isAdmin && (
                       <td className="border px-2 py-1 text-center">
@@ -703,34 +680,10 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
                     <td className="border px-2 py-1"><input name="action_required" value={newRow.action_required} onChange={handleNewRowChange} className="w-32 border rounded px-1" /></td>
                     <td className="border px-2 py-1"><input name="standard" value={newRow.standard} onChange={handleNewRowChange} className="w-40 border rounded px-1" /></td>
                     <td className="border px-2 py-1">
-                      <select
-                        name="frequency"
-                        value={newRow.frequency}
-                        onChange={e => {
-                          const freq = e.target.value;
-                          setNewRow({
-                            ...newRow,
-                            frequency: freq,
-                          });
-                        }}
-                        className="w-24 border rounded px-1"
-                      >
-                        <option value="">Select</option>
-                        {frequencyOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                      
                     </td>
                     <td className="border px-2 py-1 text-center">
-                      <select
-                        name="user_required"
-                        value={newRow.user_required ? 'Yes' : 'No'}
-                        onChange={e => setNewRow({ ...newRow, user_required: e.target.value === 'Yes' })}
-                        className="border rounded px-1"
-                      >
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
+                      
                     </td>
                     <td className="border px-2 py-1 text-center">
                       <button onClick={handleSaveNewRow} className="text-green-600 mr-2"><Save size={18} /></button>

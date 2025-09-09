@@ -28,8 +28,6 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
   const [data, setData] = useState<VendorReportingAndAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<VendorReportingAndAnalysis | null>(null);
@@ -37,20 +35,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
 
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    }, []);
 
   // Fetch reporting and analysis data
   useEffect(() => {
@@ -60,8 +45,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
+        const response = await axios.get(`https:        
         // Filter vendors that have reporting and analysis data and map it
         const reportingData = response.data
           .filter((vendor: any) => vendor.reporting_and_analysis)
@@ -125,8 +109,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
 
     try {
       // Find the vendor that has this reporting
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === item.id);
+      const response = await axios.get(`https:      const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === item.id);
       
       if (vendor) {
         // Update the vendor with reporting set to null
@@ -149,8 +132,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
     try {
       if (editingItem.id) {
         // Update existing report
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === editingItem.id);
+        const response = await axios.get(`https:        const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === editingItem.id);
         
         if (vendor) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
@@ -171,8 +153,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
       } else {
         // Create new report - we need to select a vendor first
         // For now, we'll use the first vendor without reporting
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutReporting = response.data.find((v: any) => !v.reporting_and_analysis);
+        const response = await axios.get(`https:        const vendorWithoutReporting = response.data.find((v: any) => !v.reporting_and_analysis);
         
         if (vendorWithoutReporting) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutReporting.id}`, {
@@ -193,8 +174,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
       }
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const reportingData = refreshResponse.data
+      const refreshResponse = await axios.get(`https:      const reportingData = refreshResponse.data
         .filter((vendor: any) => vendor.reporting_and_analysis)
         .map((vendor: any) => ({
           id: vendor.reporting_and_analysis.id,
@@ -219,8 +199,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedProperty(propertyId);
+  
   };
 
   const getReportTypeColor = (type: string) => {
@@ -341,18 +320,8 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
 
       {/* Property Selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
-        <select
-          value={selectedProperty}
-          onChange={(e) => handlePropertyChange(e.target.value)}
-          className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          {properties.map((property) => (
-            <option key={property.id} value={property.id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Property</label>
+        
       </div>
 
       {/* Error Message */}
@@ -521,20 +490,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Report Type</label>
-                  <select
-                    value={editingItem.report_type || ''}
-                    onChange={(e) => setEditingItem({...editingItem, report_type: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Performance">Performance</option>
-                    <option value="Financial">Financial</option>
-                    <option value="Compliance">Compliance</option>
-                    <option value="Quality">Quality</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annual">Annual</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Period Start</label>

@@ -33,7 +33,7 @@ interface FireSafetyReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/fire-safety-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -55,63 +55,9 @@ const ComplianceReportsPage: React.FC = () => {
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: ComplianceReport | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: ComplianceReport | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch fire safety reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: ComplianceReport, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
@@ -135,7 +81,7 @@ const ComplianceReportsPage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Compliance_Reports: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -162,7 +108,7 @@ const ComplianceReportsPage: React.FC = () => {
         Fire_Safety_Management: { Compliance_Reports: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -172,26 +118,16 @@ const ComplianceReportsPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Compliance Reports</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -274,26 +210,10 @@ const ComplianceReportsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Compliance ID" value={editModal.item.Compliance_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_ID: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Site Name" value={editModal.item.Site_Name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Site_Name: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Regulation} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Regulation: e.target.value } })} required>
-                  <option value="">Select Regulation</option>
-                  <option value="NFPA 101">NFPA 101</option>
-                  <option value="NFPA 72">NFPA 72</option>
-                  <option value="NFPA 13">NFPA 13</option>
-                  <option value="OSHA Standards">OSHA Standards</option>
-                  <option value="Local Fire Code">Local Fire Code</option>
-                  <option value="Building Code">Building Code</option>
-                  <option value="Other">Other</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Audit Date" type="date" value={editModal.item.Audit_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Audit_Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Auditor" value={editModal.item.Auditor} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Auditor: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Compliance_Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_Status: e.target.value } })} required>
-                  <option value="">Select Compliance Status</option>
-                  <option value="Compliant">Compliant</option>
-                  <option value="Non-Compliant">Non-Compliant</option>
-                  <option value="Partially Compliant">Partially Compliant</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Pending Verification">Pending Verification</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Next Audit Date" type="date" value={editModal.item.Next_Audit_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Next_Audit_Date: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Findings" value={editModal.item.Findings} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Findings: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Corrective Actions" value={editModal.item.Corrective_Actions} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Corrective_Actions: e.target.value } })} required />

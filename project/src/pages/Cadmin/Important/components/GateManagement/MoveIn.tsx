@@ -37,7 +37,7 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -57,60 +57,14 @@ const emptyMoveIn: MoveIn = {
 };
 
 const CMoveInPage: React.FC = () => {
-  const { isAdmin, isPropertyUser, currentUserPropertyId } = useAuth();
+  const { isAdmin, ,  } = useAuth();
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [viewModal, setViewModal] = useState<{ open: boolean; item: MoveIn | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: MoveIn | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
-  // Fetch properties and user's default property_id
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (isAdmin) {
-          // Admin can see all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property users only see their assigned property
-          const res = await axios.get(PROPERTIES_URL);
-          const userProperty = res.data.find((p: Property) => p.id === currentUserPropertyId);
-          if (userProperty) {
-            setProperties([userProperty]);
-            setSelectedPropertyId(currentUserPropertyId);
-          }
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-
-
-  // Fetch visitor management reports for selected property
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch visitor management reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
-
-  // CRUD handlers
+    // CRUD handlers
   const handleEdit = (item: MoveIn, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
@@ -132,7 +86,7 @@ const CMoveInPage: React.FC = () => {
       const newArr = report.move_in.filter(i => i.id !== itemId);
       // Update the report
       await axios.put(`${API_URL}${reportId}`, { move_in: newArr });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -158,7 +112,7 @@ const CMoveInPage: React.FC = () => {
       }
       await axios.put(`${API_URL}${editModal.reportId}`, { move_in: newArr });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -168,32 +122,16 @@ const CMoveInPage: React.FC = () => {
     return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Move In Management</h2>
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          {isAdmin ? (
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
             </div>
-          )}
+          </div>
         </div>
-      </div>
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">

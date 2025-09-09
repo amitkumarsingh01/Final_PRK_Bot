@@ -33,7 +33,7 @@ interface ProcurementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/procurement-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -55,64 +55,9 @@ const ReportingAndAnalysisPage: React.FC = () => {
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; analysis: ReportingAnalysis | null }>({ open: false, analysis: null });
   const [editModal, setEditModal] = useState<{ open: boolean; analysis: ReportingAnalysis | null; isNew: boolean; reportId: string | null }>({ open: false, analysis: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch reporting and analysis data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const getAllAnalyses = (): ReportingAnalysis[] => {
     return data.flatMap(report => 
@@ -190,8 +135,7 @@ const ReportingAndAnalysisPage: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
+  
   };
 
   if (loading) {
@@ -217,23 +161,16 @@ const ReportingAndAnalysisPage: React.FC = () => {
               <BarChart3 size={32} style={{ color: orange }} />
               <h1 className="text-3xl font-bold text-gray-900">Reporting and Analysis</h1>
             </div>
-            {isAdmin && (
-              <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Select Property:</label>
-                <select
-                  value={selectedPropertyId}
-                  onChange={(e) => handlePropertyChange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Select a property</option>
-                  {properties.map((property) => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
+          </div>
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+          </div>
+        </div>
           </div>
           
           {/* Statistics */}
@@ -275,7 +212,7 @@ const ReportingAndAnalysisPage: React.FC = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Analysis Reports</h2>
-              {isAdmin && selectedPropertyId && (
+              {isAdmin && user?.propertyId && (
                 <button
                   onClick={() => {
                     const report = data[0];
@@ -455,13 +392,13 @@ const ReportingAndAnalysisPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, analysis: { ...editModal.analysis!, Report_Type: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="">Select Report Type</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Annual">Annual</option>
-                    <option value="Ad-hoc">Ad-hoc</option>
-                    <option value="Performance">Performance</option>
-                    <option value="Compliance">Compliance</option>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                   </select>
                 </div>
                 <div>
@@ -507,12 +444,12 @@ const ReportingAndAnalysisPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, analysis: { ...editModal.analysis!, Status: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="">Select Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Under Review">Under Review</option>
-                    <option value="Approved">Approved</option>
+                    
+                    
+                    
+                    
+                    
+                    
                   </select>
                 </div>
                 <div className="col-span-2">

@@ -34,7 +34,7 @@ interface FireSafetyReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/fire-safety-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -57,63 +57,9 @@ const FireAndSafetyTrainingPage: React.FC = () => {
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: FireAndSafetyTraining | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: FireAndSafetyTraining | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-    } catch (e) {
-      setError('Failed to fetch fire safety reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: FireAndSafetyTraining, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
@@ -137,7 +83,7 @@ const FireAndSafetyTrainingPage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Fire_and_Safety_Training: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -164,7 +110,7 @@ const FireAndSafetyTrainingPage: React.FC = () => {
         Fire_Safety_Management: { Fire_and_Safety_Training: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -174,26 +120,16 @@ const FireAndSafetyTrainingPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Fire and Safety Training</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -278,30 +214,13 @@ const FireAndSafetyTrainingPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Training ID" value={editModal.item.Training_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Training_ID: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Site Name" value={editModal.item.Site_Name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Site_Name: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Training_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Training_Type: e.target.value } })} required>
-                  <option value="">Select Training Type</option>
-                  <option value="Fire Safety Awareness">Fire Safety Awareness</option>
-                  <option value="Emergency Response">Emergency Response</option>
-                  <option value="Equipment Operation">Equipment Operation</option>
-                  <option value="Evacuation Procedures">Evacuation Procedures</option>
-                  <option value="First Aid">First Aid</option>
-                  <option value="Hazard Recognition">Hazard Recognition</option>
-                  <option value="Compliance Training">Compliance Training</option>
-                  <option value="Other">Other</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Date" type="date" value={editModal.item.Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Time" type="time" value={editModal.item.Time} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Time: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Trainer" value={editModal.item.Trainer} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Trainer: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Participants" value={editModal.item.Participants} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Participants: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Duration" value={editModal.item.Duration} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Duration: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Scheduled">Scheduled</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Postponed">Postponed</option>
-                </select>
+                
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Topics Covered" value={editModal.item.Topics_Covered} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Topics_Covered: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
               </div>

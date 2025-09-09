@@ -36,7 +36,7 @@ interface CctvAuditReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/cctv-audit-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -59,65 +59,9 @@ const MaintenanceSchedulePage: React.FC = () => {
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      console.log('Maintenance Schedule - API Response:', res.data);
-      setData(res.data);
-    } catch (e) {
-      console.error('Maintenance Schedule - API Error:', e);
-      setError('Failed to fetch CCTV audit reports');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const handleEdit = (item: CctvMaintenanceSchedule, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
@@ -141,7 +85,7 @@ const MaintenanceSchedulePage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         CCTV_Audit: { Maintenance_Schedule: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -168,7 +112,7 @@ const MaintenanceSchedulePage: React.FC = () => {
         CCTV_Audit: { Maintenance_Schedule: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -178,26 +122,16 @@ const MaintenanceSchedulePage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Maintenance Schedule</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -285,26 +219,10 @@ const MaintenanceSchedulePage: React.FC = () => {
                 <input className="border rounded px-3 py-2" placeholder="SL No" type="number" value={editModal.item.SL_No} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, SL_No: parseInt(e.target.value) } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Maintenance Type" value={editModal.item.Maintenance_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Maintenance_Type: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Checklist Point/Task" value={editModal.item.Checklist_Point_Task} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Checklist_Point_Task: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Frequency} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Frequency: e.target.value } })} required>
-                  <option value="">Select Frequency</option>
-                  <option value="Daily">Daily</option>
-                  <option value="Weekly">Weekly</option>
-                  <option value="Monthly">Monthly</option>
-                  <option value="Quarterly">Quarterly</option>
-                  <option value="Semi-Annually">Semi-Annually</option>
-                  <option value="Annually">Annually</option>
-                  <option value="As Required">As Required</option>
-                </select>
+                
                 <input className="border rounded px-3 py-2" placeholder="Last Maintenance Date" type="date" value={editModal.item.Last_Maintenance_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Last_Maintenance_Date: e.target.value } })} />
                 <input className="border rounded px-3 py-2" placeholder="Next Due Date" type="date" value={editModal.item.Next_Due_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Next_Due_Date: e.target.value } })} />
-                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Overdue">Overdue</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Scheduled">Scheduled</option>
-                </select>
+                
                 <textarea className="border rounded px-3 py-2" placeholder="Observations/Issues" value={editModal.item.Observations_Issues} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Observations_Issues: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2" placeholder="Action Taken/Required" value={editModal.item.Action_Taken_Required} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Action_Taken_Required: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Responsible" value={editModal.item.Responsible} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Responsible: e.target.value } })} required />

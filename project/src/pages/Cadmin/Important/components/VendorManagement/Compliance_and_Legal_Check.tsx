@@ -27,8 +27,6 @@ const Compliance_and_Legal_Check: React.FC = () => {
   const [data, setData] = useState<ComplianceAndLegalCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ComplianceAndLegalCheck | null>(null);
@@ -36,20 +34,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
 
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    }, []);
 
   // Fetch compliance and legal check data
   useEffect(() => {
@@ -59,8 +44,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
+        const response = await axios.get(`https:        
         // Filter vendors that have compliance and legal check data and map it
         const complianceData = response.data
           .filter((vendor: any) => vendor.compliance_and_legal_check)
@@ -122,8 +106,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
 
     try {
       // Find the vendor that has this compliance check
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.compliance_and_legal_check?.id === item.id);
+      const response = await axios.get(`https:      const vendor = response.data.find((v: any) => v.compliance_and_legal_check?.id === item.id);
       
       if (vendor) {
         // Update the vendor with compliance check set to null
@@ -146,8 +129,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
     try {
       if (editingItem.id) {
         // Update existing compliance check
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.compliance_and_legal_check?.id === editingItem.id);
+        const response = await axios.get(`https:        const vendor = response.data.find((v: any) => v.compliance_and_legal_check?.id === editingItem.id);
         
         if (vendor) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
@@ -167,8 +149,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
       } else {
         // Create new compliance check - we need to select a vendor first
         // For now, we'll use the first vendor without compliance check
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutCompliance = response.data.find((v: any) => !v.compliance_and_legal_check);
+        const response = await axios.get(`https:        const vendorWithoutCompliance = response.data.find((v: any) => !v.compliance_and_legal_check);
         
         if (vendorWithoutCompliance) {
           await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutCompliance.id}`, {
@@ -188,8 +169,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
       }
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const complianceData = refreshResponse.data
+      const refreshResponse = await axios.get(`https:      const complianceData = refreshResponse.data
         .filter((vendor: any) => vendor.compliance_and_legal_check)
         .map((vendor: any) => ({
           id: vendor.compliance_and_legal_check.id,
@@ -213,8 +193,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedProperty(propertyId);
+  
   };
 
   const getComplianceStatusColor = (status: string) => {
@@ -343,18 +322,8 @@ const Compliance_and_Legal_Check: React.FC = () => {
 
       {/* Property Selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select Property</label>
-        <select
-          value={selectedProperty}
-          onChange={(e) => handlePropertyChange(e.target.value)}
-          className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          {properties.map((property) => (
-            <option key={property.id} value={property.id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Property</label>
+        
       </div>
 
       {/* Error Message */}
@@ -522,17 +491,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Compliance Type</label>
-                  <select
-                    value={editingItem.compliance_type || ''}
-                    onChange={(e) => setEditingItem({...editingItem, compliance_type: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="Legal">Legal</option>
-                    <option value="Regulatory">Regulatory</option>
-                    <option value="Financial">Financial</option>
-                    <option value="Operational">Operational</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Check Date</label>
@@ -554,17 +513,7 @@ const Compliance_and_Legal_Check: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Compliance Status</label>
-                  <select
-                    value={editingItem.compliance_status || ''}
-                    onChange={(e) => setEditingItem({...editingItem, compliance_status: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="Compliant">Compliant</option>
-                    <option value="Non-Compliant">Non-Compliant</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Expired">Expired</option>
-                  </select>
+                  
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Document Reference</label>
