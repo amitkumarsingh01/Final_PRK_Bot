@@ -26,7 +26,7 @@ interface VendorClassification {
 }
 
 const API_URL = 'https://server.prktechindia.in/vendor-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -50,6 +50,77 @@ const VendorClassificationPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; classification: VendorClassification | null }>({ open: false, classification: null });
   const [editModal, setEditModal] = useState<{ open: boolean; classification: VendorClassification | null; isNew: boolean; vendorMasterId: string | null }>({ open: false, classification: null, isNew: false, vendorMasterId: null });
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await axios.get(PROPERTIES_URL);
+        setProperties(res.data);
+      } catch (e) {
+        setError('Failed to fetch properties');
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserProperty = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const res = await axios.get('https://server.prktechindia.in/profile', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
+        if (matchedUser && matchedUser.property_id) {
+          setSelectedPropertyId(matchedUser.property_id);
+        }
+        if (matchedUser && matchedUser.user_role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProperty();
+  }, [user]);
+
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_URL
+  }?property_id=${propertyId}`);
+      const classifications = res.data
+        .filter((vendor: any) => vendor.classification)
+        .map((vendor: any) => ({
+          id: vendor.classification.id,
+          vendor_master_id: vendor.id,
+          classification_id: vendor.classification.classification_id,
+          vendor_id: vendor.vendor_master_management.vendor_id,
+          vendor_name: vendor.vendor_master_management.vendor_name,
+          category: vendor.classification.category,
+          sub_category: vendor.classification.sub_category,
+          rating: vendor.classification.rating,
+          classification_date: vendor.classification.classification_date,
+          responsible_person: vendor.classification.responsible_person,
+          remarks: vendor.classification.remarks,
+        }));
+      setData(classifications);
+    } catch (e) {
+      setError('Failed to fetch vendor classifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) {
+      fetchData();
+    }
+  }, [user?.propertyId]);
 
   const handleEdit = (classification: VendorClassification, vendorMasterId: string) => {
     setEditModal({ open: true, classification: { ...classification }, isNew: false, vendorMasterId });
@@ -401,13 +472,13 @@ const VendorClassificationPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, category: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
-                    
-                    
-                    
-                    
+                    <option value="">Select Category</option>
+                    <option value="Goods">Goods</option>
+                    <option value="Services">Services</option>
+                    <option value="Equipment">Equipment</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Technology">Technology</option>
                   </select>
                 </div>
                 <div>
@@ -426,11 +497,11 @@ const VendorClassificationPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, rating: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
-                    
-                    
+                    <option value="">Select Rating</option>
+                    <option value="A">A - Excellent</option>
+                    <option value="B">B - Good</option>
+                    <option value="C">C - Average</option>
+                    <option value="D">D - Poor</option>
                   </select>
                 </div>
                 <div>
