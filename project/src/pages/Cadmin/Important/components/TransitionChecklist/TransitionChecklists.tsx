@@ -110,8 +110,6 @@ const formatSectionName = (sectionName: string): string => {
 const CTransitionChecklistsPage: React.FC = () => {
   const { user } = useAuth();
 
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const [reports, setReports] = useState<TransitionChecklistReport[]>([]);
@@ -134,70 +132,38 @@ const CTransitionChecklistsPage: React.FC = () => {
     data: Partial<TransitionChecklistReport>;
   }>({ open: false, data: {} });
 
-  // Check if current user is admin or property user
-  const isPropertyUser = user?.userType === 'property_user';
-  const currentUserPropertyId = user?.propertyId;
-
-  // Load properties based on user type
+  // Check if user is admin
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (isAdmin) {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
-          const property = res.data;
-          setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-  // For property users, automatically set their property
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
-  }, [user]);
-
-  // Load profile to detect default property and role
-  useEffect(() => {
-    const fetchUserProfile = async () => {
+    const checkAdminStatus = async () => {
       if (!user?.token || !user?.userId) return;
       try {
-        const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
+        const res = await axios.get('https://server.prktechindia.in/profile', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const profile = await response.json();
-        if (profile?.property_id) setSelectedPropertyId(profile.property_id);
-        setIsAdmin(profile?.user_role === 'admin');
+        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
+        if (matchedUser && matchedUser.user_role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
       } catch (e) {
         setError('Failed to fetch user profile');
       }
     };
-    fetchUserProfile();
+    checkAdminStatus();
   }, [user]);
 
-  // Fetch reports for property
-  const fetchReports = async (propertyId: string) => {
-    if (!propertyId) return;
+
+  // Fetch reports for user's property
+  const fetchReports = async () => {
+    if (!user?.propertyId) return;
     
     setLoading(true);
     setError(null);
     setReports([]); // Clear previous reports when switching properties
     
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
       setReports(res.data || []);
     } catch (e) {
       console.error('Error fetching reports:', e);
@@ -209,8 +175,8 @@ const CTransitionChecklistsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedPropertyId) fetchReports(selectedPropertyId);
-  }, [selectedPropertyId]);
+    if (user?.propertyId) fetchReports();
+  }, [user?.propertyId]);
 
   const currentReport = useMemo<TransitionChecklistReport | null>(() => {
     return reports?.length ? reports[0] : null;
@@ -228,7 +194,6 @@ const CTransitionChecklistsPage: React.FC = () => {
     return Object.values(sectionsMap).reduce((sum, section) => sum + (section.documents_to_be_customised?.length || 0), 0);
   }, [sectionsMap]);
 
-  const handlePropertyChange = (propertyId: string) => setSelectedPropertyId(propertyId);
 
   const openView = (item: ChecklistItem) => setViewModal({ open: true, data: item, title: 'Checklist Item Details' });
 
@@ -285,7 +250,7 @@ const CTransitionChecklistsPage: React.FC = () => {
     try {
       setLoading(true);
       await axios.put(`${API_URL}${currentReport.id}`, { sections: updatedSections });
-      await fetchReports(selectedPropertyId);
+      await fetchReports();
     } catch (e) {
       setError('Failed to delete item');
     } finally {
@@ -315,7 +280,7 @@ const CTransitionChecklistsPage: React.FC = () => {
       setLoading(true);
       await axios.put(`${API_URL}${currentReport.id}`, { sections: updatedSections });
       closeModals();
-      await fetchReports(selectedPropertyId);
+      await fetchReports();
     } catch (e) {
       setError('Failed to save item');
     } finally {
@@ -330,7 +295,7 @@ const CTransitionChecklistsPage: React.FC = () => {
       setLoading(true);
       await axios.put(`${API_URL}${currentReport.id}`, editSiteModal.data);
       closeModals();
-      await fetchReports(selectedPropertyId);
+      await fetchReports();
     } catch (e) {
       setError('Failed to save site details');
     } finally {
@@ -359,7 +324,7 @@ const CTransitionChecklistsPage: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Transition Checklists</h1>
                 <p className="text-gray-600">View and manage transition checklist sections and items</p>
-                {loading && selectedPropertyId && (
+                {loading && user?.propertyId && (
                   <p className="text-sm text-blue-600 mt-1">Loading reports for selected property...</p>
                 )}
               </div>
@@ -380,9 +345,9 @@ const CTransitionChecklistsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => activeSection ? openAdd(activeSection) : alert('Please select a section first')}
-                  disabled={!selectedPropertyId || !activeSection}
+                  disabled={!user?.propertyId || !activeSection}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                    selectedPropertyId && activeSection
+                    user?.propertyId && activeSection
                       ? 'bg-orange-500 hover:bg-orange-600 text-white' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
@@ -395,37 +360,16 @@ const CTransitionChecklistsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {isAdmin ? (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Select Property</h2>
-            </div>
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Select a property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+        {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-            </div>
-            <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
-            </div>
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
-        )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -470,12 +414,12 @@ const CTransitionChecklistsPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Transition Checklist Found</h3>
             <p className="text-gray-600 mb-4">
-              {selectedPropertyId 
-                ? `No transition checklist report found for the selected property. ${isAdmin ? 'You can create one or wait for data to be loaded.' : ''}`
-                : 'Please select a property to view its transition checklist.'
+              {user?.propertyId 
+                ? `No transition checklist report found for the current property. ${isAdmin ? 'You can create one or wait for data to be loaded.' : ''}`
+                : 'No property assigned to your account.'
               }
             </p>
-            {isAdmin && selectedPropertyId && (
+            {isAdmin && user?.propertyId && (
               <div className="text-sm text-gray-500">
                 <p>• The Add Item button will be enabled once a section is selected</p>
                 <p>• The Edit Site button will be enabled once a report is loaded</p>

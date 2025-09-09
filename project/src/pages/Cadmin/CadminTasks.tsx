@@ -1,25 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Delete, Check, Play, Pause, RotateCcw, ChevronDown, ChevronRight, X, Building } from 'lucide-react';
+import { Plus, Edit, Delete, Check, Play, RotateCcw, ChevronDown, ChevronRight, X, Building } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
-// Add Property interface
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description: string;
-  logo_base64: string;
-}
 
 // API service functions
 const api = {
-  // Property CRUD
-  getProperties: (token?: string): Promise<Property[]> => 
-    fetch(`${API_BASE_URL}/properties`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    }).then(res => res.json()),
 
   // Activity CRUD
   getActivities: (propertyId?: string, token?: string): Promise<Activity[]> => {
@@ -99,8 +86,6 @@ interface Activity {
 const CadminTasks: React.FC = () => {
   const { user } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -108,9 +93,6 @@ const CadminTasks: React.FC = () => {
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   
-  // Add property states
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
 
   // Activity form state
   const [activityForm, setActivityForm] = useState<{
@@ -146,25 +128,14 @@ const CadminTasks: React.FC = () => {
     activity_id: ''
   });
 
-  // Add property fetching
-  const fetchProperties = async () => {
-    try {
-      const data = await api.getProperties(user?.token || undefined);
-      setProperties(data);
-    } catch (error) {
-      console.error('Error loading properties:', error);
-    }
-  };
 
-  useEffect(() => {
-    fetchProperties();
-  }, [user?.token]);
-
-  // Modify loadActivities to use propertyId
+  // Load activities using user's propertyId
   const loadActivities = async () => {
+    if (!user?.propertyId) return;
+    
     setLoading(true);
     try {
-      const data: Activity[] = await api.getActivities(selectedPropertyId, user?.token || undefined);
+      const data: Activity[] = await api.getActivities(user.propertyId, user?.token || undefined);
       setActivities(data);
     } catch (error) {
       console.error('Error loading activities:', error);
@@ -173,12 +144,12 @@ const CadminTasks: React.FC = () => {
     }
   };
 
-  // Add effect to reload activities when property changes
+  // Load activities when user propertyId is available
   useEffect(() => {
-    if (selectedPropertyId) {
+    if (user?.propertyId) {
       loadActivities();
     }
-  }, [selectedPropertyId, user?.token]);
+  }, [user?.propertyId, user?.token]);
 
   const loadActivityTasks = async (activityId: string): Promise<Task[]> => {
     try {
@@ -284,17 +255,6 @@ const CadminTasks: React.FC = () => {
     }
   };
 
-  const handleToggleTaskActive = async (id: string) => {
-    setLoading(true);
-    try {
-      await api.toggleTaskActive(id);
-      loadActivities();
-    } catch (error) {
-      console.error('Error toggling task:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleResetTask = async (id: string) => {
     setLoading(true);
@@ -435,35 +395,13 @@ const CadminTasks: React.FC = () => {
           </button>
         </div>
 
-        {/* Property Selection */}
-        <div className="mb-6">
-          <label htmlFor="propertySelect" className="block text-sm font-medium mb-1" style={{ color: '#060C18' }}>
-            Select Property
-          </label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5" style={{ color: '#6B7280' }} />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
-              className="flex-1 max-w-md p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#DD6A1A] focus:border-transparent"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
 
         {/* Activities List */}
-        {!selectedPropertyId ? (
+        {!user?.propertyId ? (
           <div className="text-center py-12">
             <Building size={48} style={{ color: '#6B7280' }} className="mx-auto mb-4" />
             <p className="text-lg" style={{ color: '#6B7280' }}>
-              Please select a property to view tasks
+              No property assigned to your account
             </p>
           </div>
         ) : (

@@ -64,8 +64,6 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   const [editRow, setEditRow] = useState<ChecklistItem | null>(null);
   const [newRow, setNewRow] = useState<ChecklistItem | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: ChecklistItem | null }>({ open: false, item: null });
   const [viewDate, setViewDate] = useState<Date | null>(new Date());
@@ -73,38 +71,16 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   const [statusLoading, setStatusLoading] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); // period that has dropdown open
 
-  // Fetch properties and user's default property_id
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (user?.userType === 'admin') {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (user?.userType === 'property_user' && user?.propertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${user.propertyId}`);
-          setProperties([res.data]);
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [user]);
 
   useEffect(() => {
-    // Fetch user's default property_id from profile
-    const fetchUserProperty = async () => {
+    // Check if user is admin
+    const checkAdminStatus = async () => {
       if (!user?.token || !user?.userId) return;
       try {
         const res = await axios.get('https://server.prktechindia.in/profile', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
         if (matchedUser && matchedUser.user_role === 'admin') {
           setIsAdmin(true);
         } else {
@@ -114,22 +90,17 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
         setError('Failed to fetch user profile');
       }
     };
-    fetchUserProperty();
+    checkAdminStatus();
   }, [user]);
 
-  // For property users, automatically set their property and fetch only their data
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
-  }, [user]);
 
-  // Fetch checklist data for selected property
-  const fetchData = async (propertyId: string) => {
+  // Fetch checklist data for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    
     setLoading(true);
     try {
-      const res = await axios.get(API_URL + `?property_id=${propertyId}`);
+      const res = await axios.get(API_URL + `?property_id=${user.propertyId}`);
       setData(res.data.sort((a: ChecklistItem, b: ChecklistItem) => a.sl_no - b.sl_no));
     } catch (e) {
       setError('Failed to fetch data');
@@ -138,10 +109,10 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
+    if (user?.propertyId) {
+      fetchData();
     }
-  }, [selectedPropertyId]);
+  }, [user?.propertyId]);
 
   // Reload status data when viewDate changes
   useEffect(() => {
@@ -208,10 +179,10 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   const handleSave = async () => {
     if (!editRow || !editId) return;
     try {
-      await axios.put(API_URL + editId, { ...editRow, property_id: selectedPropertyId });
+      await axios.put(API_URL + editId, { ...editRow, property_id: user?.propertyId });
       setEditId(null);
       setEditRow(null);
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -221,14 +192,14 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
     if (!window.confirm('Delete this row?')) return;
     try {
       await axios.delete(API_URL + id);
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
   };
 
   const handleAddRow = () => {
-    setNewRow(initialNewRow(selectedPropertyId));
+    setNewRow(initialNewRow(user?.propertyId || ''));
   };
 
   const handleNewRowChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -247,9 +218,9 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   const handleSaveNewRow = async () => {
     if (!newRow) return;
     try {
-      await axios.post(API_URL, { ...newRow, property_id: selectedPropertyId });
+      await axios.post(API_URL, { ...newRow, property_id: user?.propertyId });
       setNewRow(null);
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to add row');
     }
@@ -640,38 +611,16 @@ const CDailyTaskManagementAllDepartment: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Daily Task Management of All Departments</h2>
-      {/* Property Selection Dropdown */}
-      {isAdmin ? (
-        <div className="mb-6 max-w-md">
-          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+      {/* Property Display */}
+      <div className="mb-6 max-w-md">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
         </div>
-      ) : (
-        <div className="mb-6 max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
         <table className="min-w-full text-sm">

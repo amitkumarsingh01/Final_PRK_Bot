@@ -755,7 +755,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     console.log('🏢 Generating CADMIN navigation items');
     const cadminItems: NavItem[] = [
       { path: '/cadmin/users', icon: <Users size={20} />, label: 'Users' },
-      { path: '/cadmin/properties', icon: <Building2 size={20} />, label: 'Properties' },
+      // { path: '/cadmin/properties', icon: <Building2 size={20} />, label: 'Properties' },
       // { path: '/cadmin/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
       { path: '/cadmin/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
       { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },

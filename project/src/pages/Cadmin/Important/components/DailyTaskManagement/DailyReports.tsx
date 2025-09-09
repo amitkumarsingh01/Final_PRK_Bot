@@ -50,8 +50,6 @@ const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const CDailyReportsPage: React.FC = () => {
   const { user } = useAuth();
 
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const [reports, setReports] = useState<SiteReport[]>([]);
@@ -65,42 +63,8 @@ const CDailyReportsPage: React.FC = () => {
     isNew: boolean;
   }>({ open: false, data: null, isNew: false });
 
-  // Check if current user is admin or property user
-  const isPropertyUser = user?.userType === 'property_user';
-  const currentUserPropertyId = user?.propertyId;
 
-  // Load properties based on user type
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (isAdmin) {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
-          const property = res.data;
-          setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-  // For property users, automatically set their property
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
-  }, [user]);
-
-  // Load profile to detect default property and role
+  // Load profile to detect role
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user?.token || !user?.userId) return;
@@ -110,7 +74,6 @@ const CDailyReportsPage: React.FC = () => {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const profile = await response.json();
-        if (profile?.property_id) setSelectedPropertyId(profile.property_id);
         setIsAdmin(profile?.user_role === 'admin');
       } catch (e) {
         setError('Failed to fetch user profile');
@@ -119,12 +82,14 @@ const CDailyReportsPage: React.FC = () => {
     fetchUserProfile();
   }, [user]);
 
-  // Fetch reports for property
-  const fetchReports = async (propertyId: string) => {
+  // Fetch reports for user's property
+  const fetchReports = async () => {
+    if (!user?.propertyId) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
       setReports(res.data || []);
     } catch (e) {
       setError('Failed to fetch daily reports');
@@ -134,15 +99,14 @@ const CDailyReportsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedPropertyId) fetchReports(selectedPropertyId);
-  }, [selectedPropertyId]);
+    if (user?.propertyId) fetchReports();
+  }, [user?.propertyId]);
 
-  const handlePropertyChange = (propertyId: string) => setSelectedPropertyId(propertyId);
 
   const openView = (report: SiteReport) => setViewModal({ open: true, data: report, title: 'Daily Report Details' });
 
   const getEmptyReport = (): Omit<SiteReport, 'id'> => ({
-    property_id: selectedPropertyId,
+    property_id: user?.propertyId || '',
     date: new Date().toLocaleDateString('en-GB'),
     site_name: '',
     prepared_by: user?.userId || '',
@@ -178,7 +142,7 @@ const CDailyReportsPage: React.FC = () => {
     try {
       setLoading(true);
       await axios.delete(`${API_URL}${reportId}`);
-      await fetchReports(selectedPropertyId);
+      await fetchReports();
     } catch (e) {
       setError('Failed to delete report');
     } finally {
@@ -197,7 +161,7 @@ const CDailyReportsPage: React.FC = () => {
         await axios.put(`${API_URL}${editModal.data.id}`, editModal.data);
       }
       closeModals();
-      await fetchReports(selectedPropertyId);
+      await fetchReports();
     } catch (e) {
       setError('Failed to save report');
     } finally {
@@ -322,37 +286,16 @@ const CDailyReportsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {isAdmin ? (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Select Property</h2>
-            </div>
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => handlePropertyChange(e.target.value)}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="">Select a property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+        {/* Property Display */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Building className="h-5 w-5 text-gray-500" />
+            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <Building className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-            </div>
-            <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
-            </div>
+          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
-        )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">

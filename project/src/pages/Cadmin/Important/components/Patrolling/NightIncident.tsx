@@ -93,52 +93,38 @@ const CNightIncidentPage: React.FC = () => {
   const [data, setData] = useState<NightPatrollingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: NightPatrollingReport | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: NightPatrollingReport | null; isNew: boolean }>({ open: false, item: null, isNew: false });
 
-  // Check if current user is admin or property user
-  const isPropertyUser = user?.userType === 'property_user';
-  const currentUserPropertyId = user?.propertyId;
-
-  // Fetch properties based on user type
+  // Check if user is admin
   useEffect(() => {
-    const fetchProperties = async () => {
+    const checkAdminStatus = async () => {
+      if (!user?.token || !user?.userId) return;
       try {
-        if (isAdmin) {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
-          const property = res.data;
-          setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
+        const res = await axios.get('https://server.prktechindia.in/profile', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
+        if (matchedUser && matchedUser.user_role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
         }
       } catch (e) {
-        setError('Failed to fetch properties');
+        setError('Failed to fetch user profile');
       }
     };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-  // For property users, automatically set their property
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
+    checkAdminStatus();
   }, [user]);
 
-  // Fetch night patrolling reports for selected property
-  const fetchData = async (propertyId: string) => {
+  // Fetch night patrolling reports for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch night patrolling reports');
@@ -147,10 +133,10 @@ const CNightIncidentPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
+    if (user?.propertyId) {
+      fetchData();
     }
-  }, [selectedPropertyId]);
+  }, [user?.propertyId]);
 
   // CRUD handlers
   const handleEdit = (item: NightPatrollingReport) => {
@@ -161,7 +147,7 @@ const CNightIncidentPage: React.FC = () => {
       open: true,
       isNew: true,
       item: {
-        property_id: selectedPropertyId,
+        property_id: user?.propertyId || '',
         general_report_details: { ...emptyGeneralDetails },
         observations: [{ ...emptyObservation }],
         officer_signature: { ...emptyOfficerSignature },
@@ -173,7 +159,7 @@ const CNightIncidentPage: React.FC = () => {
     if (!window.confirm('Delete this night patrolling report?')) return;
     try {
       await axios.delete(`${API_URL}${id}`);
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -220,7 +206,7 @@ const CNightIncidentPage: React.FC = () => {
         await axios.put(`${API_URL}${editModal.item.id}`, editModal.item);
       }
       setEditModal({ open: false, item: null, isNew: false });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -381,38 +367,16 @@ const CNightIncidentPage: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Night Patrolling Report Management</h2>
-      {/* Property Selection Dropdown */}
-      {isAdmin ? (
-        <div className="mb-6 max-w-md">
-          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+      {/* Property Display */}
+      <div className="mb-6 max-w-md">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
         </div>
-      ) : (
-        <div className="mb-6 max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">

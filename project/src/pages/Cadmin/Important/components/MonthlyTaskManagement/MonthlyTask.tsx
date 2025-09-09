@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface CheckPoint {
   id?: string;
@@ -49,7 +40,6 @@ export interface UtilityPanel {
 }
 
 const API_URL = 'https://server.prktechindia.in/utility-panels/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
@@ -76,8 +66,6 @@ const initialNewPanel = (property_id: string): UtilityPanel => ({
 
 const CMonthlyTask: React.FC = () => {
   const { user } = useAuth();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [panels, setPanels] = useState<UtilityPanel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,54 +73,20 @@ const CMonthlyTask: React.FC = () => {
   const [editPanel, setEditPanel] = useState<UtilityPanel | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Check if current user is admin or property user
-  const isAdmin = user?.userType === 'admin';
-  const isPropertyUser = user?.userType === 'property_user';
-  const currentUserPropertyId = user?.propertyId;
 
-  // Fetch properties based on user type
+  // Fetch panels for user's property
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        if (isAdmin) {
-          // Admin sees all properties
-          const res = await axios.get(PROPERTIES_URL);
-          setProperties(res.data);
-        } else if (isPropertyUser && currentUserPropertyId) {
-          // Property user only sees their assigned property
-          const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
-          const property = res.data;
-          setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
-        }
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, [isAdmin, isPropertyUser, currentUserPropertyId]);
-
-  // For property users, automatically set their property
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-    }
-  }, [user]);
-
-  // Fetch panels for selected property
-  useEffect(() => {
-    if (!selectedPropertyId) return;
+    if (!user?.propertyId) return;
     setLoading(true);
-    axios.get(API_URL + 'property/' + selectedPropertyId)
+    axios.get(API_URL + 'property/' + user.propertyId)
       .then(res => setPanels(res.data))
       .catch(() => setError('Failed to fetch utility panels'))
       .finally(() => setLoading(false));
-  }, [selectedPropertyId]);
+  }, [user?.propertyId]);
 
   // Handlers
   const handleAdd = () => {
-    setEditPanel(initialNewPanel(selectedPropertyId));
+    setEditPanel(initialNewPanel(user?.propertyId || ''));
     setModal({ open: true, mode: 'add', panel: null });
   };
 
@@ -225,11 +179,6 @@ const CMonthlyTask: React.FC = () => {
     setEditPanel({ ...editPanel, checkpoints });
   };
 
-  // Property dropdown label
-  const propertyLabel = (id: string) => {
-    const prop = properties.find((p) => p.id === id);
-    return prop ? `${prop.name} - ${prop.title}` : 'Select Property';
-  };
 
   // Generate days for the month
   const generateDaysForMonth = (monthStr: string) => {
@@ -242,38 +191,16 @@ const CMonthlyTask: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Monthly Utility Panel Management</h2>
       
-      {/* Property Selection Dropdown */}
-      {isAdmin ? (
-        <div className="mb-6 max-w-md">
-          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <select
-              id="propertySelect"
-              value={selectedPropertyId}
-              onChange={e => setSelectedPropertyId(e.target.value)}
-              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-            >
-              <option value="">Select a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name} - {property.title}
-                </option>
-              ))}
-            </select>
+      {/* Property Display */}
+      <div className="mb-6 max-w-md">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
         </div>
-      ) : (
-        <div className="mb-6 max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
       
@@ -319,7 +246,7 @@ const CMonthlyTask: React.FC = () => {
       <button
         onClick={handleAdd}
         className="mt-4 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
-        disabled={!selectedPropertyId}
+        disabled={!user?.propertyId}
       >
         <Plus size={18} className="mr-2" /> Add Utility Panel
       </button>

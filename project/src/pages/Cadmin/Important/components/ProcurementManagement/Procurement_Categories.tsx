@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Pencil, Trash2, Plus, Save, X, Building, Eye, Tag } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../../../context/AuthContext';
 
 interface Property {
   id: string;
