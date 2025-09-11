@@ -46,7 +46,9 @@ const emptyProjectInitiation: Omit<ProjectInitiation, 'id' | 'created_at' | 'upd
 };
 
 const ProjectInitiationPage: React.FC = () => {
+  console.log('🚀 ProjectInitiation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ProjectInitiation: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectInitiation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

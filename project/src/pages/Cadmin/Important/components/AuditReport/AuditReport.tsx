@@ -57,7 +57,9 @@ const emptyAuditReport: Omit<AuditReport, 'id' | 'property_id' | 'created_at' | 
 };
 
 const CAuditReportPage: React.FC = () => {
+  console.log('🚀 AuditReport: Component initialized');
   const { user } = useAuth();
+  console.log('👤 AuditReport: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

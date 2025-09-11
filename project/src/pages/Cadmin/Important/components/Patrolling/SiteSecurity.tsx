@@ -146,7 +146,9 @@ const emptySignOff: SecuritySignOff = {
 };
 
 const CSiteSecurityPage: React.FC = () => {
+  console.log('🚀 SiteSecurity: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SiteSecurity: User loaded', { userId: user?.userId });
   const [data, setData] = useState<SecurityPatrollingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

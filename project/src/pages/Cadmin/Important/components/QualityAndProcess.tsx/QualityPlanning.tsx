@@ -49,7 +49,9 @@ const emptyQualityPlan: QualityPlan = {
 };
 
 const QualityPlanningPage: React.FC = () => {
+  console.log('🚀 QualityPlanning: Component initialized');
   const { user } = useAuth();
+  console.log('👤 QualityPlanning: User loaded', { userId: user?.userId });
   const [data, setData] = useState<QualityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

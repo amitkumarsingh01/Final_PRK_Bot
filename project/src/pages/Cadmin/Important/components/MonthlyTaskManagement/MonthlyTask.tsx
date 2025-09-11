@@ -65,7 +65,9 @@ const initialNewPanel = (property_id: string): UtilityPanel => ({
 });
 
 const CMonthlyTask: React.FC = () => {
+  console.log('🚀 MonthlyTask: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MonthlyTask: User loaded', { userId: user?.userId });
   const [panels, setPanels] = useState<UtilityPanel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -48,7 +48,9 @@ const API_URL = 'https://server.prktechindia.in/reports/';
 const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
 const CDailyReportsPage: React.FC = () => {
+  console.log('🚀 DailyReports: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DailyReports: User loaded', { userId: user?.userId });
 
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 

@@ -55,7 +55,9 @@ const emptyMaintenanceSchedule: CctvMaintenanceSchedule = {
 };
 
 const MaintenanceSchedulePage: React.FC = () => {
+  console.log('🚀 MaintenanceSchedule: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MaintenanceSchedule: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

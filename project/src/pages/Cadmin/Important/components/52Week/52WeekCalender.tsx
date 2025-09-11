@@ -54,7 +54,9 @@ const initialNewItem = (): WorkScheduleItem => ({
 });
 
 const CWeekCalendar: React.FC = () => {
+  console.log('🚀 52WeekCalendar: Component initialized');
   const { user } = useAuth();
+  console.log('👤 52WeekCalendar: User loaded', { userId: user?.userId });
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

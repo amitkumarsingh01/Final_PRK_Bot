@@ -57,7 +57,9 @@ const emptySticker: ParkingSticker = {
 };
 
 const CParkingStickerManagementPage: React.FC = () => {
+  console.log('🚀 ParkingStickerManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ParkingStickerManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

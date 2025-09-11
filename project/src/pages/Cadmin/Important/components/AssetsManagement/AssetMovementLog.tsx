@@ -55,7 +55,9 @@ const emptyMovementLog: AssetMovementLog = {
 };
 
 const AssetMovementLogPage: React.FC = () => {
+  console.log('🚀 AssetMovementLog: Component initialized');
   const { user } = useAuth();
+  console.log('👤 AssetMovementLog: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -51,7 +51,9 @@ const emptySlaRenewalAndExitProcess: SlaRenewalAndExitProcess = {
 };
 
 const SlaRenewalAndExitProcessPage: React.FC = () => {
+  console.log('🚀 SlaRenewalAndExitProcess: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SlaRenewalAndExitProcess: User loaded', { userId: user?.userId });
   const [data, setData] = useState<SlaReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

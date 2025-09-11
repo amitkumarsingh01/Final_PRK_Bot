@@ -53,7 +53,9 @@ const emptyAnnouncement: Announcement = {
 };
 
 const CCommunicationAnnouncementsPage: React.FC = () => {
+  console.log('🚀 CommunicationAnnouncements: Component initialized');
   const { user } = useAuth();
+  console.log('👤 CommunicationAnnouncements: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

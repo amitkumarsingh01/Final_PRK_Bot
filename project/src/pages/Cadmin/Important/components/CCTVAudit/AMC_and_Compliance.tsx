@@ -53,7 +53,9 @@ const emptyAmcCompliance: AmcComplianceFormat = {
 };
 
 const AmcCompliancePage: React.FC = () => {
+  console.log('🚀 AmcCompliance: Component initialized');
   const { user } = useAuth();
+  console.log('👤 AmcCompliance: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

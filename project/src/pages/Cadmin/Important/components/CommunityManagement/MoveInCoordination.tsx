@@ -53,7 +53,9 @@ const emptyCoordination: MoveInCoordination = {
 };
 
 const CMoveInCoordinationPage: React.FC = () => {
+  console.log('🚀 MoveInCoordination: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 MoveInCoordination: User loaded', { isAdmin });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

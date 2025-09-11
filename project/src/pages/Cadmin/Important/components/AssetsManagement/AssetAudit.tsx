@@ -53,7 +53,9 @@ const emptyAssetAudit: AssetAudit = {
 };
 
 const CAssetAuditPage: React.FC = () => {
+  console.log('🚀 AssetAudit: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 AssetAudit: User loaded', { isAdmin });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

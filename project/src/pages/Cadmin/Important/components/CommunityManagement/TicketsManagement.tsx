@@ -61,7 +61,9 @@ const emptyTicket: Ticket = {
 };
 
 const CTicketsManagementPage: React.FC = () => {
+  console.log('🚀 TicketsManagement: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 TicketsManagement: User loaded', { isAdmin });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

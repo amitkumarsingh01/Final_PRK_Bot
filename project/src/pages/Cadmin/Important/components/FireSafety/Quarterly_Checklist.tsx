@@ -49,7 +49,9 @@ const emptyQuarterlyChecklist: QuarterlyChecklist = {
 };
 
 const QuarterlyChecklistPage: React.FC = () => {
+  console.log('🚀 QuarterlyChecklist: Component initialized');
   const { user } = useAuth();
+  console.log('👤 QuarterlyChecklist: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

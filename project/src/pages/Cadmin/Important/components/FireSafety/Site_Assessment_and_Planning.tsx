@@ -53,7 +53,9 @@ const emptySiteAssessment: SiteAssessmentAndPlanning = {
 };
 
 const SiteAssessmentAndPlanningPage: React.FC = () => {
+  console.log('🚀 SiteAssessmentAndPlanning: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SiteAssessmentAndPlanning: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

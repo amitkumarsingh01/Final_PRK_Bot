@@ -32,7 +32,9 @@ const API_URL = 'https://server.prktechindia.in/schedules/';
 const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
 const CWeekTrainingPage: React.FC = () => {
+  console.log('🚀 C52WeekTraining: Component initialized');
   const { user } = useAuth();
+  console.log('👤 C52WeekTraining: User loaded', { userId: user?.userId });
 
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 

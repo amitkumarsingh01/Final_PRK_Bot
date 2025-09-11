@@ -55,7 +55,9 @@ const emptyApproval: InteriorWorkApproval = {
 };
 
 const CInteriorWorkApprovalsPage: React.FC = () => {
+  console.log('🚀 InteriorWorkApprovals: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 InteriorWorkApprovals: User loaded', { isAdmin });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

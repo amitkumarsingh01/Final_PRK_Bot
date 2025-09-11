@@ -53,7 +53,9 @@ const emptyAsset: Asset = {
 };
 
 const AssetTaggingManagementPage: React.FC = () => {
+  console.log('🚀 AssetTaggingManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 AssetTaggingManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -51,7 +51,9 @@ const emptyReportingAnalysis: ReportingAnalysis = {
 };
 
 const ReportingAndAnalysisPage: React.FC = () => {
+  console.log('🚀 ReportingAndAnalysis: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ReportingAndAnalysis: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

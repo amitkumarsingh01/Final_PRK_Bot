@@ -66,7 +66,9 @@ const emptyCameraInventory: CameraInventoryLog = {
 };
 
 const DocumentationPage: React.FC = () => {
+  console.log('🚀 Documentation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 Documentation: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

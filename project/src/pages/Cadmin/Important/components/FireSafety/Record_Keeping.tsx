@@ -51,7 +51,9 @@ const emptyRecord: RecordKeeping = {
 };
 
 const RecordKeepingPage: React.FC = () => {
+  console.log('🚀 RecordKeeping: Component initialized');
   const { user } = useAuth();
+  console.log('👤 RecordKeeping: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

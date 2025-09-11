@@ -118,7 +118,9 @@ const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
 const ProjectManagementDashboard: React.FC = () => {
+  console.log('🚀 ProjectManagementDashboard: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ProjectManagementDashboard: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

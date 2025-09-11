@@ -53,7 +53,9 @@ const emptyInstallationChecklist: InstallationChecklist = {
 };
 
 const InstallationChecklistPage: React.FC = () => {
+  console.log('🚀 InstallationChecklist: Component initialized');
   const { user } = useAuth();
+  console.log('👤 InstallationChecklist: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

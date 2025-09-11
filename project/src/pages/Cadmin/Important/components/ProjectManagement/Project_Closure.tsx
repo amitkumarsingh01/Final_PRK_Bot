@@ -48,7 +48,9 @@ const emptyProjectClosure: Omit<ProjectClosure, 'id'> = {
 };
 
 const ProjectClosurePage: React.FC = () => {
+  console.log('🚀 ProjectClosure: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ProjectClosure: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

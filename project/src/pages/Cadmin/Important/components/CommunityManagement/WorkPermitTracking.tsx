@@ -53,7 +53,9 @@ const emptyPermit: WorkPermitTracking = {
 };
 
 const CWorkPermitTrackingPage: React.FC = () => {
+  console.log('🚀 WorkPermitTracking: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 WorkPermitTracking: User loaded', { isAdmin });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

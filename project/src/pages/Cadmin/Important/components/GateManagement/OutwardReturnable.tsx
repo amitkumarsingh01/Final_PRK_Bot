@@ -59,7 +59,9 @@ const emptyOutward: OutwardReturnable = {
 };
 
 const COutwardReturnablePage: React.FC = () => {
+  console.log('🚀 OutwardReturnable: Component initialized');
   const { isAdmin, isPropertyUser, currentUserPropertyId } = useAuth();
+  console.log('👤 OutwardReturnable: User loaded', { isAdmin, isPropertyUser });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

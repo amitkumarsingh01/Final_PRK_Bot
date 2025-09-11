@@ -45,7 +45,9 @@ const emptyBlock: BlocklistManagement = {
 };
 
 const CBlocklistManagementPage: React.FC = () => {
+  console.log('🚀 BlocklistManagement: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 BlocklistManagement: User loaded', { isAdmin });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

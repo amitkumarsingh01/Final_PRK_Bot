@@ -55,7 +55,9 @@ const emptyTanker: WaterTankerManagement = {
 };
 
 const CWaterTankerManagementPage: React.FC = () => {
+  console.log('🚀 WaterTankerManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 WaterTankerManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

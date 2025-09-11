@@ -118,7 +118,9 @@ const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
 const ComplaintPage: React.FC = () => {
+  console.log('🚀 Complaint: Component initialized');
   const { user } = useAuth();
+  console.log('👤 Complaint: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ComplaintManagementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

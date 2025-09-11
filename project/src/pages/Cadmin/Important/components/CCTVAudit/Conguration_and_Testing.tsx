@@ -53,7 +53,9 @@ const emptyConfigurationTesting: ConfigurationTestingChecklist = {
 };
 
 const ConfigurationTestingPage: React.FC = () => {
+  console.log('🚀 ConfigurationTesting: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ConfigurationTesting: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

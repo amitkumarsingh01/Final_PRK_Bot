@@ -55,7 +55,9 @@ const emptyVendor: VendorEntryManagement = {
 };
 
 const CVendorEntryManagementPage: React.FC = () => {
+  console.log('🚀 VendorEntryManagement: Component initialized');
   const { isAdmin, isPropertyUser, currentUserPropertyId } = useAuth();
+  console.log('👤 VendorEntryManagement: User loaded', { isAdmin, isPropertyUser });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

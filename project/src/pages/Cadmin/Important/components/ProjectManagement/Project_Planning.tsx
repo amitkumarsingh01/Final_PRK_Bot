@@ -52,7 +52,9 @@ const emptyProjectPlanning: Omit<ProjectPlanning, 'id'> = {
 };
 
 const ProjectPlanningPage: React.FC = () => {
+  console.log('🚀 ProjectPlanning: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ProjectPlanning: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

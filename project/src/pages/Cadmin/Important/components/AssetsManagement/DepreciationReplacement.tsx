@@ -63,7 +63,9 @@ const emptyDepreciationReplacement: DepreciationReplacement = {
 };
 
 const DepreciationReplacementPage: React.FC = () => {
+  console.log('🚀 DepreciationReplacement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DepreciationReplacement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

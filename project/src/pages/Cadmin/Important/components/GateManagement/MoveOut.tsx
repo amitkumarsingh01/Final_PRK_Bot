@@ -57,7 +57,9 @@ const emptyMoveOut: MoveOut = {
 };
 
 const CMoveOutPage: React.FC = () => {
+  console.log('🚀 MoveOut: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 MoveOut: User loaded', { isAdmin });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

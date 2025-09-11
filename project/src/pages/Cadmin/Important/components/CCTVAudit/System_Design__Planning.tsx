@@ -53,7 +53,9 @@ const emptySiteAssessment: SiteAssessmentFormat = {
 };
 
 const SystemDesignPlanningPage: React.FC = () => {
+  console.log('🚀 SystemDesignPlanning: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SystemDesignPlanning: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

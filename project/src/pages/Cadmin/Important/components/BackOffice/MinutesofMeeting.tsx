@@ -125,7 +125,9 @@ const emptyMeetingRecord: MeetingRecord = {
 };
 
 const MinutesofMeetingPage: React.FC = () => {
+  console.log('🚀 MinutesofMeeting: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MinutesofMeeting: User loaded', { userId: user?.userId });
   const [data, setData] = useState<MeetingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -57,7 +57,9 @@ const userOptions = [
 ];
 
 const CDailyTaskManagementAllDepartment: React.FC = () => {
+  console.log('🚀 CDailyTaskManagementAllDepartment: Component initialized');
   const { user } = useAuth();
+  console.log('👤 CDailyTaskManagementAllDepartment: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);

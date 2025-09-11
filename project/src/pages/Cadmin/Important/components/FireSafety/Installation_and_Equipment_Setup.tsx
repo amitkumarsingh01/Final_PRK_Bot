@@ -53,7 +53,9 @@ const emptyInstallation: InstallationAndEquipmentSetup = {
 };
 
 const InstallationAndEquipmentSetupPage: React.FC = () => {
+  console.log('🚀 InstallationAndEquipmentSetup: Component initialized');
   const { user } = useAuth();
+  console.log('👤 InstallationAndEquipmentSetup: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

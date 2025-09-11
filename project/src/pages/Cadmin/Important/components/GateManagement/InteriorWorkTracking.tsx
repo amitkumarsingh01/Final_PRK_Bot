@@ -57,7 +57,9 @@ const emptyWork: InteriorWorkTracking = {
 };
 
 const CInteriorWorkTrackingPage: React.FC = () => {
+  console.log('🚀 InteriorWorkTracking: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 InteriorWorkTracking: User loaded', { isAdmin });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

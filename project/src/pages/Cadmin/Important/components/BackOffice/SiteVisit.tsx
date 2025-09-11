@@ -121,7 +121,9 @@ const emptySiteVisitRecord: SiteVisitRecord = {
 };
 
 const SiteVisitPage: React.FC = () => {
+  console.log('🚀 SiteVisit: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SiteVisit: User loaded', { userId: user?.userId });
   const [data, setData] = useState<SiteVisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

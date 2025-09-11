@@ -54,7 +54,9 @@ const emptyEntry: FacilityTechnicalPatrollingEntry = {
 };
 
 const CTechnicalTeamPatrollingPage: React.FC = () => {
+  console.log('🚀 TechnicalTeamPatrolling: Component initialized');
   const { user } = useAuth();
+  console.log('👤 TechnicalTeamPatrolling: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FacilityTechnicalPatrollingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

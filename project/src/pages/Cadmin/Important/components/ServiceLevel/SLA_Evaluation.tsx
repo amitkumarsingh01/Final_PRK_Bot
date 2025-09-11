@@ -49,7 +49,9 @@ const emptySlaEvaluation: SlaEvaluation = {
 };
 
 const SlaEvaluationPage: React.FC = () => {
+  console.log('🚀 SlaEvaluation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SlaEvaluation: User loaded', { userId: user?.userId });
   const [data, setData] = useState<SlaReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -51,7 +51,9 @@ const emptyDocument: FireSafetyDocument = {
 };
 
 const FireSafetyDocumentsPage: React.FC = () => {
+  console.log('🚀 FireSafetyDocuments: Component initialized');
   const { user } = useAuth();
+  console.log('👤 FireSafetyDocuments: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

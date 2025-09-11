@@ -51,7 +51,9 @@ const emptyComplianceReport: ComplianceReport = {
 };
 
 const ComplianceReportsPage: React.FC = () => {
+  console.log('🚀 ComplianceReports: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ComplianceReports: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -53,7 +53,9 @@ const emptyStaff: StaffEntryManagement = {
 };
 
 const CStaEntryManagementPage: React.FC = () => {
+  console.log('🚀 StaEntryManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 StaEntryManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

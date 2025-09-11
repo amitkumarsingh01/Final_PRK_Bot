@@ -51,7 +51,9 @@ const emptyEmergencyPlan: EmergencyPreparednessPlan = {
 };
 
 const EmergencyPreparednessPlanPage: React.FC = () => {
+  console.log('🚀 EmergencyPreparednessPlan: Component initialized');
   const { user } = useAuth();
+  console.log('👤 EmergencyPreparednessPlan: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

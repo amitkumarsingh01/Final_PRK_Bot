@@ -56,7 +56,9 @@ const emptyKpiRecord: KpiRecord = {
 };
 
 const KPIPage: React.FC = () => {
+  console.log('🚀 KPI: Component initialized');
   const { user } = useAuth();
+  console.log('👤 KPI: User loaded', { userId: user?.userId });
   const [data, setData] = useState<KpiRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

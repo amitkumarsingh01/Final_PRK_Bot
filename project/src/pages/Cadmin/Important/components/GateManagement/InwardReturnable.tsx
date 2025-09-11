@@ -59,7 +59,9 @@ const emptyInward: InwardReturnable = {
 };
 
 const CInwardReturnablePage: React.FC = () => {
+  console.log('🚀 InwardReturnable: Component initialized');
   const { isAdmin, ,  } = useAuth();
+  console.log('👤 InwardReturnable: User loaded', { isAdmin });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

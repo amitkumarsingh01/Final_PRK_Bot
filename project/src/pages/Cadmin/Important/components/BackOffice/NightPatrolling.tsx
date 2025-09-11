@@ -120,7 +120,9 @@ const emptyPatrollingRecord: PatrollingRecord = {
 };
 
 const NightPatrollingPage: React.FC = () => {
+  console.log('🚀 NightPatrolling: Component initialized');
   const { user } = useAuth();
+  console.log('👤 NightPatrolling: User loaded', { userId: user?.userId });
   const [data, setData] = useState<PatrollingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

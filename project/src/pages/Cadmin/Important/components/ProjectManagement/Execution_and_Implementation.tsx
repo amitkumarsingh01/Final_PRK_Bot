@@ -52,7 +52,9 @@ const emptyExecutionTask: Omit<ExecutionTask, 'id'> = {
 };
 
 const ExecutionImplementationPage: React.FC = () => {
+  console.log('🚀 ExecutionImplementation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ExecutionImplementation: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

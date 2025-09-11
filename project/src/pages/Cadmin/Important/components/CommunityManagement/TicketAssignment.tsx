@@ -53,7 +53,9 @@ const emptyAssignment: TicketAssignment = {
 };
 
 const TicketAssignmentPage: React.FC = () => {
+  console.log('🚀 TicketAssignment: Component initialized');
   const { user } = useAuth();
+  console.log('👤 TicketAssignment: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

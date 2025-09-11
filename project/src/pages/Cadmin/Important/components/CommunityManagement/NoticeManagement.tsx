@@ -53,7 +53,9 @@ const emptyNotice: Notice = {
 };
 
 const NoticeManagementPage: React.FC = () => {
+  console.log('🚀 NoticeManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 NoticeManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

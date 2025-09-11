@@ -118,7 +118,9 @@ const emptyClientComm: ClientCommunication = {
 };
 
 const CIncidentReportPage: React.FC = () => {
+  console.log('🚀 IncidentReport: Component initialized');
   const { user } = useAuth();
+  console.log('👤 IncidentReport: User loaded', { userId: user?.userId });
   const [data, setData] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

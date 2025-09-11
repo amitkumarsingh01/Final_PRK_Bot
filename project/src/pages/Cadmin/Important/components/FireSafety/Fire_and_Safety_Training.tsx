@@ -53,7 +53,9 @@ const emptyTraining: FireAndSafetyTraining = {
 };
 
 const FireAndSafetyTrainingPage: React.FC = () => {
+  console.log('🚀 FireAndSafetyTraining: Component initialized');
   const { user } = useAuth();
+  console.log('👤 FireAndSafetyTraining: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

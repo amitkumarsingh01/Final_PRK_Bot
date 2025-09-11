@@ -51,7 +51,9 @@ const emptyKeySlaComponent: KeySlaComponent = {
 };
 
 const KeySlaComponentsPage: React.FC = () => {
+  console.log('🚀 KeySlaComponents: Component initialized');
   const { user } = useAuth();
+  console.log('👤 KeySlaComponents: User loaded', { userId: user?.userId });
   const [data, setData] = useState<SlaReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

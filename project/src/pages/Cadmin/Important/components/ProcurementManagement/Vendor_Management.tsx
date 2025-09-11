@@ -53,7 +53,9 @@ const emptyVendor: Vendor = {
 };
 
 const VendorManagementPage: React.FC = () => {
+  console.log('🚀 VendorManagement: Component initialized');
   const { user } = useAuth();
+  console.log('👤 VendorManagement: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

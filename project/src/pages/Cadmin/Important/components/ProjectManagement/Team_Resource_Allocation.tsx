@@ -52,7 +52,9 @@ const emptyTeamAllocation: Omit<TeamAllocation, 'id'> = {
 };
 
 const TeamResourceAllocationPage: React.FC = () => {
+  console.log('🚀 TeamResourceAllocation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 TeamResourceAllocation: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

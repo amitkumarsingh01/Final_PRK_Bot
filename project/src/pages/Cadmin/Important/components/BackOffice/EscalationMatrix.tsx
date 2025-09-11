@@ -82,7 +82,9 @@ const emptyEscalationRecord: EscalationRecord = {
 };
 
 const EscalationMatrixPage: React.FC = () => {
+  console.log('🚀 EscalationMatrix: Component initialized');
   const { user } = useAuth();
+  console.log('👤 EscalationMatrix: User loaded', { userId: user?.userId });
   const [data, setData] = useState<EscalationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

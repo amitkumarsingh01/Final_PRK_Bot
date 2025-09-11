@@ -50,7 +50,9 @@ const emptyMonitoringControl: Omit<MonitoringControl, 'id'> = {
 };
 
 const MonitoringControlPage: React.FC = () => {
+  console.log('🚀 MonitoringControl: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MonitoringControl: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

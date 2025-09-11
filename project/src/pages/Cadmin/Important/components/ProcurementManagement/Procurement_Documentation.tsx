@@ -51,7 +51,9 @@ const emptyDocument: ProcurementDocument = {
 };
 
 const ProcurementDocumentationPage: React.FC = () => {
+  console.log('🚀 ProcurementDocumentation: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ProcurementDocumentation: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

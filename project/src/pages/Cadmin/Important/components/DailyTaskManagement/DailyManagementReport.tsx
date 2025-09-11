@@ -55,7 +55,9 @@ const initialNewReport = (property_id: string): DailySummaryReport => ({
 });
 
 const CDailyManagementReport: React.FC = () => {
+  console.log('🚀 DailyManagementReport: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DailyManagementReport: User loaded', { userId: user?.userId });
   const [reports, setReports] = useState<DailySummaryReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -51,7 +51,9 @@ const emptyQualityDocument: QualityDocument = {
 };
 
 const DocumentationReportingPage: React.FC = () => {
+  console.log('🚀 DocumentationReporting: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DocumentationReporting: User loaded', { userId: user?.userId });
   const [data, setData] = useState<QualityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

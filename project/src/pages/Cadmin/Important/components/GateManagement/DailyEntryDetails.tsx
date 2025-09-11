@@ -53,7 +53,9 @@ const emptyDaily: DailyEntryDetails = {
 };
 
 const CDailyEntryDetailsPage: React.FC = () => {
+  console.log('🚀 DailyEntryDetails: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DailyEntryDetails: User loaded', { userId: user?.userId });
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

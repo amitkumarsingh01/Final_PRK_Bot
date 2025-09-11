@@ -43,20 +43,38 @@ const emptyVendorClassification: VendorClassification = {
 };
 
 const VendorClassificationPage: React.FC = () => {
+  console.log('🚀 VendorClassificationPage: Component initialized');
+  console.log('📊 VendorClassificationPage: Starting component render');
+  
   const { user } = useAuth();
+  console.log('👤 VendorClassificationPage: User context loaded', { userId: user?.userId, propertyId: user?.propertyId });
+  
   const [data, setData] = useState<VendorClassification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; classification: VendorClassification | null }>({ open: false, classification: null });
   const [editModal, setEditModal] = useState<{ open: boolean; classification: VendorClassification | null; isNew: boolean; vendorMasterId: string | null }>({ open: false, classification: null, isNew: false, vendorMasterId: null });
+  
+  console.log('🔧 VendorClassificationPage: State initialized', { 
+    dataLength: data.length, 
+    loading, 
+    error, 
+    isAdmin,
+    viewModalOpen: viewModal.open,
+    editModalOpen: editModal.open
+  });
 
   useEffect(() => {
+    console.log('🏢 VendorClassificationPage: Fetching properties...');
     const fetchProperties = async () => {
       try {
+        console.log('📡 VendorClassificationPage: Making API call to fetch properties');
         const res = await axios.get(PROPERTIES_URL);
+        console.log('✅ VendorClassificationPage: Properties fetched successfully', { count: res.data?.length });
         setProperties(res.data);
       } catch (e) {
+        console.error('❌ VendorClassificationPage: Failed to fetch properties', e);
         setError('Failed to fetch properties');
       }
     };
@@ -87,12 +105,19 @@ const VendorClassificationPage: React.FC = () => {
   }, [user]);
 
   const fetchData = async () => {
-    if (!user?.propertyId) return;
+    console.log('📊 VendorClassificationPage: fetchData called', { propertyId: user?.propertyId });
+    if (!user?.propertyId) {
+      console.log('⚠️ VendorClassificationPage: No property ID, skipping data fetch');
+      return;
+    }
     
     try {
+      console.log('🔄 VendorClassificationPage: Starting data fetch...');
       setLoading(true);
       const res = await axios.get(`${API_URL
   }?property_id=${propertyId}`);
+      console.log('📡 VendorClassificationPage: API response received', { dataLength: res.data?.length });
+      
       const classifications = res.data
         .filter((vendor: any) => vendor.classification)
         .map((vendor: any) => ({
@@ -108,10 +133,14 @@ const VendorClassificationPage: React.FC = () => {
           responsible_person: vendor.classification.responsible_person,
           remarks: vendor.classification.remarks,
         }));
+      
+      console.log('✅ VendorClassificationPage: Classifications processed', { count: classifications.length });
       setData(classifications);
     } catch (e) {
+      console.error('❌ VendorClassificationPage: Failed to fetch vendor classifications', e);
       setError('Failed to fetch vendor classifications');
     } finally {
+      console.log('🏁 VendorClassificationPage: Data fetch completed');
       setLoading(false);
     }
   };
@@ -123,10 +152,15 @@ const VendorClassificationPage: React.FC = () => {
   }, [user?.propertyId]);
 
   const handleEdit = (classification: VendorClassification, vendorMasterId: string) => {
+    console.log('✏️ VendorClassificationPage: Edit button clicked', { 
+      classificationId: classification.id, 
+      vendorMasterId 
+    });
     setEditModal({ open: true, classification: { ...classification }, isNew: false, vendorMasterId });
   };
 
   const handleAdd = (vendorMasterId: string) => {
+    console.log('➕ VendorClassificationPage: Add button clicked', { vendorMasterId });
     setEditModal({ open: true, classification: { ...emptyVendorClassification }, isNew: true, vendorMasterId });
   };
 

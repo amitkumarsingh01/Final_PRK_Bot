@@ -51,7 +51,9 @@ const emptyComplianceRecord: ComplianceRecord = {
 };
 
 const ComplianceAndPolicyPage: React.FC = () => {
+  console.log('🚀 ComplianceAndPolicy: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ComplianceAndPolicy: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

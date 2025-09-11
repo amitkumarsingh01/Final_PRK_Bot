@@ -53,7 +53,9 @@ const emptyDailyOperations: DailyOperationsMonitoring = {
 };
 
 const DailyOperationsMonitoringPage: React.FC = () => {
+  console.log('🚀 DailyOperationsMonitoring: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DailyOperationsMonitoring: User loaded', { userId: user?.userId });
   const [data, setData] = useState<CctvAuditReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

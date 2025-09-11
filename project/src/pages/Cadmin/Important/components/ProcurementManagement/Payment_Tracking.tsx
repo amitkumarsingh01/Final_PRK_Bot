@@ -53,7 +53,9 @@ const emptyPayment: Payment = {
 };
 
 const PaymentTrackingPage: React.FC = () => {
+  console.log('🚀 PaymentTracking: Component initialized');
   const { user } = useAuth();
+  console.log('👤 PaymentTracking: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -55,7 +55,9 @@ const emptyConsumptionReport: ConsumptionReport = {
 };
 
 const ConsumptionReportsPage: React.FC = () => {
+  console.log('🚀 ConsumptionReports: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ConsumptionReports: User loaded', { userId: user?.userId });
   const [data, setData] = useState<InventoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -89,7 +89,9 @@ const emptyOfficerSignature: NightPatrollingOfficerSignature = {
 };
 
 const CNightIncidentPage: React.FC = () => {
+  console.log('🚀 NightIncident: Component initialized');
   const { user } = useAuth();
+  console.log('👤 NightIncident: User loaded', { userId: user?.userId });
   const [data, setData] = useState<NightPatrollingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

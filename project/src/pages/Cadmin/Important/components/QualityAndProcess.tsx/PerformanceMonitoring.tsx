@@ -51,7 +51,9 @@ const emptyPerformanceMonitor: PerformanceMonitor = {
 };
 
 const PerformanceMonitoringPage: React.FC = () => {
+  console.log('🚀 PerformanceMonitoring: Component initialized');
   const { user } = useAuth();
+  console.log('👤 PerformanceMonitoring: User loaded', { userId: user?.userId });
   const [data, setData] = useState<QualityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

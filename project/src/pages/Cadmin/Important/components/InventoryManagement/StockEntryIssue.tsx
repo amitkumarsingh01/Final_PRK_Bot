@@ -55,7 +55,9 @@ const emptyStockTransaction: StockTransaction = {
 };
 
 const StockEntryIssuePage: React.FC = () => {
+  console.log('🚀 StockEntryIssue: Component initialized');
   const { user } = useAuth();
+  console.log('👤 StockEntryIssue: User loaded', { userId: user?.userId });
   const [data, setData] = useState<InventoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

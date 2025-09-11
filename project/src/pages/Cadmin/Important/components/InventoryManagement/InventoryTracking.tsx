@@ -49,7 +49,9 @@ const emptyInventoryItem: InventoryItem = {
 };
 
 const InventoryTrackingPage: React.FC = () => {
+  console.log('🚀 InventoryTracking: Component initialized');
   const { user } = useAuth();
+  console.log('👤 InventoryTracking: User loaded', { userId: user?.userId });
   const [data, setData] = useState<InventoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

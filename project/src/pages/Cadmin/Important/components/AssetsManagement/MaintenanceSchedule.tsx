@@ -53,7 +53,9 @@ const emptyMaintenanceSchedule: MaintenanceSchedule = {
 };
 
 const MaintenanceSchedulePage: React.FC = () => {
+  console.log('🚀 MaintenanceSchedule: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MaintenanceSchedule: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

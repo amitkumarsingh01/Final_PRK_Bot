@@ -55,7 +55,9 @@ const emptyAmcWarranty: AmcWarranty = {
 };
 
 const AMCWarrantyTrackerPage: React.FC = () => {
+  console.log('🚀 AMCWarrantyTracker: Component initialized');
   const { user } = useAuth();
+  console.log('👤 AMCWarrantyTracker: User loaded', { userId: user?.userId });
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

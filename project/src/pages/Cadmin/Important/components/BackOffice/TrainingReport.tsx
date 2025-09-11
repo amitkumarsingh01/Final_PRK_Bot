@@ -123,7 +123,9 @@ const emptyTrainingRecord: TrainingRecord = {
 };
 
 const TrainingReportPage: React.FC = () => {
+  console.log('🚀 TrainingReport: Component initialized');
   const { user } = useAuth();
+  console.log('👤 TrainingReport: User loaded', { userId: user?.userId });
   const [data, setData] = useState<TrainingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

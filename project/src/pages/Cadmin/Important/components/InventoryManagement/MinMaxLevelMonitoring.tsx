@@ -51,7 +51,9 @@ const emptyMinMaxLevel: MinMaxLevel = {
 };
 
 const MinMaxLevelMonitoringPage: React.FC = () => {
+  console.log('🚀 MinMaxLevelMonitoring: Component initialized');
   const { user } = useAuth();
+  console.log('👤 MinMaxLevelMonitoring: User loaded', { userId: user?.userId });
   const [data, setData] = useState<InventoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

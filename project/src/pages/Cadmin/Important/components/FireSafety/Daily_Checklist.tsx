@@ -51,7 +51,9 @@ const emptyDailyChecklist: DailyChecklist = {
 };
 
 const DailyChecklistPage: React.FC = () => {
+  console.log('🚀 DailyChecklist: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DailyChecklist: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

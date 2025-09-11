@@ -50,7 +50,9 @@ const emptyDocumentationReporting: Omit<DocumentationReporting, 'id'> = {
 };
 
 const DocumentationReportingPage: React.FC = () => {
+  console.log('🚀 DocumentationReporting: Component initialized');
   const { user } = useAuth();
+  console.log('👤 DocumentationReporting: User loaded', { userId: user?.userId });
   const [projects, setProjects] = useState<ProjectMaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
