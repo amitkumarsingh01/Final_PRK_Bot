@@ -128,25 +128,10 @@ const CIncidentReportPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: IncidentReport | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: IncidentReport | null; isNew: boolean }>({ open: false, item: null, isNew: false });
 
-  // Check if user is admin
+  // Allow actions for admin and cadmin users
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    checkAdminStatus();
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
   }, [user]);
 
   // Fetch incident reports for user's property
@@ -155,8 +140,14 @@ const CIncidentReportPage: React.FC = () => {
     
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
-      setData(res.data);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: IncidentReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
     } catch (e) {
       setError('Failed to fetch incident reports');
     }
@@ -200,7 +191,9 @@ const CIncidentReportPage: React.FC = () => {
     if (!id) return;
     if (!window.confirm('Delete this incident report?')) return;
     try {
-      await axios.delete(`${API_URL}${id}`);
+      await axios.delete(`${API_URL}${id}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -242,10 +235,18 @@ const CIncidentReportPage: React.FC = () => {
   const handleSave = async () => {
     if (!editModal.item) return;
     try {
+      const payload: IncidentReport = {
+        ...editModal.item,
+        property_id: user?.propertyId || editModal.item.property_id,
+      };
       if (editModal.isNew) {
-        await axios.post(API_URL, editModal.item);
+        await axios.post(API_URL, payload, {
+          headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+        });
       } else {
-        await axios.put(`${API_URL}${editModal.item.id}`, editModal.item);
+        await axios.put(`${API_URL}${payload.id}`, payload, {
+          headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+        });
       }
       setEditModal({ open: false, item: null, isNew: false });
       fetchData();

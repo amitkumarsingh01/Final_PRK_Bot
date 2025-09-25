@@ -44,9 +44,13 @@ import MonthlyTask from './components/MonthlyTaskManagement/MonthlyTask';
 import WeekCalendar from './components/52Week/52WeekCalender';
 import WeekTraining from './components/52Week/52WeekTraining.tsx';
 import IncidentReportPage from './components/IncidentReport/IncidentReport';
+import CIncidentReportPage from './pages/Cadmin/Important/components/IncidentReport/IncidentReport';
 import NightIncidentPage from './components/Patrolling/NightIncident';
 import SiteSecurityPage from './components/Patrolling/SiteSecurity';
 import TechnicalTeamPatrollingPage from './components/Patrolling/TechnicalTeamPatrolling';
+import CNightIncidentPage from './pages/Cadmin/Important/components/Patrolling/NightIncident';
+import CSiteSecurityPage from './pages/Cadmin/Important/components/Patrolling/SiteSecurity';
+import CTechnicalTeamPatrollingPage from './pages/Cadmin/Important/components/Patrolling/TechnicalTeamPatrolling';
 import VisitorManagement from './components/GateManagement/VisitorManagement';
 import InwardNonReturnable from './components/GateManagement/InwardNonReturnable';
 import InwardReturnable from './components/GateManagement/InwardReturnable';
@@ -109,6 +113,7 @@ import Documentation from './components/CCTVAudit/Documentation';
 import AmcAndCompliance from './components/CCTVAudit/AMC_and_Compliance';
 import SiteAssessment from './components/CCTVAudit/Site_Assessment';
 import AuditReportPage from './components/AuditReport/AuditReport';
+import CAuditReportPage from './pages/Cadmin/Important/components/AuditReport/AuditReport';
 import ProjectManagement from './components/ProjectManagement/All_Project_Management_Dashboard';
 import ProjectInitiation from './components/ProjectManagement/Project_Initiation';
 import ProjectPlanning from './components/ProjectManagement/Project_Planning';
@@ -340,13 +345,13 @@ const AppRoutes = () => {
         <Route path="cadmin/52-week-training-calendar" element={<WeekTraining />} />
 
         {/* Cadmin - Incident & Patrolling */}
-        <Route path="cadmin/incident-report" element={<IncidentReportPage />} />
-        <Route path="cadmin/night-patrolling-report" element={<NightIncidentPage />} />
-        <Route path="cadmin/site-security-patrolling-report" element={<SiteSecurityPage />} />
-        <Route path="cadmin/technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
+        <Route path="cadmin/incident-report" element={<CIncidentReportPage />} />
+        <Route path="cadmin/night-patrolling-report" element={<CNightIncidentPage />} />
+        <Route path="cadmin/site-security-patrolling-report" element={<CSiteSecurityPage />} />
+        <Route path="cadmin/technical-team-patrolling-report" element={<CTechnicalTeamPatrollingPage />} />
 
         {/* Cadmin - Reports and Audit */}
-        <Route path="cadmin/audit-reports" element={<AuditReportPage />} />
+        <Route path="cadmin/audit-reports" element={<CAuditReportPage />} />
 
         {/* Cadmin - Transition Management */}
         <Route path="cadmin/transition-checklists" element={<TransitionChecklistsPage />} />
