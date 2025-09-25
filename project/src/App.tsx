@@ -93,17 +93,39 @@ import ParkingStickerManagement from './components/CommunityManagement/ParkingSt
 import CommunicationAnnouncements from './components/CommunityManagement/CommunicationAnnouncements';                                                                                                                                                                                                                                                                           
 import MoveInCoordination from './components/CommunityManagement/MoveInCoordination';
 import MoveOutCoordination from './components/CommunityManagement/MoveOutCoordination';
+// Cadmin Community Management versions (fixed property display)
+import CTicketsManagement from './pages/Cadmin/Important/components/CommunityManagement/TicketsManagement';
+import CTicketAssignment from './pages/Cadmin/Important/components/CommunityManagement/TicketAssignment';
+import CNoticeManagement from './pages/Cadmin/Important/components/CommunityManagement/NoticeManagement';
+import CParkingStickerManagement from './pages/Cadmin/Important/components/CommunityManagement/ParkingStickerManagement';
+import CCommunicationAnnouncements from './pages/Cadmin/Important/components/CommunityManagement/CommunicationAnnouncements';
+import CMoveInCoordination from './pages/Cadmin/Important/components/CommunityManagement/MoveInCoordination';
+import CMoveOutCoordination from './pages/Cadmin/Important/components/CommunityManagement/MoveOutCoordination';
+import CWorkPermitTracking from './pages/Cadmin/Important/components/CommunityManagement/WorkPermitTracking';
 import AssetTaggingManagement from './components/AssetsManagement/AssetTaggingManagement';
 import AssetMovementLog from './components/AssetsManagement/AssetMovementLog';
 import AMCWarrantyTracker from './components/AssetsManagement/AMCWarrantyTracker';
 import MaintenanceSchedule from './components/AssetsManagement/MaintenanceSchedule';
 import AssetAudit from './components/AssetsManagement/AssetAudit';
 import DepreciationReplacement from './components/AssetsManagement/DepreciationReplacement';
+// Cadmin Assets Management versions (fixed property display, full actions)
+import CAssetTaggingManagement from './pages/Cadmin/Important/components/AssetsManagement/AssetTaggingManagement';
+import CAssetMovementLog from './pages/Cadmin/Important/components/AssetsManagement/AssetMovementLog';
+import CAMCWarrantyTracker from './pages/Cadmin/Important/components/AssetsManagement/AMCWarrantyTracker';
+import CMaintenanceSchedule from './pages/Cadmin/Important/components/AssetsManagement/MaintenanceSchedule';
+import CAssetAudit from './pages/Cadmin/Important/components/AssetsManagement/AssetAudit';
+import CDepreciationReplacement from './pages/Cadmin/Important/components/AssetsManagement/DepreciationReplacement';
 import InventoryTracking from './components/InventoryManagement/InventoryTracking';
 import StockEntryIssue from './components/InventoryManagement/StockEntryIssue';
 import MinMaxLevelMonitoring from './components/InventoryManagement/MinMaxLevelMonitoring';
 import ConsumptionReports from './components/InventoryManagement/ConsumptionReports';
 import ExpiryDamageLog from './components/InventoryManagement/ExpiryDamageLog';
+// Cadmin Inventory Management versions (fixed property display, full actions)
+import CInventoryTracking from './pages/Cadmin/Important/components/InventoryManagement/InventoryTracking';
+import CStockEntryIssue from './pages/Cadmin/Important/components/InventoryManagement/StockEntryIssue';
+import CMinMaxLevelMonitoring from './pages/Cadmin/Important/components/InventoryManagement/MinMaxLevelMonitoring';
+import CConsumptionReports from './pages/Cadmin/Important/components/InventoryManagement/ConsumptionReports';
+import CExpiryDamageLog from './pages/Cadmin/Important/components/InventoryManagement/ExpiryDamageLog';
 import QualityPlanning from './components/QualityAndProcess.tsx/QualityPlanning';
 import ProcessManagementSetup from './components/QualityAndProcess.tsx/ProcessManagementSetup';
 import QualityAssurance from './components/QualityAndProcess.tsx/QualityAssurance';
@@ -393,30 +415,30 @@ const AppRoutes = () => {
         <Route path="cadmin/emergency-contact-details" element={<CEmergencyContactDetails />} />
 
         {/* Cadmin - Community Management */}
-        <Route path="cadmin/tickets-management" element={<TicketsManagement />} />
-        <Route path="cadmin/ticket-assignment" element={<TicketAssignment />} />
-        <Route path="cadmin/notice-management" element={<NoticeManagement />} />
-        <Route path="cadmin/parking-sticker-management" element={<ParkingStickerManagement />} />
-        <Route path="cadmin/communication-announcements" element={<CommunicationAnnouncements />} />
-        <Route path="cadmin/move-in-coordination" element={<MoveInCoordination />} />
-        <Route path="cadmin/move-out-coordination" element={<MoveOutCoordination />} />
+        <Route path="cadmin/tickets-management" element={<CTicketsManagement />} />
+        <Route path="cadmin/ticket-assignment" element={<CTicketAssignment />} />
+        <Route path="cadmin/notice-management" element={<CNoticeManagement />} />
+        <Route path="cadmin/parking-sticker-management" element={<CParkingStickerManagement />} />
+        <Route path="cadmin/communication-announcements" element={<CCommunicationAnnouncements />} />
+        <Route path="cadmin/move-in-coordination" element={<CMoveInCoordination />} />
+        <Route path="cadmin/move-out-coordination" element={<CMoveOutCoordination />} />
         <Route path="cadmin/interior-work-approvals" element={<InteriorWorkApprovals />} />
-        <Route path="cadmin/work-permit-tracking" element={<WorkPermitTracking />} />  
+        <Route path="cadmin/work-permit-tracking" element={<CWorkPermitTracking />} />  
 
         {/* Cadmin - Asset Management */}
-        <Route path="cadmin/asset-tagging-management" element={<AssetTaggingManagement />} />
-        <Route path="cadmin/asset-movement-log" element={<AssetMovementLog />} />
-        <Route path="cadmin/amc-warranty-tracker" element={<AMCWarrantyTracker />} />
-        <Route path="cadmin/maintenance-schedule" element={<MaintenanceSchedule />} />
-        <Route path="cadmin/asset-audit" element={<AssetAudit />} />
-        <Route path="cadmin/depreciation-replacement" element={<DepreciationReplacement />} />
+        <Route path="cadmin/asset-tagging-management" element={<CAssetTaggingManagement />} />
+        <Route path="cadmin/asset-movement-log" element={<CAssetMovementLog />} />
+        <Route path="cadmin/amc-warranty-tracker" element={<CAMCWarrantyTracker />} />
+        <Route path="cadmin/maintenance-schedule" element={<CMaintenanceSchedule />} />
+        <Route path="cadmin/asset-audit" element={<CAssetAudit />} />
+        <Route path="cadmin/depreciation-replacement" element={<CDepreciationReplacement />} />
 
         {/* Cadmin - Inventory Management */}
-        <Route path="cadmin/inventory-tracking" element={<InventoryTracking />} />
-        <Route path="cadmin/stock-entry-issue" element={<StockEntryIssue />} />
-        <Route path="cadmin/min-max-level-monitoring" element={<MinMaxLevelMonitoring />} />
-        <Route path="cadmin/consumption-reports" element={<ConsumptionReports />} />
-        <Route path="cadmin/expiry-damage-log" element={<ExpiryDamageLog />} />
+        <Route path="cadmin/inventory-tracking" element={<CInventoryTracking />} />
+        <Route path="cadmin/stock-entry-issue" element={<CStockEntryIssue />} />
+        <Route path="cadmin/min-max-level-monitoring" element={<CMinMaxLevelMonitoring />} />
+        <Route path="cadmin/consumption-reports" element={<CConsumptionReports />} />
+        <Route path="cadmin/expiry-damage-log" element={<CExpiryDamageLog />} />
 
         {/* Cadmin - Quality and Process Management */}
         <Route path="cadmin/quality-planning" element={<QualityPlanning />} />

@@ -36,7 +36,7 @@ interface CommunityReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/community-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -69,6 +69,54 @@ const CParkingStickerManagementPage: React.FC = () => {
 
   const handleEdit = (item: ParkingSticker, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  };
+  // Treat cadmin as admin
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
+
+  // Fetch reports for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: CommunityReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch community reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
+
+  // Ensure a report exists for property
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!user?.propertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: user.propertyId,
+        parking_stickers: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
   };
   const handleAdd = (reportId: string) => {
     setEditModal({
@@ -189,9 +237,9 @@ const CParkingStickerManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Parking Sticker
@@ -271,4 +319,4 @@ const CParkingStickerManagementPage: React.FC = () => {
   );
 };
 
-export default ParkingStickerManagementPage; 
+export default CParkingStickerManagementPage; 

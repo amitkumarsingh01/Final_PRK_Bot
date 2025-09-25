@@ -38,7 +38,7 @@ interface CommunityReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/community-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -62,8 +62,57 @@ const emptyTicket: Ticket = {
 
 const CTicketsManagementPage: React.FC = () => {
   console.log('🚀 TicketsManagement: Component initialized');
-  const { isAdmin, ,  } = useAuth();
-  console.log('👤 TicketsManagement: User loaded', { isAdmin });
+  const { user } = useAuth();
+  console.log('👤 TicketsManagement: User loaded', { userId: user?.userId });
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Allow actions for admin and cadmin
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
+
+  // Fetch reports for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: CommunityReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch community reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
+
+  // Ensure a report exists for the property
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!user?.propertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: user.propertyId,
+        tickets: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
+  };
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +176,7 @@ const CTicketsManagementPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Building className="h-5 w-5 text-gray-400" />
             <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
             </div>
           </div>
         </div>
@@ -196,9 +245,9 @@ const CTicketsManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Ticket

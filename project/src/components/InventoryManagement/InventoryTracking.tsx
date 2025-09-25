@@ -114,13 +114,27 @@ const InventoryTrackingPage: React.FC = () => {
   const handleEdit = (item: InventoryItem, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
-  const handleAdd = (reportId: string) => {
-    setEditModal({
-      open: true,
-      isNew: true,
-      item: { ...emptyInventoryItem },
-      reportId,
-    });
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === selectedPropertyId);
+      if (existing) return existing.id;
+      if (!selectedPropertyId) return null;
+      const created = await axios.post(API_URL, { property_id: selectedPropertyId }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+      });
+      const newId = created?.data?.id;
+      await fetchData(selectedPropertyId);
+      return newId || null;
+    } catch (e) {
+      setError('Failed to create report');
+      return null;
+    }
+  };
+
+  const handleAdd = async () => {
+    const reportId = await ensureReportForProperty();
+    if (!reportId) return;
+    setEditModal({ open: true, isNew: true, item: { ...emptyInventoryItem }, reportId });
   };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this inventory item?')) return;
@@ -128,7 +142,9 @@ const InventoryTrackingPage: React.FC = () => {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
       const newArr = report.inventory_items.filter(i => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { inventory_items: newArr });
+      await axios.put(`${API_URL}${reportId}`, { inventory_items: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+      });
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -151,7 +167,9 @@ const InventoryTrackingPage: React.FC = () => {
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { inventory_items: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { inventory_items: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -235,9 +253,9 @@ const InventoryTrackingPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {isAdmin && selectedPropertyId && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={handleAdd}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Inventory Item

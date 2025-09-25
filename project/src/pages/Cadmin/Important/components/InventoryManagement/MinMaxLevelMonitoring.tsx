@@ -33,7 +33,7 @@ interface InventoryReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/inventory-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -61,16 +61,57 @@ const MinMaxLevelMonitoringPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: MinMaxLevel | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: MinMaxLevel | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: InventoryReport) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.token) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      if (!user?.propertyId || !user?.token) return null;
+      const created = await axios.post(API_URL, { property_id: user.propertyId }, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const newId = created?.data?.id;
+      await fetchData();
+      return newId || null;
+    } catch (e) {
+      setError('Failed to create report');
+      return null;
+    }
+  };
+
   const handleEdit = (item: MinMaxLevel, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
-  const handleAdd = (reportId: string) => {
-    setEditModal({
-      open: true,
-      isNew: true,
-      item: { ...emptyMinMaxLevel },
-      reportId,
-    });
+  const handleAdd = async () => {
+    const reportId = await ensureReportForProperty();
+    if (!reportId) return;
+    setEditModal({ open: true, isNew: true, item: { ...emptyMinMaxLevel }, reportId });
   };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this min-max level record?')) return;
@@ -78,7 +119,9 @@ const MinMaxLevelMonitoringPage: React.FC = () => {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
       const newArr = report.min_max_levels.filter(i => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { min_max_levels: newArr });
+      await axios.put(`${API_URL}${reportId}`, { min_max_levels: newArr }, {
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -101,7 +144,9 @@ const MinMaxLevelMonitoringPage: React.FC = () => {
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { min_max_levels: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { min_max_levels: newArr }, {
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
@@ -194,9 +239,9 @@ const MinMaxLevelMonitoringPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={handleAdd}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Min-Max Level Record
