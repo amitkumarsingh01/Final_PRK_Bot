@@ -77,8 +77,8 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        if (user?.userType === 'admin') {
-          // Admin sees all properties
+        if (user?.userType === 'admin' || user?.userType === 'cadmin') {
+          // Admin and cadmin see all properties
           const res = await axios.get(PROPERTIES_URL);
           setProperties(res.data);
         } else if (user?.userType === 'property_user' && user?.propertyId) {
@@ -94,7 +94,21 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    // Fetch user's default property_id from profile
+    // For cadmin users, set as admin to show Actions and Add Row
+    if (user?.userType === 'cadmin' && user?.propertyId) {
+      setSelectedPropertyId(user.propertyId);
+      setIsAdmin(true);
+      return;
+    }
+    
+    // For property_user, use property_id from auth context but don't show admin features
+    if (user?.userType === 'property_user' && user?.propertyId) {
+      setSelectedPropertyId(user.propertyId);
+      setIsAdmin(false);
+      return;
+    }
+
+    // For admin users, fetch user's default property_id from profile
     const fetchUserProperty = async () => {
       if (!user?.token || !user?.userId) return;
       try {
@@ -117,13 +131,6 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
     fetchUserProperty();
   }, [user]);
 
-  // For property users, automatically set their property and fetch only their data
-  useEffect(() => {
-    if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
-      setIsAdmin(false);
-    }
-  }, [user]);
 
   // Fetch checklist data for selected property
   const fetchData = async (propertyId: string) => {
@@ -207,6 +214,13 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
 
   const handleSave = async () => {
     if (!editRow || !editId) return;
+    
+    // Validate required fields
+    if (!editRow.check_point || !editRow.action_required || !editRow.standard || !editRow.frequency) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
     try {
       await axios.put(API_URL + editId, { ...editRow, property_id: selectedPropertyId });
       setEditId(null);
@@ -228,7 +242,9 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
   };
 
   const handleAddRow = () => {
-    setNewRow(initialNewRow(selectedPropertyId));
+    const newRowData = initialNewRow(selectedPropertyId);
+    newRowData.sl_no = data.length + 1; // Set the correct sl_no based on current data length
+    setNewRow(newRowData);
   };
 
   const handleNewRowChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -246,6 +262,13 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
 
   const handleSaveNewRow = async () => {
     if (!newRow) return;
+    
+    // Validate required fields
+    if (!newRow.check_point || !newRow.action_required || !newRow.standard || !newRow.frequency) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
     try {
       await axios.post(API_URL, { ...newRow, property_id: selectedPropertyId });
       setNewRow(null);

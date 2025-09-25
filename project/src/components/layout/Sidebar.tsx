@@ -401,9 +401,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     const adminItems: NavItem[] = [
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-        { path: '/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
+        // { path: '/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
         { path: '/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      // { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
       {
         path: '#',
@@ -758,7 +758,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       // { path: '/cadmin/properties', icon: <Building2 size={20} />, label: 'Properties' },
       // { path: '/cadmin/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
       { path: '/cadmin/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      // { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
       {
         path: '#',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit, Trash2, CheckCircle, Plus, X } from 'lucide-react';
 import { UserRole } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 const API_BASE_URL = 'https://server.prktechindia.in';
 
@@ -26,6 +27,7 @@ interface ProfileFormData {
 }
 
 const CadminUserProfile: React.FC = () => {
+  const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,36 +40,38 @@ const CadminUserProfile: React.FC = () => {
     phone_no: '',
     user_role: 'user',
     user_type: '',
-    property_id: ''
+    property_id: user?.propertyId || ''
   });
 
-  // Fetch current user profile first, then fetch all profiles and filter
+  // Fetch users for the current user's property
   const fetchProfiles = async () => {
+    if (!user?.propertyId) {
+      setError('Property ID not found. Please log in again.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/profile`);
+      const response = await fetch(`${API_BASE_URL}/properties/${user.propertyId}/users`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Failed to fetch profiles');
+        throw new Error(errorData?.message || 'Failed to fetch users');
       }
       const data = await response.json();
       
-      // Find current user's profile (you can modify this logic based on how you identify current user)
-      // For now, we'll use the first user as current user - modify this as needed
-      const currentUser = data[0]; // Replace this with your actual current user logic
-      setCurrentUserProfile(currentUser);
+      setProfiles(data);
       
-      // Filter profiles by current user's property_id
-      if (currentUser?.property_id) {
-        const filteredProfiles = data.filter((profile: Profile) => 
-          profile.property_id === currentUser.property_id
-        );
-        setProfiles(filteredProfiles);
-      } else {
-        setProfiles(data); // Show all if no property_id found
+      // Set current user profile (you can modify this logic based on your needs)
+      if (data.length > 0) {
+        setCurrentUserProfile(data[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch profiles');
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -164,7 +168,7 @@ const CadminUserProfile: React.FC = () => {
       phone_no: '',
       user_role: 'user',
       user_type: '',
-      property_id: currentUserProfile?.property_id || ''
+      property_id: user?.propertyId || ''
     });
   };
 
@@ -190,14 +194,16 @@ const CadminUserProfile: React.FC = () => {
       phone_no: profile.phone_no || '',
       user_role: profile.user_role || 'user',
       user_type: profile.user_type || '',
-      property_id: profile.property_id || currentUserProfile?.property_id || ''
+      property_id: user?.propertyId || ''
     });
     setShowCreateForm(true);
   };
 
   useEffect(() => {
-    fetchProfiles();
-  }, []);
+    if (user?.propertyId) {
+      fetchProfiles();
+    }
+  }, [user?.propertyId]);
 
   if (loading) {
     return (
@@ -217,7 +223,7 @@ const CadminUserProfile: React.FC = () => {
               User Profile Dashboard
             </h1>
             <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
-              Property ID: {currentUserProfile?.property_id || 'Loading...'}
+              Property ID: {user?.propertyId || 'Loading...'}
             </p>
           </div>
           <button

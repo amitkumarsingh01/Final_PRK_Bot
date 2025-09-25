@@ -100,11 +100,13 @@ const CadminTasks: React.FC = () => {
     description: string;
     user_role: string;
     user_type: string;
+    property_id: string;
   }>({
     name: '',
     description: '',
     user_role: '',
-    user_type: ''
+    user_type: '',
+    property_id: user?.propertyId || ''
   });
 
   // Task form state
@@ -117,6 +119,7 @@ const CadminTasks: React.FC = () => {
     closing_time: string;
     comment: string;
     activity_id: string;
+    property_id: string;
   }>({
     name: '',
     description: '',
@@ -125,7 +128,8 @@ const CadminTasks: React.FC = () => {
     opening_time: '',
     closing_time: '',
     comment: '',
-    activity_id: ''
+    activity_id: '',
+    property_id: user?.propertyId || ''
   });
 
 
@@ -172,7 +176,7 @@ const CadminTasks: React.FC = () => {
       }
       setShowActivityForm(false);
       setEditingActivity(null);
-      setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+      setActivityForm({ name: '', description: '', user_role: '', user_type: '', property_id: user?.propertyId || '' });
       loadActivities();
     } catch (error) {
       console.error('Error saving activity:', error);
@@ -205,7 +209,8 @@ const CadminTasks: React.FC = () => {
         opening_time: '',
         closing_time: '',
         comment: '',
-        activity_id: ''
+        activity_id: '',
+        property_id: user?.propertyId || ''
       });
       loadActivities();
     } catch (error) {
@@ -291,7 +296,8 @@ const CadminTasks: React.FC = () => {
       name: activity.name,
       description: activity.description || '',
       user_role: activity.user_role || '',
-      user_type: activity.user_type || ''
+      user_type: activity.user_type || '',
+      property_id: user?.propertyId || ''
     });
     setShowActivityForm(true);
   };
@@ -306,7 +312,8 @@ const CadminTasks: React.FC = () => {
       opening_time: task.opening_time ? task.opening_time.slice(0, 16) : '',
       closing_time: task.closing_time ? task.closing_time.slice(0, 16) : '',
       comment: task.comment || '',
-      activity_id: task.activity_id
+      activity_id: task.activity_id,
+      property_id: user?.propertyId || ''
     });
     setShowTaskForm(true);
   };
@@ -321,7 +328,8 @@ const CadminTasks: React.FC = () => {
       opening_time: '',
       closing_time: '',
       comment: '',
-      activity_id: activityId
+      activity_id: activityId,
+      property_id: user?.propertyId || ''
     });
     setShowTaskForm(true);
   };
@@ -626,7 +634,7 @@ const CadminTasks: React.FC = () => {
                   onClick={() => {
                     setShowActivityForm(false);
                     setEditingActivity(null);
-                    setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+                    setActivityForm({ name: '', description: '', user_role: '', user_type: '', property_id: user?.propertyId || '' });
                   }}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -695,7 +703,7 @@ const CadminTasks: React.FC = () => {
                     onClick={() => {
                       setShowActivityForm(false);
                       setEditingActivity(null);
-                      setActivityForm({ name: '', description: '', user_role: '', user_type: '' });
+                      setActivityForm({ name: '', description: '', user_role: '', user_type: '', property_id: user?.propertyId || '' });
                     }}
                     className="flex-1 py-3 px-4 rounded-lg font-semibold transition-colors"
                     style={{ 
@@ -731,7 +739,8 @@ const CadminTasks: React.FC = () => {
                       opening_time: '',
                       closing_time: '',
                       comment: '',
-                      activity_id: ''
+                      activity_id: '',
+                      property_id: user?.propertyId || ''
                     });
                   }}
                   className="text-gray-500 hover:text-gray-700"
@@ -842,7 +851,8 @@ const CadminTasks: React.FC = () => {
                         opening_time: '',
                         closing_time: '',
                         comment: '',
-                        activity_id: ''
+                        activity_id: '',
+                        property_id: user?.propertyId || ''
                       });
                     }}
                     className="flex-1 py-3 px-4 rounded-lg font-semibold transition-colors"
