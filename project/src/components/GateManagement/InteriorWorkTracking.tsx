@@ -257,10 +257,10 @@ const InteriorWorkTrackingPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {/* Add Button */}
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Interior Work Tracking Entry

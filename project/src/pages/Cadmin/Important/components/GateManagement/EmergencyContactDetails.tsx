@@ -31,7 +31,7 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -57,10 +57,35 @@ const CEmergencyContactDetailsPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: EmergencyContactDetails | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: EmergencyContactDetails | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
-    const  = user?.userType === 'property_user';
-  const  = user?.propertyId;
+  // Treat admin and cadmin as having action permissions
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
 
-  // Fetch properties based on user type
+  // Fetch data for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch visitor management reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
+
   const handleEdit = (item: EmergencyContactDetails, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
@@ -101,7 +126,9 @@ const CEmergencyContactDetailsPage: React.FC = () => {
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { emergency_contact_details: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { emergency_contact_details: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
@@ -109,31 +136,18 @@ const CEmergencyContactDetailsPage: React.FC = () => {
     }
   };
 
-    return (
+  return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Emergency Contact Details</h2>
-      {isAdmin ? (
-        <div className="mb-6 max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-            </div>
+      <div className="mb-6 max-w-md">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+        <div className="flex items-center gap-2">
+          <Building className="h-5 w-5 text-gray-400" />
+          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
         </div>
-      ) : (
-        <div className="mb-6 max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-          <div className="flex items-center gap-2">
-            <Building className="h-5 w-5 text-gray-400" />
-            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-            </div>
-          </div>
-        </div>
-        </div>
-      )}
+      </div>
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -253,8 +267,8 @@ const CEmergencyContactDetailsPage: React.FC = () => {
           </div>
         </div>
       )}
-        </div>
-    );
+    </div>
+  );
 };
 
 export default CEmergencyContactDetailsPage;

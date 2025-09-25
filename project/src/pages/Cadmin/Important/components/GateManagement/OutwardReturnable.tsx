@@ -60,8 +60,9 @@ const emptyOutward: OutwardReturnable = {
 
 const COutwardReturnablePage: React.FC = () => {
   console.log('🚀 OutwardReturnable: Component initialized');
-  const { isAdmin, isPropertyUser, currentUserPropertyId } = useAuth();
-  console.log('👤 OutwardReturnable: User loaded', { isAdmin, isPropertyUser });
+  const { user } = useAuth();
+  console.log('👤 OutwardReturnable: User loaded', { userId: user?.userId });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +73,23 @@ const COutwardReturnablePage: React.FC = () => {
 
 
   // Fetch visitor management reports for user's property
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
+
   const fetchData = async () => {
-    if (!currentUserPropertyId) return;
-    
+    if (!user?.propertyId) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${currentUserPropertyId}`);
-      setData(res.data);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
     } catch (e) {
       setError('Failed to fetch visitor management reports');
     }
@@ -86,10 +97,8 @@ const COutwardReturnablePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (currentUserPropertyId) {
-      fetchData();
-    }
-  }, [currentUserPropertyId]);
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
 
   // CRUD handlers
   const handleEdit = (item: OutwardReturnable, reportId: string) => {
@@ -102,6 +111,24 @@ const COutwardReturnablePage: React.FC = () => {
       item: { ...emptyOutward },
       reportId,
     });
+  };
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!user?.propertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: user.propertyId,
+        outward_returnable: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
   };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this entry?')) return;
@@ -155,7 +182,7 @@ const COutwardReturnablePage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Building className="h-5 w-5 text-gray-400" />
           <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-            {currentUserPropertyId ? 'Current Property' : 'No Property Assigned'}
+            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
           </div>
         </div>
       </div>
@@ -218,10 +245,10 @@ const COutwardReturnablePage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {/* Add Button */}
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Outward Returnable Entry

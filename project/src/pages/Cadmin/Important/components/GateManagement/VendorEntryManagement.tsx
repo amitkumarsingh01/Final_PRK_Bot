@@ -56,33 +56,18 @@ const emptyVendor: VendorEntryManagement = {
 
 const CVendorEntryManagementPage: React.FC = () => {
   console.log('🚀 VendorEntryManagement: Component initialized');
-  const { isAdmin, isPropertyUser, currentUserPropertyId } = useAuth();
-  console.log('👤 VendorEntryManagement: User loaded', { isAdmin, isPropertyUser });
+  const { user } = useAuth();
+  console.log('👤 VendorEntryManagement: User loaded', { userId: user?.userId });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: VendorEntryManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: VendorEntryManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
-  // Check if user is admin
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    checkAdminStatus();
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
   }, [user]);
 
 
@@ -90,11 +75,16 @@ const CVendorEntryManagementPage: React.FC = () => {
   // Fetch visitor management reports for user's property
   const fetchData = async () => {
     if (!user?.propertyId) return;
-    
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
-      setData(res.data);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
     } catch (e) {
       setError('Failed to fetch visitor management reports');
     }

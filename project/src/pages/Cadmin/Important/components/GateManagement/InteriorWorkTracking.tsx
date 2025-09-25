@@ -37,7 +37,7 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -58,8 +58,37 @@ const emptyWork: InteriorWorkTracking = {
 
 const CInteriorWorkTrackingPage: React.FC = () => {
   console.log('🚀 InteriorWorkTracking: Component initialized');
-  const { isAdmin, ,  } = useAuth();
-  console.log('👤 InteriorWorkTracking: User loaded', { isAdmin });
+  const { user } = useAuth();
+  console.log('👤 InteriorWorkTracking: User loaded', { userId: user?.userId });
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Treat admin and cadmin as having action permissions
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
+
+  // Fetch data for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch visitor management reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +107,25 @@ const CInteriorWorkTrackingPage: React.FC = () => {
       reportId,
     });
   };
+  // Create an empty report for the property if none exists
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!user?.propertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: user.propertyId,
+        interior_work_tracking: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
+  };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
@@ -87,7 +135,9 @@ const CInteriorWorkTrackingPage: React.FC = () => {
       // Remove the entry
       const newArr = report.interior_work_tracking.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { interior_work_tracking: newArr });
+      await axios.put(`${API_URL}${reportId}`, { interior_work_tracking: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -112,7 +162,9 @@ const CInteriorWorkTrackingPage: React.FC = () => {
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { interior_work_tracking: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { interior_work_tracking: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
@@ -121,7 +173,7 @@ const CInteriorWorkTrackingPage: React.FC = () => {
   };
 
   // Main render
-    return (
+  return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Interior Work Tracking Management</h2>
       {/* Property Display */}
@@ -191,10 +243,10 @@ const CInteriorWorkTrackingPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {/* Add Button */}
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Interior Work Tracking Entry
@@ -272,8 +324,8 @@ const CInteriorWorkTrackingPage: React.FC = () => {
           </div>
         </div>
       )}
-        </div>
-    );
+    </div>
+  );
 };
 
 export default CInteriorWorkTrackingPage;

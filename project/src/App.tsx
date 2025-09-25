@@ -67,6 +67,23 @@ import WaterTankerManagement from './components/GateManagement/WaterTankerManage
 import VendorEntryManagement from './components/GateManagement/VendorEntryManagement';
 import StaEntryManagement from './components/GateManagement/StaEntryManagement';
 import EmergencyContactDetails from './components/GateManagement/EmergencyContactDetails';
+// Cadmin Gate Management versions (fixed property display)
+import CVisitorManagement from './pages/Cadmin/Important/components/GateManagement/VisitorManagement';
+import CInwardNonReturnable from './pages/Cadmin/Important/components/GateManagement/InwardNonReturnable';
+import CInwardReturnable from './pages/Cadmin/Important/components/GateManagement/InwardReturnable';
+import CMoveOut from './pages/Cadmin/Important/components/GateManagement/MoveOut';
+import CGatePassManagement from './pages/Cadmin/Important/components/GateManagement/GatePassManagement';
+import CInteriorWorkTracking from './pages/Cadmin/Important/components/GateManagement/InteriorWorkTracking';
+import COutwardReturnable from './pages/Cadmin/Important/components/GateManagement/OutwardReturnable';
+import COutwardNonReturnable from './pages/Cadmin/Important/components/GateManagement/OutwardNonReturnable';
+import CWorkPermitIssuance from './pages/Cadmin/Important/components/GateManagement/WorkPermitIssuance';
+import CMoveIn from './pages/Cadmin/Important/components/GateManagement/MoveIn';
+import CBlocklistManagement from './pages/Cadmin/Important/components/GateManagement/BlocklistManagement';
+import CDailyEntryDetails from './pages/Cadmin/Important/components/GateManagement/DailyEntryDetails';
+import CWaterTankerManagement from './pages/Cadmin/Important/components/GateManagement/WaterTankerManagement';
+import CVendorEntryManagement from './pages/Cadmin/Important/components/GateManagement/VendorEntryManagement';
+import CStaEntryManagement from './pages/Cadmin/Important/components/GateManagement/StaEntryManagement';
+import CEmergencyContactDetails from './pages/Cadmin/Important/components/GateManagement/EmergencyContactDetails';
 import InteriorWorkApprovals from './components/CommunityManagement/InteriorWorkApprovals';
 import WorkPermitTracking from './components/CommunityManagement/WorkPermitTracking';
 import TicketsManagement from './components/CommunityManagement/TicketsManagement';
@@ -358,22 +375,22 @@ const AppRoutes = () => {
         <Route path="cadmin/post-transition-checklist" element={<PostTransitionChecklistsPage />} />
 
         {/* Cadmin - Gate Management */}
-        <Route path="cadmin/visitor-management" element={<VisitorManagement />} />
-        <Route path="cadmin/inward-non-returnable" element={<InwardNonReturnable />} />
-        <Route path="cadmin/inward-returnable" element={<InwardReturnable />} />
-        <Route path="cadmin/outward-non-returnable" element={<OutwardNonReturnable />} />
-        <Route path="cadmin/outward-returnable" element={<OutwardReturnable />} />
-        <Route path="cadmin/move-in" element={<MoveIn />} />
-        <Route path="cadmin/move-out" element={<MoveOut />} />
-        <Route path="cadmin/interior-work-tracking" element={<InteriorWorkTracking />} />
-        <Route path="cadmin/work-permit-issuance" element={<WorkPermitIssuance />} />
-        <Route path="cadmin/gate-pass-management" element={<GatePassManagement />} />  
-        <Route path="cadmin/blocklist-management" element={<BlocklistManagement />} />
-        <Route path="cadmin/daily-entry-details" element={<DailyEntryDetails />} />
-        <Route path="cadmin/water-tanker-management" element={<WaterTankerManagement />} />
-        <Route path="cadmin/vendor-entry-management" element={<VendorEntryManagement />} />
-        <Route path="cadmin/sta-entry-management" element={<StaEntryManagement />} />
-        <Route path="cadmin/emergency-contact-details" element={<EmergencyContactDetails />} />
+        <Route path="cadmin/visitor-management" element={<CVisitorManagement />} />
+        <Route path="cadmin/inward-non-returnable" element={<CInwardNonReturnable />} />
+        <Route path="cadmin/inward-returnable" element={<CInwardReturnable />} />
+        <Route path="cadmin/outward-non-returnable" element={<COutwardNonReturnable />} />
+        <Route path="cadmin/outward-returnable" element={<COutwardReturnable />} />
+        <Route path="cadmin/move-in" element={<CMoveIn />} />
+        <Route path="cadmin/move-out" element={<CMoveOut />} />
+        <Route path="cadmin/interior-work-tracking" element={<CInteriorWorkTracking />} />
+        <Route path="cadmin/work-permit-issuance" element={<CWorkPermitIssuance />} />
+        <Route path="cadmin/gate-pass-management" element={<CGatePassManagement />} />  
+        <Route path="cadmin/blocklist-management" element={<CBlocklistManagement />} />
+        <Route path="cadmin/daily-entry-details" element={<CDailyEntryDetails />} />
+        <Route path="cadmin/water-tanker-management" element={<CWaterTankerManagement />} />
+        <Route path="cadmin/vendor-entry-management" element={<CVendorEntryManagement />} />
+        <Route path="cadmin/sta-entry-management" element={<CStaEntryManagement />} />
+        <Route path="cadmin/emergency-contact-details" element={<CEmergencyContactDetails />} />
 
         {/* Cadmin - Community Management */}
         <Route path="cadmin/tickets-management" element={<TicketsManagement />} />

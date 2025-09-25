@@ -37,7 +37,7 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -58,8 +58,37 @@ const emptyMoveIn: MoveIn = {
 
 const CMoveInPage: React.FC = () => {
   console.log('🚀 MoveIn: Component initialized');
-  const { isAdmin, ,  } = useAuth();
-  console.log('👤 MoveIn: User loaded', { isAdmin });
+  const { user } = useAuth();
+  console.log('👤 MoveIn: User loaded', { userId: user?.userId });
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Treat admin and cadmin as having action permissions
+  useEffect(() => {
+    if (!user) return;
+    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+  }, [user]);
+
+  // Fetch data for user's property
+  const fetchData = async () => {
+    if (!user?.propertyId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch visitor management reports');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.propertyId) fetchData();
+  }, [user?.propertyId]);
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +116,9 @@ const CMoveInPage: React.FC = () => {
       // Remove the entry
       const newArr = report.move_in.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { move_in: newArr });
+      await axios.put(`${API_URL}${reportId}`, { move_in: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -112,7 +143,9 @@ const CMoveInPage: React.FC = () => {
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { move_in: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { move_in: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
@@ -121,7 +154,7 @@ const CMoveInPage: React.FC = () => {
   };
 
   // Main render
-    return (
+  return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Move In Management</h2>
       {/* Property Display */}
@@ -274,8 +307,8 @@ const CMoveInPage: React.FC = () => {
           </div>
         </div>
       )}
-        </div>
-    );
+    </div>
+  );
 };
 
 export default CMoveInPage;
