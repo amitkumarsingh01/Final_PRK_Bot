@@ -33,7 +33,7 @@ interface QualityReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/quality-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -61,16 +61,55 @@ const ProcessManagementSetupPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: ProcessSetup | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: ProcessSetup | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
   const handleEdit = (item: ProcessSetup, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
-  const handleAdd = (reportId: string) => {
-    setEditModal({
-      open: true,
-      isNew: true,
-      item: { ...emptyProcessSetup },
-      reportId,
-    });
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditModal({ open: true, isNew: true, item: { ...emptyProcessSetup }, reportId: id });
   };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this process setup?')) return;
@@ -159,6 +198,17 @@ const ProcessManagementSetupPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={12} className="text-center py-6">Loading...</td></tr>
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan={12} className="text-center py-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <span>No records found</span>
+                    {isAdmin && (
+                      <button onClick={() => handleAdd()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Process Setup</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ) : (
               <>
                 {data.flatMap((report, rIdx) =>

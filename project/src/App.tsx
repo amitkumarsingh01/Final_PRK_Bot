@@ -132,6 +132,14 @@ import QualityAssurance from './components/QualityAndProcess.tsx/QualityAssuranc
 import QualityControl from './components/QualityAndProcess.tsx/QualityControl';
 import PerformanceMonitoring from './components/QualityAndProcess.tsx/PerformanceMonitoring';
 import DocumentationReporting from './components/QualityAndProcess.tsx/DocumentationReporting';
+
+// Cadmin Quality & Process versions (no dropdown)
+import CQualityPlanning from './pages/Cadmin/Important/components/QualityAndProcess.tsx/QualityPlanning';
+import CProcessManagementSetup from './pages/Cadmin/Important/components/QualityAndProcess.tsx/ProcessManagementSetup';
+import CQualityAssurance from './pages/Cadmin/Important/components/QualityAndProcess.tsx/QualityAssurance';
+import CQualityControl from './pages/Cadmin/Important/components/QualityAndProcess.tsx/QualityControl';
+import CPerformanceMonitoring from './pages/Cadmin/Important/components/QualityAndProcess.tsx/PerformanceMonitoring';
+import CDocumentationReporting from './pages/Cadmin/Important/components/QualityAndProcess.tsx/DocumentationReporting';
 import SiteAssessmentAndPlanning from './components/FireSafety/Site_Assessment_and_Planning';
 import InstallationAndEquipmentSetup from './components/FireSafety/Installation_and_Equipment_Setup';
 import FireSafetyDocuments from './components/FireSafety/Fire_Safety_Documents';
@@ -450,12 +458,12 @@ const AppRoutes = () => {
         <Route path="cadmin/expiry-damage-log" element={<CExpiryDamageLog />} />
 
         {/* Cadmin - Quality and Process Management */}
-        <Route path="cadmin/quality-planning" element={<QualityPlanning />} />
-        <Route path="cadmin/process-management-setup" element={<ProcessManagementSetup />} />
-        <Route path="cadmin/quality-assurance" element={<QualityAssurance />} />
-        <Route path="cadmin/quality-control" element={<QualityControl />} />
-        <Route path="cadmin/performance-monitoring" element={<PerformanceMonitoring />} />
-        <Route path="cadmin/documentation-and-reporting" element={<DocumentationReporting />} />
+        <Route path="cadmin/quality-planning" element={<CQualityPlanning />} />
+        <Route path="cadmin/process-management-setup" element={<CProcessManagementSetup />} />
+        <Route path="cadmin/quality-assurance" element={<CQualityAssurance />} />
+        <Route path="cadmin/quality-control" element={<CQualityControl />} />
+        <Route path="cadmin/performance-monitoring" element={<CPerformanceMonitoring />} />
+        <Route path="cadmin/documentation-and-reporting" element={<CDocumentationReporting />} />
 
         {/* Cadmin - Fire and Safety */}
         <Route path="cadmin/site-assessment-and-planning" element={<SiteAssessmentAndPlanning />} />
