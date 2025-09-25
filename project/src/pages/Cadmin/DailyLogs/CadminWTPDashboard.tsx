@@ -59,14 +59,14 @@ const Spinner = () => (
 );
 
 // Component for showing error messages
-const ErrorAlert = ({ message }) => (
+const ErrorAlert = ({ message }: { message: string }) => (
   <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
     <p>{message}</p>
   </div>
 );
 
 // Card component for displaying metrics
-const MetricCard = ({ title, value, unit }) => (
+const MetricCard = ({ title, value, unit }: { title: string; value: number | null | undefined; unit?: string }) => (
   <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-500">
     <h3 className="text-gray-600 text-sm font-medium">{title}</h3>
     <div className="flex items-end mt-2">
@@ -80,7 +80,7 @@ const MetricCard = ({ title, value, unit }) => (
 const COLORS = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 // Component for displaying WTP phase data
-const WTPPhaseCard = ({ wtp }) => {
+const WTPPhaseCard = ({ wtp }: { wtp: WTP }) => {
   // Generate chart data for water quality
   const waterQualityData = [
     { name: 'Raw Water Hardness', value: wtp.raw_water_hardness || 0 },
@@ -163,9 +163,9 @@ const WTPPhaseCard = ({ wtp }) => {
 const CadminWTPDashboard = () => {
   const { isAuthenticated, user } = useAuth();
   const { profile } = useProfile();
-  const [wtpData, setWtpData] = useState([]);
+  const [wtpData, setWtpData] = useState<WTP[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -185,9 +185,6 @@ const CadminWTPDashboard = () => {
     turbidity: ''
   });
 
-  // Get property_id from different sources
-  const defaultPropertyId = profile?.property_id || '';
-  
   // Use profile loading state
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -202,30 +199,23 @@ const CadminWTPDashboard = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        console.log('Fetching properties...');
-        console.log('User profile:', profile);
-        console.log('User token:', user?.token);
+        const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+        if (!resolvedPropertyId) {
+          setError("No property found for this user");
+          return;
+        }
 
-        const response = await fetch('https://server.prktechindia.in/properties', {
+        const response = await fetch(`https://server.prktechindia.in/properties/${resolvedPropertyId}`, {
           headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
         });
         
         if (!response.ok) {
-          throw new Error('Failed to fetch properties');
+          throw new Error('Failed to fetch property');
         }
         
-        const data = await response.json();
-        console.log('Properties response:', data);
-        
-        const userProperty = data.find((p: Property) => p.id === profile?.property_id);
-        console.log('Found user property:', userProperty);
-        
-        if (userProperty) {
-          setProperties([userProperty]);
-          setSelectedPropertyId(userProperty.id);
-        } else {
-          setError("No property found for this user");
-        }
+        const data: Property = await response.json();
+        setProperties([data]);
+        setSelectedPropertyId(data.id);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError('Failed to fetch properties. Please try again.');
@@ -233,7 +223,7 @@ const CadminWTPDashboard = () => {
     };
     
     fetchProperties();
-  }, [defaultPropertyId, user?.token, profile]);
+  }, [profile, user?.propertyId, user?.token]);
 
   // Fetch WTP data when property changes
   useEffect(() => {
@@ -257,11 +247,14 @@ const CadminWTPDashboard = () => {
         }
 
         const data = await response.json();
-        setWtpData(data);
+        const filtered = Array.isArray(data)
+          ? data.filter((w: WTP) => w.property_id === selectedPropertyId)
+          : [];
+        setWtpData(filtered);
         setError(null);
       } catch (err) {
         console.error('Error fetching WTP data:', err);
-        setError(err.message || 'Failed to load WTP data');
+        setError((err as any).message || 'Failed to load WTP data');
       } finally {
         setLoading(false);
       }

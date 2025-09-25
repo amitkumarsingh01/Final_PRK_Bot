@@ -72,19 +72,36 @@ const DailyManagementReport: React.FC = () => {
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit' | 'view'; report: DailySummaryReport | null }>({ open: false, mode: 'add', report: null });
   const [editReport, setEditReport] = useState<DailySummaryReport | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Fetch properties
+  // Fetch properties and set admin status
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
+        if (user?.userType === 'admin') {
+          // Admin sees all properties
+          const res = await axios.get(PROPERTIES_URL);
+          setProperties(res.data);
+          setIsAdmin(true);
+        } else if ((user?.userType === 'cadmin' || user?.userType === 'property_user') && user?.propertyId) {
+          // Cadmin and property user only see their assigned property
+          const res = await axios.get(`${PROPERTIES_URL}/${user.propertyId}`);
+          setProperties([res.data]);
+          setIsAdmin(user?.userType === 'cadmin'); // Cadmin gets admin features, property_user doesn't
+        }
       } catch (e) {
         setError('Failed to fetch properties');
       }
     };
     fetchProperties();
-  }, []);
+  }, [user]);
+
+  // Set selectedPropertyId for cadmin and property_user
+  useEffect(() => {
+    if ((user?.userType === 'cadmin' || user?.userType === 'property_user') && user?.propertyId) {
+      setSelectedPropertyId(user.propertyId);
+    }
+  }, [user]);
 
   // Fetch reports for selected property
   useEffect(() => {
@@ -218,25 +235,37 @@ const DailyManagementReport: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Daily Management Report</h2>
       {/* Property Selection Dropdown */}
-      <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+      {user?.userType === 'admin' ? (
+        <div className="mb-6 max-w-md">
+          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <select
+              id="propertySelect"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+            >
+              <option value="">Select a property...</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name} - {property.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {properties.find(p => p.id === selectedPropertyId)?.name || 'Loading...'}
+            </div>
+          </div>
+        </div>
+      )}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
         <table className="min-w-full text-sm">
@@ -248,12 +277,12 @@ const DailyManagementReport: React.FC = () => {
               <th className="px-3 py-2 border">Shift</th>
               <th className="px-3 py-2 border">Departments</th>
               <th className="px-3 py-2 border">Summary</th>
-              <th className="px-3 py-2 border">Actions</th>
+              {isAdmin && <th className="px-3 py-2 border">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-6">Loading...</td></tr>
+              <tr><td colSpan={isAdmin ? 7 : 6} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
                 {reports.map((report) => (
@@ -268,11 +297,13 @@ const DailyManagementReport: React.FC = () => {
                     <td className="border px-2 py-1">
                       {report.summary.map((s, i) => <div key={i}>{s.department}: {s.completed}/{s.tasks_planned}</div>)}
                     </td>
-                    <td className="border px-2 py-1 text-center">
-                      <button onClick={() => handleView(report)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                      <button onClick={() => handleEdit(report)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                      <button onClick={() => handleDelete(report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                    </td>
+                    {isAdmin && (
+                      <td className="border px-2 py-1 text-center">
+                        <button onClick={() => handleView(report)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                        <button onClick={() => handleEdit(report)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        <button onClick={() => handleDelete(report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </>
@@ -280,13 +311,15 @@ const DailyManagementReport: React.FC = () => {
           </tbody>
         </table>
       </div>
-      <button
-        onClick={handleAdd}
-        className="mt-4 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
-        disabled={!selectedPropertyId}
-      >
-        <Plus size={18} className="mr-2" /> Add Report
-      </button>
+      {isAdmin && (
+        <button
+          onClick={handleAdd}
+          className="mt-4 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+          disabled={!selectedPropertyId}
+        >
+          <Plus size={18} className="mr-2" /> Add Report
+        </button>
+      )}
 
       {/* Modal for Add/Edit/View */}
       {modal.open && (
@@ -399,6 +432,14 @@ const DailyManagementReport: React.FC = () => {
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-medium text-gray-700">Summary</label>
                     <button onClick={handleAddSummary} className="text-green-600 flex items-center"><Plus size={16} className="mr-1" /> Add Summary</button>
+                  </div>
+                  {/* Column helper labels so users know what each number means */}
+                  <div className="hidden md:flex items-center mb-1 text-xs text-gray-500 px-2">
+                    <div className="w-40 mr-2">Department</div>
+                    <div className="w-32 mr-2 text-center">Planned</div>
+                    <div className="w-32 mr-2 text-center">Completed</div>
+                    <div className="w-32 mr-2 text-center">Pending</div>
+                    <div className="flex-1">Remarks</div>
                   </div>
                   {editReport.summary.map((sum, sumIdx) => (
                     <div key={sumIdx} className="border rounded p-2 mb-2 flex gap-2 items-center">

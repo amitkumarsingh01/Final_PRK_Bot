@@ -103,7 +103,12 @@ const DailyReportsPage: React.FC = () => {
     setError(null);
     try {
       const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setReports(res.data || []);
+      const data: SiteReport[] = res.data || [];
+      // Frontend safeguard: filter to the active property
+      const filtered = Array.isArray(data)
+        ? data.filter(r => r.property_id === propertyId)
+        : [];
+      setReports(filtered);
     } catch (e) {
       setError('Failed to fetch daily reports');
     } finally {

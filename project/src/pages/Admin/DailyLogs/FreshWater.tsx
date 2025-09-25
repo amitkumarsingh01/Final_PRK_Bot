@@ -223,7 +223,11 @@ export default function FreshWater() {
       if (!response.ok) throw new Error('Failed to fetch water sources');
       
       const data = await response.json();
-      setWaterSources(data);
+      // Frontend filter safeguard: keep only the currently selected property's sources
+      const filtered = Array.isArray(data)
+        ? data.filter((w: WaterSource) => w.property_id === propertyId)
+        : [];
+      setWaterSources(filtered);
       setError('');
     } catch (err) {
       setError('Error fetching water sources. Please try again.');
@@ -257,7 +261,11 @@ export default function FreshWater() {
       if (!response.ok) throw new Error('Failed to fetch readings');
       
       const data = await response.json();
-      setWaterReadings(data);
+      // Frontend filter safeguard for readings as well
+      const filtered = Array.isArray(data)
+        ? data.filter((r: WaterReading) => r.property_id === propertyId)
+        : [];
+      setWaterReadings(filtered);
     } catch (err) {
       setError('Error fetching water readings. Please try again.');
       console.error(err);

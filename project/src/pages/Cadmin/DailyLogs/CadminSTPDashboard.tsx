@@ -98,23 +98,25 @@ const CadminSTPDashboard = () => {
   
   // Add a loading state for profile
   const [profileLoading, setProfileLoading] = useState(true);
-
+ 
   // Check if profile is loaded
   useEffect(() => {
-    if (profile) {
+    if (profile || user?.propertyId) {
       setProfileLoading(false);
     }
-  }, [profile]);
-
+  }, [profile, user?.propertyId]);
+ 
   // Fetch properties
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        console.log('Fetching properties...');
-        console.log('User profile:', profile);
-        console.log('User token:', user?.token);
-
-        const response = await fetch('https://server.prktechindia.in/properties', {
+        const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+        if (!resolvedPropertyId) {
+          setError('No property found for this user');
+          return;
+        }
+ 
+        const response = await fetch('https://server.prktechindia.in/properties/' + resolvedPropertyId, {
           headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
         });
         
@@ -122,18 +124,9 @@ const CadminSTPDashboard = () => {
           throw new Error('Failed to fetch properties');
         }
         
-        const data = await response.json();
-        console.log('Properties response:', data);
-        
-        const userProperty = data.find((p: Property) => p.id === profile?.property_id);
-        console.log('Found user property:', userProperty);
-        
-        if (userProperty) {
-          setProperties([userProperty]);
-          setSelectedPropertyId(userProperty.id);
-        } else {
-          setError("No property found for this user");
-        }
+        const data: Property = await response.json();
+        setProperties([data]);
+        setSelectedPropertyId(data.id);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError('Failed to fetch properties. Please try again.');
@@ -141,8 +134,8 @@ const CadminSTPDashboard = () => {
     };
     
     fetchProperties();
-  }, [defaultPropertyId, user?.token, profile]);
-
+  }, [user?.token, profile, user?.propertyId]);
+ 
   // Fetch STP data when property changes
   useEffect(() => {
     if (!selectedPropertyId) return;
@@ -159,9 +152,12 @@ const CadminSTPDashboard = () => {
         }
         
         const data = await response.json();
-        setStpData(data);
-        if (data.length > 0) {
-          setSelectedSTP(data[0]);
+        const filtered = Array.isArray(data)
+          ? data.filter((s: STP) => s.property_id === selectedPropertyId)
+          : [];
+        setStpData(filtered);
+        if (filtered.length > 0) {
+          setSelectedSTP(filtered[0]);
         } else {
           setSelectedSTP(null);
         }

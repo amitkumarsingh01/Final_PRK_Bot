@@ -115,29 +115,23 @@ export default function CadminFreshWater() {
 
   const fetchProperties = async () => {
     try {
-      console.log('Fetching properties...');
-      console.log('User profile:', profile);
-      console.log('User token:', user?.token);
+      const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+      if (!resolvedPropertyId) {
+        setError('User profile not loaded properly');
+        return;
+      }
 
-      const response = await fetch(`${API_BASE_URL}/properties`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${resolvedPropertyId}`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       
-      if (!response.ok) throw new Error('Failed to fetch properties');
+      if (!response.ok) throw new Error('Failed to fetch property');
       
-      const data = await response.json();
-      console.log('Properties response:', data);
-      
-      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
-      console.log('Found user property:', userProperty);
-      
-      if (userProperty) {
-        setProperties([userProperty]);
-        setSelectedPropertyId(userProperty.id);
-        setPropertyId(userProperty.id);
-      } else {
-        setError("No property found for this user");
-      }
+      const data: Property = await response.json();
+      setProperties([data]);
+      setSelectedPropertyId(data.id);
+      setPropertyId(data.id);
+      setError('');
     } catch (err) {
       console.error('Error fetching properties:', err);
       setError('Failed to fetch properties. Please try again.');
@@ -146,14 +140,13 @@ export default function CadminFreshWater() {
 
   // Initial data load
   useEffect(() => {
-    console.log('Initial load - Profile:', profile);
-    if (profile?.property_id) {
+    const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+    if (resolvedPropertyId) {
       fetchProperties();
     } else {
-      console.log('No property ID in profile');
-      setError("User profile not loaded properly");
+      setError('User profile not loaded properly');
     }
-  }, [profile]);
+  }, [profile, user?.propertyId]);
   
   // Fetch water sources when needed
   useEffect(() => {
@@ -207,7 +200,11 @@ export default function CadminFreshWater() {
       if (!response.ok) throw new Error('Failed to fetch water sources');
       
       const data = await response.json();
-      setWaterSources(data);
+      // Frontend filter: some backends ignore property_id filter. Keep only current property's items
+      const filtered = Array.isArray(data)
+        ? data.filter((w: WaterSource) => w.property_id === propertyId)
+        : [];
+      setWaterSources(filtered);
       setError('');
     } catch (err) {
       setError('Error fetching water sources. Please try again.');
@@ -241,7 +238,11 @@ export default function CadminFreshWater() {
       if (!response.ok) throw new Error('Failed to fetch readings');
       
       const data = await response.json();
-      setWaterReadings(data);
+      // Frontend filter safeguard
+      const filtered = Array.isArray(data)
+        ? data.filter((r: WaterReading) => r.property_id === propertyId)
+        : [];
+      setWaterReadings(filtered);
     } catch (err) {
       setError('Error fetching water readings. Please try again.');
       console.error(err);

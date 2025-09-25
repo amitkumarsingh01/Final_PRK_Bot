@@ -97,33 +97,27 @@ export default function CadminDieselGeneratorDashboard() {
   const secondaryBgColor = "bg-orange-500";
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  // Fetch properties
+  // Fetch properties (cadmin: fixed single property)
   const fetchProperties = async () => {
     try {
-      console.log('Fetching properties...');
-      console.log('User profile:', profile);
-      console.log('User token:', user?.token);
+      const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+      if (!resolvedPropertyId) {
+        setError('No property found for this user');
+        return;
+      }
 
-      const response = await fetch(`${API_BASE_URL}/properties`, {
+      const response = await fetch(`${API_BASE_URL}/properties/${resolvedPropertyId}`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       
       if (!response.ok) {
-        throw new Error("Failed to fetch properties");
+        throw new Error("Failed to fetch property");
       }
       
-      const data = await response.json();
-      console.log('Properties response:', data);
-      
-      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
-      console.log('Found user property:', userProperty);
-      
-      if (userProperty) {
-        setProperties([userProperty]);
-        setSelectedPropertyId(userProperty.id);
-      } else {
-        setError("No property found for this user");
-      }
+      const data: Property = await response.json();
+      setProperties([data]);
+      setSelectedPropertyId(data.id);
+      setError(null);
     } catch (err) {
       console.error('Error fetching properties:', err);
       setError('Failed to fetch properties. Please try again.');
@@ -137,15 +131,20 @@ export default function CadminDieselGeneratorDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/diesel-generators/?property_id=${selectedPropertyId}`);
+      const response = await fetch(`${API_BASE_URL}/diesel-generators/?property_id=${selectedPropertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch generators");
       }
       const data = await response.json();
-      setGenerators(data);
+      const filtered = Array.isArray(data)
+        ? data.filter((g: DieselGenerator) => g.property_id === selectedPropertyId)
+        : [];
+      setGenerators(filtered);
       
       // Create chart data
-      prepareChartData(data);
+      prepareChartData(filtered);
     } catch (err) {
       setError("Failed to load generators. Please try again later.");
       console.error(err);
@@ -184,7 +183,7 @@ export default function CadminDieselGeneratorDashboard() {
 
   useEffect(() => {
     fetchProperties();
-  }, []);
+  }, [profile, user?.propertyId]);
 
   useEffect(() => {
     if (selectedPropertyId) {
@@ -619,6 +618,56 @@ export default function CadminDieselGeneratorDashboard() {
           </>
         )}
         
+        {/* Add Generator Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Add Generator</h3>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Property</label>
+                  <div className="px-3 py-2 border rounded bg-gray-50 text-sm text-gray-700">
+                    {properties.find(p => p.id === selectedPropertyId)?.name || 'Selected Property'}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Generator Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={(formData as any).name || ''}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g. DG-1"
+                  />
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createGenerator}
+                  className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Rest of component including generators list, add/edit/delete modals, etc. */}
       </div>
     </div>

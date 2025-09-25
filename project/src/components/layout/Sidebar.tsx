@@ -422,7 +422,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               { path: '/daily-logs/stp', label: 'STP' },
               { path: '/daily-logs/wtp', label: 'WTP' },
               { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
-              { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
+              // { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
             ]
           },
           { path: '/daily-management-report', label: 'Daily Management Report' },
@@ -777,7 +777,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/cadmin/daily-logs/stp', label: 'STP' },
           { path: '/cadmin/daily-logs/wtp', label: 'WTP' },
           { path: '/cadmin/daily-logs/swimming-pool', label: 'Swimming Pool' },
-          { path: '/cadmin/daily-logs/diesel-generator', label: 'Diesel Generator' },
+          // { path: '/cadmin/daily-logs/diesel-generator', label: 'Diesel Generator' },
         ]
       },
           { path: '/cadmin/daily-management-report', label: 'Daily Management Report' },

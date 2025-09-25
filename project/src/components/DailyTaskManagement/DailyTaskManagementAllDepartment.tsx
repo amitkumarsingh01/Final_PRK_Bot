@@ -77,12 +77,12 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        if (user?.userType === 'admin' || user?.userType === 'cadmin') {
-          // Admin and cadmin see all properties
+        if (user?.userType === 'admin') {
+          // Admin sees all properties
           const res = await axios.get(PROPERTIES_URL);
           setProperties(res.data);
-        } else if (user?.userType === 'property_user' && user?.propertyId) {
-          // Property user only sees their assigned property
+        } else if ((user?.userType === 'cadmin' || user?.userType === 'property_user') && user?.propertyId) {
+          // Cadmin and property user only see their assigned property
           const res = await axios.get(`${PROPERTIES_URL}/${user.propertyId}`);
           setProperties([res.data]);
         }
@@ -664,7 +664,7 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Daily Task Management of All Departments</h2>
       {/* Property Selection Dropdown */}
-      {isAdmin ? (
+      {user?.userType === 'admin' ? (
         <div className="mb-6 max-w-md">
           <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
           <div className="flex items-center gap-2">

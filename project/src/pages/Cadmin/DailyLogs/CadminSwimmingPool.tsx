@@ -56,34 +56,27 @@ export default function CadminSwimmingPoolManager() {
   const BG_ORANGE = "bg-orange-500";
   const BG_DARK_BLUE = "bg-blue-800";
 
-  // Fetch properties
+  // Fetch properties (cadmin fixed property)
   const fetchProperties = async () => {
     try {
-      console.log('Fetching properties...');
-      console.log('User profile:', profile);
-      console.log('User token:', user?.token);
+      const resolvedPropertyId = profile?.property_id || user?.propertyId || '';
+      if (!resolvedPropertyId) {
+        setError('No property found for this user');
+        return;
+      }
 
-      const response = await fetch(`${BASE_URL}/properties`, {
+      const response = await fetch(`${BASE_URL}/properties/${resolvedPropertyId}`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       
       if (!response.ok) {
-        throw new Error("Failed to fetch properties");
+        throw new Error("Failed to fetch property");
       }
       
-      const data = await response.json();
-      console.log('Properties response:', data);
-      
-      const userProperty = data.find((p: Property) => p.id === profile?.property_id);
-      console.log('Found user property:', userProperty);
-      
-      if (userProperty) {
-        setProperties([userProperty]);
-        setSelectedPropertyId(userProperty.id);
-        setFormData(prev => ({ ...prev, property_id: userProperty.id }));
-      } else {
-        setError("No property found for this user");
-      }
+      const data: Property = await response.json();
+      setProperties([data]);
+      setSelectedPropertyId(data.id);
+      setFormData(prev => ({ ...prev, property_id: data.id }));
     } catch (err) {
       console.error('Error fetching properties:', err);
       setError('Failed to fetch properties. Please try again.');
@@ -96,12 +89,17 @@ export default function CadminSwimmingPoolManager() {
     
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/swimming-pools/?property_id=${selectedPropertyId}`);
+      const response = await fetch(`${BASE_URL}/swimming-pools/?property_id=${selectedPropertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch swimming pools");
       }
       const data = await response.json();
-      setPools(data);
+      const filtered = Array.isArray(data)
+        ? data.filter((p: SwimmingPool) => p.property_id === selectedPropertyId)
+        : [];
+      setPools(filtered);
       
       // Create historical data for charts (using the last 7 days)
       const mockHistorical = createMockHistoricalData(data);
@@ -146,7 +144,7 @@ export default function CadminSwimmingPoolManager() {
 
   useEffect(() => {
     fetchProperties();
-  }, []);
+  }, [profile, user?.propertyId]);
 
   useEffect(() => {
     if (selectedPropertyId) {
