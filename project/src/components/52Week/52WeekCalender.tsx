@@ -78,21 +78,35 @@ const WeekCalendar: React.FC = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
+        if (user?.userType === 'admin') {
+          const res = await axios.get(PROPERTIES_URL);
+          setProperties(res.data);
+        } else {
+          const resolvedPropertyId = user?.propertyId || '';
+          if (!resolvedPropertyId) return;
+          const res = await axios.get(`${PROPERTIES_URL}/${resolvedPropertyId}`);
+          setProperties([res.data]);
+          setSelectedPropertyId(resolvedPropertyId);
+        }
       } catch (e) {
         setError('Failed to fetch properties');
       }
     };
     fetchProperties();
-  }, []);
+  }, [user?.userType, user?.propertyId]);
 
   // Fetch schedules for selected property
   useEffect(() => {
     if (!selectedPropertyId) return;
     setLoading(true);
     axios.get(API_URL + 'property/' + selectedPropertyId)
-      .then(res => setSchedules(res.data))
+      .then(res => {
+        const data: WorkSchedule[] = res.data || [];
+        const filtered = Array.isArray(data)
+          ? data.filter(s => s.property_id === selectedPropertyId)
+          : [];
+        setSchedules(filtered);
+      })
       .catch(() => setError('Failed to fetch work schedules'))
       .finally(() => setLoading(false));
   }, [selectedPropertyId]);
@@ -211,26 +225,38 @@ const WeekCalendar: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>52-Week Work Schedule Management</h2>
       
-      {/* Property Selection Dropdown */}
-      <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+      {/* Property Selection / Display */}
+      {user?.userType === 'admin' ? (
+        <div className="mb-6 max-w-md">
+          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <select
+              id="propertySelect"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+            >
+              <option value="">Select a property...</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name} - {property.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {properties.find(p => p.id === selectedPropertyId)?.name || properties[0]?.name || 'Loading...'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
       
