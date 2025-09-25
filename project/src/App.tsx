@@ -161,6 +161,15 @@ import ExecutionAndImplementation from './components/ProjectManagement/Execution
 import MonitoringAndControl from './components/ProjectManagement/Monitoring_and_Control';
 import DocumentationAndReporting from './components/ProjectManagement/Documentation_and_Reporting';
 import ProjectClosure from './components/ProjectManagement/Project_Closure';
+// Cadmin Project Management versions (fixed property display)
+import CProjectManagement from './pages/Cadmin/Important/components/ProjectManagement/All_Project_Management_Dashboard';
+import CProjectInitiation from './pages/Cadmin/Important/components/ProjectManagement/Project_Initiation';
+import CProjectPlanning from './pages/Cadmin/Important/components/ProjectManagement/Project_Planning';
+import CTeamResourceAllocation from './pages/Cadmin/Important/components/ProjectManagement/Team_Resource_Allocation';
+import CExecutionAndImplementation from './pages/Cadmin/Important/components/ProjectManagement/Execution_and_Implementation';
+import CMonitoringAndControl from './pages/Cadmin/Important/components/ProjectManagement/Monitoring_and_Control';
+import CDocumentationAndReporting from './pages/Cadmin/Important/components/ProjectManagement/Documentation_and_Reporting';
+import CProjectClosure from './pages/Cadmin/Important/components/ProjectManagement/Project_Closure';
 import ProcurementPlanning from './components/ProcurementManagement/Procurement_Planning';
 import VendorManagement from './components/ProcurementManagement/Vendor_Management';
 import PurchaseRequisitionToOrder from './components/ProcurementManagement/Purchase_Requisition_to_Order';
@@ -472,14 +481,14 @@ const AppRoutes = () => {
         <Route path="cadmin/amc-and-compliance" element={<AmcAndCompliance />} />
 
         {/* Cadmin - Project Management */}
-        <Route path="cadmin/project-management" element={<ProjectManagement />} />
-        <Route path="cadmin/project-initiation" element={<ProjectInitiation />} />
-        <Route path="cadmin/project-planning" element={<ProjectPlanning />} />
-        <Route path="cadmin/team-resource-allocation" element={<TeamResourceAllocation />} />
-        <Route path="cadmin/execution-and-implementation" element={<ExecutionAndImplementation />} />
-        <Route path="cadmin/monitoring-and-control" element={<MonitoringAndControl />} />
-        <Route path="cadmin/documentation-and-reporting" element={<DocumentationAndReporting />} />
-        <Route path="cadmin/project-closure" element={<ProjectClosure />} />
+        <Route path="cadmin/project-management" element={<CProjectManagement />} />
+        <Route path="cadmin/project-initiation" element={<CProjectInitiation />} />
+        <Route path="cadmin/project-planning" element={<CProjectPlanning />} />
+        <Route path="cadmin/team-resource-allocation" element={<CTeamResourceAllocation />} />
+        <Route path="cadmin/execution-and-implementation" element={<CExecutionAndImplementation />} />
+        <Route path="cadmin/monitoring-and-control" element={<CMonitoringAndControl />} />
+        <Route path="cadmin/documentation-and-reporting" element={<CDocumentationAndReporting />} />
+        <Route path="cadmin/project-closure" element={<CProjectClosure />} />
 
         {/* Cadmin - Procurement Management */}
         <Route path="cadmin/procurement-planning" element={<ProcurementPlanning />} />

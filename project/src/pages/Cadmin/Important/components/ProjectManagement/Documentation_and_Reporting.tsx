@@ -34,7 +34,7 @@ interface ProjectMaster {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 

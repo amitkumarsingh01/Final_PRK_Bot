@@ -565,7 +565,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/team-resource-allocation', label: 'Team Resource Allocation' },
           { path: '/execution-and-implementation', label: 'Execution and Implementation' },
           { path: '/monitoring-and-control', label: 'Monitoring and Control' },
-          { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
+          // { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
           { path: '/project-closure', label: 'Project Closure' },
         ]
       },
@@ -920,7 +920,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '/cadmin/team-resource-allocation', label: 'Team Resource Allocation' },
           { path: '/cadmin/execution-and-implementation', label: 'Execution and Implementation' },
           { path: '/cadmin/monitoring-and-control', label: 'Monitoring and Control' },
-          { path: '/cadmin/documentation-and-reporting', label: 'Documentation and Reporting' },
+          // { path: '/cadmin/documentation-and-reporting', label: 'Documentation and Reporting' },
           { path: '/cadmin/project-closure', label: 'Project Closure' },
           ]
         },

@@ -34,7 +34,7 @@ interface ProjectMaster {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -59,6 +59,33 @@ const MonitoringControlPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; monitoring: MonitoringControl | null; projectName: string }>({ open: false, monitoring: null, projectName: '' });
   const [editModal, setEditModal] = useState<{ open: boolean; monitoring: Omit<MonitoringControl, 'id'> | null; isNew: boolean; projectId: string }>({ open: false, monitoring: null, isNew: false, projectId: '' });
+
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const all = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? all.filter((p: ProjectMaster) => p.property_id === user.propertyId) : all;
+      setProjects(filtered);
+    } catch (e) {
+      setError('Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.token) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.token, user?.propertyId]);
 
   const handleEdit = (monitoring: MonitoringControl, projectId: string) => {
     const { id, ...monitoringData } = monitoring;
@@ -190,6 +217,21 @@ const MonitoringControlPage: React.FC = () => {
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
 
+      {isAdmin && (
+        <button
+          onClick={() => {
+            if (projects.length > 0) {
+              setEditModal({ open: true, isNew: true, monitoring: { ...emptyMonitoringControl }, projectId: projects[0].project_initiation.id });
+            } else {
+              window.location.assign('/cadmin/project-initiation');
+            }
+          }}
+          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+        >
+          <Plus size={18} className="mr-2" /> Add Monitoring
+        </button>
+      )}
+
       {/* Monitoring Table */}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -211,7 +253,16 @@ const MonitoringControlPage: React.FC = () => {
             {loading ? (
               <tr><td colSpan={10} className="text-center py-6">Loading...</td></tr>
             ) : getAllMonitoring().length === 0 ? (
-              <tr><td colSpan={10} className="text-center py-6">No monitoring records found</td></tr>
+              <tr>
+                <td colSpan={10} className="text-center py-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <span>No monitoring records found</span>
+                    {isAdmin && projects.length > 0 && (
+                      <button onClick={() => setEditModal({ open: true, isNew: true, monitoring: { ...emptyMonitoringControl }, projectId: projects[0].project_initiation.id })} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Monitoring</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ) : (
               getAllMonitoring().map((monitoring, idx) => (
                 <tr key={monitoring.id} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>

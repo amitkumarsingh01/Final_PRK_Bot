@@ -28,7 +28,7 @@ interface ProjectInitiation {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -56,6 +56,29 @@ const ProjectInitiationPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; project: ProjectInitiation | null }>({ open: false, project: null });
   const [editModal, setEditModal] = useState<{ open: boolean; project: Omit<ProjectInitiation, 'id' | 'created_at' | 'updated_at'> | null; isNew: boolean }>({ open: false, project: null, isNew: false });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const masters = Array.isArray(res.data) ? res.data : [];
+      const filteredMasters = user?.propertyId ? masters.filter((pm: any) => pm.property_id === user.propertyId) : masters;
+      const arr: ProjectInitiation[] = filteredMasters.map((pm: any) => pm.project_initiation).filter(Boolean);
+      setProjects(arr);
+    } catch (e) {
+      setError('Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (user?.token) fetchData(); }, [user?.token]);
+
   const handleEdit = (project: ProjectInitiation) => {
     const { id, created_at, updated_at, ...projectData } = project;
     setEditModal({ open: true, project: projectData, isNew: false });
@@ -72,7 +95,7 @@ const ProjectInitiationPage: React.FC = () => {
   const handleDelete = async (projectId: string) => {
     if (!window.confirm('Delete this project?')) return;
     try {
-      await axios.delete(`${API_URL}${projectId}`);
+      await axios.delete(`${API_URL}${projectId}`, { headers: { Authorization: `Bearer ${user?.token}` } });
       fetchData();
     } catch (e) {
       setError('Failed to delete project');
@@ -97,7 +120,7 @@ const ProjectInitiationPage: React.FC = () => {
           documentation_reporting: [],
           project_closure: null,
           depreciation_replacement: []
-        });
+        }, { headers: { Authorization: `Bearer ${user?.token}` } });
       } else {
         // For editing, we need to update the entire project master
         // This is a simplified approach - in a real scenario, you'd need to handle this more carefully
@@ -105,7 +128,7 @@ const ProjectInitiationPage: React.FC = () => {
         if (existingProject) {
           await axios.put(`${API_URL}${existingProject.id}`, {
             project_initiation: editModal.project
-          });
+          }, { headers: { Authorization: `Bearer ${user?.token}` } });
         }
       }
       setEditModal({ open: false, project: null, isNew: false });

@@ -35,7 +35,7 @@ interface ProjectMaster {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -61,6 +61,33 @@ const ProjectPlanningPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; planning: ProjectPlanning | null; projectName: string }>({ open: false, planning: null, projectName: '' });
   const [editModal, setEditModal] = useState<{ open: boolean; planning: Omit<ProjectPlanning, 'id'> | null; isNew: boolean; projectId: string }>({ open: false, planning: null, isNew: false, projectId: '' });
+
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const all = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? all.filter((p: ProjectMaster) => p.property_id === user.propertyId) : all;
+      setProjects(filtered);
+    } catch (e) {
+      setError('Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.token) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.token, user?.propertyId]);
 
   const handleEdit = (planning: ProjectPlanning, projectId: string) => {
     const { id, ...planningData } = planning;
@@ -161,7 +188,16 @@ const ProjectPlanningPage: React.FC = () => {
             {loading ? (
               <tr><td colSpan={10} className="text-center py-6">Loading...</td></tr>
             ) : projects.length === 0 ? (
-              <tr><td colSpan={10} className="text-center py-6">No projects found</td></tr>
+              <tr>
+                <td colSpan={10} className="text-center py-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <span>No projects found</span>
+                    {isAdmin && (
+                      <button onClick={() => setEditModal({ open: true, isNew: true, planning: { ...emptyProjectPlanning }, projectId: '' })} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Project Planning</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ) : (
               projects.map((project, idx) => (
                 <tr key={project.project_initiation.id} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>

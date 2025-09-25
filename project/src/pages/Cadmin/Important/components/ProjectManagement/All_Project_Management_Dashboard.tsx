@@ -113,7 +113,7 @@ interface ProjectMaster {
 }
 
 const API_URL = 'https://server.prktechindia.in/project-masters/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -125,6 +125,28 @@ const ProjectManagementDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user?.token) return;
+      setError(null);
+      setLoading(true);
+      try {
+        const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+        const arr = Array.isArray(res.data) ? res.data : [];
+        const filtered = user?.propertyId ? arr.filter((p: ProjectMaster) => p.property_id === user.propertyId) : arr;
+        setProjects(filtered);
+      } catch (e) {
+        setError('Failed to fetch projects');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [user?.token, user?.propertyId]);
   const [viewModal, setViewModal] = useState<{ open: boolean; project: ProjectMaster | null }>({ open: false, project: null });
   const [selectedTab, setSelectedTab] = useState<string>('overview');
 
@@ -173,6 +195,15 @@ const ProjectManagementDashboard: React.FC = () => {
         </div>
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
+
+      {isAdmin && (
+        <button
+          onClick={() => window.location.assign('/cadmin/project-initiation')}
+          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+        >
+          <Plus size={18} className="mr-2" /> Add New Project
+        </button>
+      )}
 
       {/* Statistics Cards */}
       {!loading && projects.length > 0 && (
@@ -254,7 +285,16 @@ const ProjectManagementDashboard: React.FC = () => {
             {loading ? (
               <tr><td colSpan={10} className="text-center py-6">Loading...</td></tr>
             ) : projects.length === 0 ? (
-              <tr><td colSpan={10} className="text-center py-6">No projects found</td></tr>
+              <tr>
+                <td colSpan={10} className="text-center py-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <span>No projects found</span>
+                    {isAdmin && (
+                      <button onClick={() => window.location.assign('/cadmin/project-initiation')} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Project</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ) : (
               projects.map((project, idx) => (
                 <tr key={project.project_initiation.id} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
