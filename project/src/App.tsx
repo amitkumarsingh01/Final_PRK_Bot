@@ -159,6 +159,17 @@ import MaintenanceSchedulePage from './components/CCTVAudit/Maintenance_Schedule
 import Documentation from './components/CCTVAudit/Documentation';
 import AmcAndCompliance from './components/CCTVAudit/AMC_and_Compliance';
 import SiteAssessment from './components/CCTVAudit/Site_Assessment';
+
+// Cadmin CCTV Department components (no dropdown, full actions)
+import CSiteAssessment from './pages/Cadmin/Important/components/CCTVAudit/Site_Assessment';
+import CSystemDesignPlanning from './pages/Cadmin/Important/components/CCTVAudit/System_Design__Planning';
+import CInstallationChecklist from './pages/Cadmin/Important/components/CCTVAudit/Installation_Checklist';
+import CConfigurationTesting from './pages/Cadmin/Important/components/CCTVAudit/Conguration_and_Testing';
+import CDailyOperationsMonitoring from './pages/Cadmin/Important/components/CCTVAudit/Daily_Operations__Monitoring';
+// Note: Avoid duplicate naming with imported MaintenanceSchedulePage above
+import CCTVMaintenanceSchedule from './pages/Cadmin/Important/components/CCTVAudit/Maintenance_Schedule';
+import CDocumentation from './pages/Cadmin/Important/components/CCTVAudit/Documentation';
+import CAMCAndCompliance from './pages/Cadmin/Important/components/CCTVAudit/AMC_and_Compliance';
 import AuditReportPage from './components/AuditReport/AuditReport';
 import CAuditReportPage from './pages/Cadmin/Important/components/AuditReport/AuditReport';
 import ProjectManagement from './components/ProjectManagement/All_Project_Management_Dashboard';
@@ -479,14 +490,15 @@ const AppRoutes = () => {
         <Route path="cadmin/record-keeping" element={<RecordKeeping />} />
 
         {/* Cadmin - CCTV Department */}
-        <Route path="cadmin/site-assessment" element={<SiteAssessment />} />
-        <Route path="cadmin/system-design-and-planning" element={<SystemDesignPlanningPage />} />
-        <Route path="cadmin/installation-checklist" element={<InstallationChecklist />} />
-        <Route path="cadmin/configuration-and-testing" element={<ConfigurationTestingPage />} />
-        <Route path="cadmin/daily-operations-and-monitoring" element={<DailyOperationsMonitoringPage />} />
+        <Route path="cadmin/site-assessment" element={<CSiteAssessment />} />
+        <Route path="cadmin/system-design-and-planning" element={<CSystemDesignPlanning />} />
+        <Route path="cadmin/installation-checklist" element={<CInstallationChecklist />} />
+        <Route path="cadmin/configuration-and-testing" element={<CConfigurationTesting />} />
+        <Route path="cadmin/daily-operations-and-monitoring" element={<CDailyOperationsMonitoring />} />
         <Route path="cadmin/maintenance-schedule" element={<MaintenanceSchedulePage />} />
-        <Route path="cadmin/documentation" element={<Documentation />} />
-        <Route path="cadmin/amc-and-compliance" element={<AmcAndCompliance />} />
+        <Route path="cadmin/documentation" element={<CDocumentation />} />
+        <Route path="cadmin/amc-and-compliance" element={<CAMCAndCompliance />} />
+        <Route path="cadmin/maintenance-schedule-cctv" element={<CCTVMaintenanceSchedule />} />
 
         {/* Cadmin - Project Management */}
         <Route path="cadmin/project-management" element={<CProjectManagement />} />

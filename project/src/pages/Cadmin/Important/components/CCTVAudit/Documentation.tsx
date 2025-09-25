@@ -44,7 +44,7 @@ interface CctvAuditReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/cctv-audit-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -83,18 +83,57 @@ const DocumentationPage: React.FC = () => {
   const [viewCameraModal, setViewCameraModal] = useState<{ open: boolean; item: CameraInventoryLog | null }>({ open: false, item: null });
   const [editCameraModal, setEditCameraModal] = useState<{ open: boolean; item: CameraInventoryLog | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
   // Site Information handlers
   const handleEditSite = (item: SiteInformation, reportId: string) => {
     setEditSiteModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAddSite = (reportId: string) => {
-    setEditSiteModal({
-      open: true,
-      isNew: true,
-      item: { ...emptySiteInformation },
-      reportId,
-    });
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
+  const handleAddSite = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditSiteModal({ open: true, isNew: true, item: { ...emptySiteInformation }, reportId: id });
   };
 
   const handleDeleteSite = async (itemId: string, reportId: string) => {
@@ -136,13 +175,10 @@ const DocumentationPage: React.FC = () => {
     setEditCameraModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAddCamera = (reportId: string) => {
-    setEditCameraModal({
-      open: true,
-      isNew: true,
-      item: { ...emptyCameraInventory },
-      reportId,
-    });
+  const handleAddCamera = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditCameraModal({ open: true, isNew: true, item: { ...emptyCameraInventory }, reportId: id });
   };
 
   const handleDeleteCamera = async (itemId: string, reportId: string) => {
@@ -249,38 +285,51 @@ const DocumentationPage: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={5} className="text-center py-6">Loading...</td></tr>
-                ) : (
-                  <>
-                    {data.flatMap((report, rIdx) => {
-                      const siteInfo = report.cctv_audit_data?.Documentation_Format?.Site_Information;
-                      if (!siteInfo) return [];
-                      return [(
-                        <tr key={siteInfo.id || rIdx} style={{ background: '#fff' }}>
-                          <td className="border px-2 py-1">{siteInfo.Site_Name_Code}</td>
-                          <td className="border px-2 py-1">{siteInfo.Address}</td>
-                          <td className="border px-2 py-1">{siteInfo.Contact_Person_Site_Incharge}</td>
-                          <td className="border px-2 py-1">{siteInfo.CCTV_Install_Date}</td>
-                          <td className="border px-2 py-1 text-center">
-                            <button onClick={() => handleViewSite(siteInfo)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                ) : (() => {
+                  const rows = data.flatMap((report, rIdx) => {
+                    const siteInfo = report.cctv_audit_data?.Documentation_Format?.Site_Information;
+                    if (!siteInfo) return [];
+                    return [(
+                      <tr key={siteInfo.id || rIdx} style={{ background: '#fff' }}>
+                        <td className="border px-2 py-1">{siteInfo.Site_Name_Code}</td>
+                        <td className="border px-2 py-1">{siteInfo.Address}</td>
+                        <td className="border px-2 py-1">{siteInfo.Contact_Person_Site_Incharge}</td>
+                        <td className="border px-2 py-1">{siteInfo.CCTV_Install_Date}</td>
+                        <td className="border px-2 py-1 text-center">
+                          <button onClick={() => handleViewSite(siteInfo)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                          {isAdmin && (
+                            <>
+                              <button onClick={() => handleEditSite(siteInfo, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                              <button onClick={() => handleDeleteSite(siteInfo.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    )];
+                  });
+                  if (rows.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={5} className="text-center py-6">
+                          <div className="flex items-center justify-center gap-3">
+                            <span>No site information found</span>
                             {isAdmin && (
-                              <>
-                                <button onClick={() => handleEditSite(siteInfo, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                                <button onClick={() => handleDeleteSite(siteInfo.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                              </>
+                              <button onClick={() => handleAddSite()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Site Information</button>
                             )}
-                          </td>
-                        </tr>
-                      )];
-                    })}
-                  </>
-                )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return rows;
+                })()}
               </tbody>
             </table>
           </div>
 
-          {isAdmin && data.length > 0 && (
+          {isAdmin && (
             <button
-              onClick={() => handleAddSite(data[0].id)}
+              onClick={() => handleAddSite(data[0]?.id)}
               className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
             >
               <Plus size={18} className="mr-2" /> Add Site Information
@@ -309,39 +358,52 @@ const DocumentationPage: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={8} className="text-center py-6">Loading...</td></tr>
-                ) : (
-                  <>
-                    {data.flatMap((report, rIdx) =>
-                      (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).map((item, idx) => (
-                        <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                          <td className="border px-2 py-1">{item.Camera_ID_Name}</td>
-                          <td className="border px-2 py-1">{item.Camera_Type}</td>
-                          <td className="border px-2 py-1">{item.Brand_Model_No}</td>
-                          <td className="border px-2 py-1">{item.Resolution_MP}</td>
-                          <td className="border px-2 py-1">{item.Location_Installed}</td>
-                          <td className="border px-2 py-1">{item.Indoor_Outdoor}</td>
-                          <td className="border px-2 py-1">{item.Working_Status}</td>
-                          <td className="border px-2 py-1 text-center">
-                            <button onClick={() => handleViewCamera(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                ) : (() => {
+                  const rows = data.flatMap((report, rIdx) =>
+                    (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).map((item, idx) => (
+                      <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                        <td className="border px-2 py-1">{item.Camera_ID_Name}</td>
+                        <td className="border px-2 py-1">{item.Camera_Type}</td>
+                        <td className="border px-2 py-1">{item.Brand_Model_No}</td>
+                        <td className="border px-2 py-1">{item.Resolution_MP}</td>
+                        <td className="border px-2 py-1">{item.Location_Installed}</td>
+                        <td className="border px-2 py-1">{item.Indoor_Outdoor}</td>
+                        <td className="border px-2 py-1">{item.Working_Status}</td>
+                        <td className="border px-2 py-1 text-center">
+                          <button onClick={() => handleViewCamera(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                          {isAdmin && (
+                            <>
+                              <button onClick={() => handleEditCamera(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                              <button onClick={() => handleDeleteCamera(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  );
+                  if (rows.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={8} className="text-center py-6">
+                          <div className="flex items-center justify-center gap-3">
+                            <span>No camera inventory found</span>
                             {isAdmin && (
-                              <>
-                                <button onClick={() => handleEditCamera(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                                <button onClick={() => handleDeleteCamera(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                              </>
+                              <button onClick={() => handleAddCamera()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Camera Inventory Entry</button>
                             )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </>
-                )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return rows;
+                })()}
               </tbody>
             </table>
           </div>
 
-          {isAdmin && data.length > 0 && (
+          {isAdmin && (
             <button
-              onClick={() => handleAddCamera(data[0].id)}
+              onClick={() => handleAddCamera(data[0]?.id)}
               className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
             >
               <Plus size={18} className="mr-2" /> Add Camera Inventory Entry
