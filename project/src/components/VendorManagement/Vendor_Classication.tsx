@@ -1,15 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Pencil, Trash2, Plus, Save, X, Building, Eye, Tag } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
+interface Property { id: string; name: string; }
+interface VendorMasterLite { id: string; vendor_id: string; vendor_name: string; }
 
 interface VendorClassification {
   id?: string;
@@ -31,533 +26,162 @@ const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
 const emptyVendorClassification: VendorClassification = {
-  classification_id: '',
-  vendor_id: '',
-  vendor_name: '',
-  category: '',
-  sub_category: '',
-  rating: '',
-  classification_date: '',
-  responsible_person: '',
-  remarks: '',
+  classification_id: '', vendor_id: '', vendor_name: '', category: '', sub_category: '', rating: '', classification_date: '', responsible_person: '', remarks: '',
 };
 
 const VendorClassificationPage: React.FC = () => {
   const { user } = useAuth();
-  const [data, setData] = useState<VendorClassification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [rows, setRows] = useState<VendorClassification[]>([]);
+  const [masters, setMasters] = useState<VendorMasterLite[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; classification: VendorClassification | null }>({ open: false, classification: null });
   const [editModal, setEditModal] = useState<{ open: boolean; classification: VendorClassification | null; isNew: boolean; vendorMasterId: string | null }>({ open: false, classification: null, isNew: false, vendorMasterId: null });
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedPropertyId;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (isCadminRoute) return;
+    (async () => {
       try {
         const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
+        const list = res.data || [];
+        setProperties(list);
+        if (!selectedPropertyId && list.length > 0) setSelectedPropertyId(list[0].id);
       }
-    };
-    fetchProperties();
-  }, []);
+      catch { /* ignore */ }
+    })();
+  }, [isCadminRoute]);
 
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      const classifications = res.data
-        .filter((vendor: any) => vendor.classification)
-        .map((vendor: any) => ({
-          id: vendor.classification.id,
+  const normalize = (arr: any[]) => {
+    const masters: VendorMasterLite[] = [];
+    const classifications: VendorClassification[] = [];
+    (arr || []).forEach((vendor: any) => {
+      if (effectivePropertyId && vendor.property_id !== effectivePropertyId) return;
+      const vm = vendor.vendor_master_management || {};
+      masters.push({ id: vendor.id, vendor_id: vm.vendor_id ?? vendor.vendor_id, vendor_name: vm.vendor_name ?? vendor.vendor_name });
+      const vc = vendor.vendor_classification || vendor.classification;
+      if (vc) {
+        classifications.push({
+          id: vc.id,
           vendor_master_id: vendor.id,
-          classification_id: vendor.classification.classification_id,
-          vendor_id: vendor.vendor_master_management.vendor_id,
-          vendor_name: vendor.vendor_master_management.vendor_name,
-          category: vendor.classification.category,
-          sub_category: vendor.classification.sub_category,
-          rating: vendor.classification.rating,
-          classification_date: vendor.classification.classification_date,
-          responsible_person: vendor.classification.responsible_person,
-          remarks: vendor.classification.remarks,
-        }));
-      setData(classifications);
-    } catch (e) {
-      setError('Failed to fetch vendor classifications');
-    } finally {
-      setLoading(false);
-    }
+          classification_id: vc.classification_id,
+          vendor_id: vm.vendor_id ?? vc.vendor_id,
+          vendor_name: vm.vendor_name ?? vc.vendor_name,
+          category: vc.category,
+          sub_category: vc.sub_category,
+          rating: vc.rating,
+          classification_date: vc.classification_date,
+          responsible_person: vc.responsible_person,
+          remarks: vc.remarks,
+        });
+      }
+    });
+    return { masters, classifications };
   };
 
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
-
-  const handleEdit = (classification: VendorClassification, vendorMasterId: string) => {
-    setEditModal({ open: true, classification: { ...classification }, isNew: false, vendorMasterId });
-  };
-
-  const handleAdd = (vendorMasterId: string) => {
-    setEditModal({ open: true, classification: { ...emptyVendorClassification }, isNew: true, vendorMasterId });
-  };
-
-  const handleDelete = async (classificationId: string, vendorMasterId: string) => {
-    if (!window.confirm('Are you sure you want to delete this classification?')) return;
-
+  const fetchData = async () => {
+    if (!user?.token) { setLoading(false); return; }
+    if (!isCadminRoute && !effectivePropertyId) { setRows([]); setMasters([]); setLoading(false); return; }
+    setLoading(true); setError(null);
     try {
-      // Get current vendor data
-      const vendorRes = await axios.get(`${API_URL}${vendorMasterId}`);
-      const vendor = vendorRes.data;
-      
-      // Update vendor without classification
-      await axios.put(`${API_URL}${vendorMasterId}`, {
-        property_id: vendor.property_id,
-        vendor_master_management: vendor.vendor_master_management,
-        vendor_classification: null
-      });
-
-      setData(data.filter(c => c.id !== classificationId));
-    } catch (e) {
-      setError('Failed to delete classification');
-    }
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const { masters, classifications } = normalize(arr);
+      setMasters(masters); setRows(classifications);
+    } catch { setError('Failed to fetch vendor classifications'); }
+    finally { setLoading(false); }
   };
 
-  const handleView = (classification: VendorClassification) => {
-    setViewModal({ open: true, classification });
+  useEffect(() => { fetchData(); }, [user?.token, effectivePropertyId]);
+
+  const handleEdit = (classification: VendorClassification) => setEditModal({ open: true, classification: { ...classification }, isNew: false, vendorMasterId: classification.vendor_master_id || null });
+  const handleAdd = () => setEditModal({ open: true, classification: { ...emptyVendorClassification }, isNew: true, vendorMasterId: masters[0]?.id || null });
+  const handleDelete = async (classification: VendorClassification) => {
+    if (!classification.vendor_master_id) return; if (!window.confirm('Delete this vendor classification?')) return;
+    try { await axios.put(`${API_URL}${classification.vendor_master_id}`, { vendor_classification: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined); fetchData(); }
+    catch { setError('Failed to delete classification'); }
   };
+  const handleView = (classification: VendorClassification) => setViewModal({ open: true, classification });
 
   const handleSave = async () => {
-    if (!editModal.vendorMasterId || !editModal.classification) return;
-
+    if (!editModal.classification || !editModal.vendorMasterId) return;
     try {
-      // Get current vendor data
-      const vendorRes = await axios.get(`${API_URL}${editModal.vendorMasterId}`);
-      const vendor = vendorRes.data;
-
-      const classificationData = {
-        property_id: vendor.property_id,
-        vendor_master_management: vendor.vendor_master_management,
-        vendor_classification: {
-          classification_id: editModal.classification.classification_id,
-          vendor_id: editModal.classification.vendor_id,
-          vendor_name: editModal.classification.vendor_name,
-          category: editModal.classification.category,
-          sub_category: editModal.classification.sub_category,
-          rating: editModal.classification.rating,
-          classification_date: editModal.classification.classification_date,
-          responsible_person: editModal.classification.responsible_person,
-          remarks: editModal.classification.remarks
-        }
-      };
-
-      const res = await axios.put(`${API_URL}${editModal.vendorMasterId}`, classificationData);
-
-      if (editModal.isNew) {
-        setData([...data, {
-          id: res.data.classification.id,
-          vendor_master_id: editModal.vendorMasterId,
-          classification_id: res.data.classification.classification_id,
-          vendor_id: res.data.classification.vendor_id,
-          vendor_name: res.data.classification.vendor_name,
-          category: res.data.classification.category,
-          sub_category: res.data.classification.sub_category,
-          rating: res.data.classification.rating,
-          classification_date: res.data.classification.classification_date,
-          responsible_person: res.data.classification.responsible_person,
-          remarks: res.data.classification.remarks,
-        }]);
-      }
-      setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null });
-    } catch (e) {
-      setError('Failed to save classification');
-    }
+      const payload = { vendor_classification: { classification_id: editModal.classification.classification_id, vendor_id: editModal.classification.vendor_id, vendor_name: editModal.classification.vendor_name, category: editModal.classification.category, sub_category: editModal.classification.sub_category, rating: editModal.classification.rating, classification_date: editModal.classification.classification_date, responsible_person: editModal.classification.responsible_person, remarks: editModal.classification.remarks } };
+      await axios.put(`${API_URL}${editModal.vendorMasterId}`, payload, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null }); fetchData();
+    } catch { setError('Failed to save classification'); }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading vendor classifications...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (<div className="flex items-center justify-center min-h-[40vh]"><div className="animate-spin rounded-full h-16 w-16 border-b-2" style={{ borderColor: orange }}></div></div>);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <Tag size={32} style={{ color: orange }} />
-              <h1 className="text-3xl font-bold text-gray-900">Vendor Classification</h1>
-            </div>
-            {isAdmin && (
-              <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Select Property:</label>
-                <select
-                  value={selectedPropertyId}
-                  onChange={(e) => handlePropertyChange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Select a property</option>
-                  {properties.map((property) => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+    <div className="p-6">
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold" style={{ color: orangeDark }}>Vendor Classification</h1>
+          <div className="flex items-center space-x-3">
+            {!isCadminRoute && (
+              <select value={selectedPropertyId} onChange={(e) => setSelectedPropertyId(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Select Property</option>
+                {properties.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
+              </select>
             )}
-          </div>
-          
-          {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-4 rounded-lg">
-              <div className="text-2xl font-bold">{data.length}</div>
-              <div className="text-sm">Total Classifications</div>
-            </div>
-            <div className="bg-gradient-to-r from-green-400 to-green-600 text-white p-4 rounded-lg">
-              <div className="text-2xl font-bold">
-                {data.filter(c => c.rating === 'A').length}
-              </div>
-              <div className="text-sm">A Rated</div>
-            </div>
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-4 rounded-lg">
-              <div className="text-2xl font-bold">
-                {data.filter(c => c.rating === 'B').length}
-              </div>
-              <div className="text-sm">B Rated</div>
-            </div>
-            <div className="bg-gradient-to-r from-blue-400 to-blue-600 text-white p-4 rounded-lg">
-              <div className="text-2xl font-bold">
-                {data.filter(c => c.rating === 'C').length}
-              </div>
-              <div className="text-sm">C Rated</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Data Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Vendor Classifications</h2>
-              {isAdmin && selectedPropertyId && (
-                <button
-                  onClick={() => {
-                    // For now, we'll need to select a vendor first
-                    alert('Please select a vendor to add classification');
-                  }}
-                  className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors"
-                >
-                  <Plus size={16} />
-                  <span>Add Classification</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {data.map((classification) => (
-                  <tr key={classification.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{classification.classification_id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>
-                        <div className="font-medium">{classification.vendor_name}</div>
-                        <div className="text-xs text-gray-400">{classification.vendor_id}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{classification.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{classification.sub_category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        classification.rating === 'A' ? 'bg-green-100 text-green-800' :
-                        classification.rating === 'B' ? 'bg-yellow-100 text-yellow-800' :
-                        classification.rating === 'C' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {classification.rating}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{classification.classification_date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleView(classification)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(classification, classification.vendor_master_id!)}
-                              className="text-orange-600 hover:text-orange-900"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(classification.id!, classification.vendor_master_id!)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {isAdmin && effectivePropertyId && (
+              <button onClick={handleAdd} className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md">
+                <Plus size={16} /><span>Add Classification</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* View Modal */}
-      {viewModal.open && viewModal.classification && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">View Vendor Classification</h3>
-                <button
-                  onClick={() => setViewModal({ open: false, classification: null })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Classification ID</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.classification_id}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor ID</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.vendor_id}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.vendor_name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.category}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Sub Category</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.sub_category}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Rating</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.rating}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Classification Date</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.classification_date}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Responsible Person</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.responsible_person}</p>
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Remarks</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewModal.classification.remarks}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50"><tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Category</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr></thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {rows.length === 0 ? (
+                <tr><td className="px-6 py-4 text-center text-gray-500" colSpan={7}>No classifications found</td></tr>
+              ) : rows.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{c.classification_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.vendor_name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.sub_category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.rating}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.classification_date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium"><div className="flex items-center space-x-2"><button onClick={() => handleView(c)} className="text-blue-600 hover:text-blue-900"><Eye size={16} /></button>{isAdmin && (<><button onClick={() => handleEdit(c)} className="text-orange-600 hover:text-orange-900"><Pencil size={16} /></button><button onClick={() => handleDelete(c)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button></>)}</div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      {/* View and Edit modals remain unchanged below */}
+      {viewModal.open && viewModal.classification && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"><div className="p-6"><div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-gray-900">View Vendor Classification</h3><button onClick={() => setViewModal({ open: false, classification: null })} className="text-gray-400 hover:text-gray-600"><X size={24} /></button></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-700">Classification ID</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.classification_id}</p></div><div><label className="block text-sm font-medium text-gray-700">Vendor</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.vendor_name}</p></div><div><label className="block text-sm font-medium text-gray-700">Category</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.category}</p></div><div><label className="block text-sm font-medium text-gray-700">Sub Category</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.sub_category}</p></div><div><label className="block text-sm font-medium text-gray-700">Rating</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.rating}</p></div><div><label className="block text-sm font-medium text-gray-700">Classification Date</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.classification_date}</p></div><div className="col-span-2"><label className="block text-sm font-medium text-gray-700">Remarks</label><p className="mt-1 text-sm text-gray-900">{viewModal.classification.remarks}</p></div></div></div></div></div>
       )}
 
-      {/* Edit Modal */}
       {editModal.open && editModal.classification && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {editModal.isNew ? 'Add Vendor Classification' : 'Edit Vendor Classification'}
-                </h3>
-                <button
-                  onClick={() => setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Classification ID</label>
-                  <input
-                    type="text"
-                    value={editModal.classification.classification_id}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, classification_id: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor ID</label>
-                  <input
-                    type="text"
-                    value={editModal.classification.vendor_id}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, vendor_id: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor Name</label>
-                  <input
-                    type="text"
-                    value={editModal.classification.vendor_name}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, vendor_name: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <select
-                    value={editModal.classification.category}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, category: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Goods">Goods</option>
-                    <option value="Services">Services</option>
-                    <option value="Equipment">Equipment</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Construction">Construction</option>
-                    <option value="Technology">Technology</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Sub Category</label>
-                  <input
-                    type="text"
-                    value={editModal.classification.sub_category}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, sub_category: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Rating</label>
-                  <select
-                    value={editModal.classification.rating}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, rating: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Select Rating</option>
-                    <option value="A">A - Excellent</option>
-                    <option value="B">B - Good</option>
-                    <option value="C">C - Average</option>
-                    <option value="D">D - Poor</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Classification Date</label>
-                  <input
-                    type="date"
-                    value={editModal.classification.classification_date}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, classification_date: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Responsible Person</label>
-                  <input
-                    type="text"
-                    value={editModal.classification.responsible_person}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, responsible_person: e.target.value } })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Remarks</label>
-                  <textarea
-                    value={editModal.classification.remarks}
-                    onChange={(e) => setEditModal({ ...editModal, classification: { ...editModal.classification!, remarks: e.target.value } })}
-                    rows={3}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null })}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md"
-                >
-                  <Save size={16} />
-                  <span>Save</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"><div className="p-6"><div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-gray-900">{editModal.isNew ? 'Add Classification' : 'Edit Classification'}</h3><button onClick={() => setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null })} className="text-gray-400 hover:text-gray-600"><X size={24} /></button></div><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><label className="block text-sm font-medium text-gray-700">Vendor</label><select value={editModal.vendorMasterId || ''} onChange={(e) => { const id = e.target.value; const m = masters.find(x => x.id === id); setEditModal(st => st && { ...st, vendorMasterId: id, classification: { ...st.classification!, vendor_id: m?.vendor_id || '', vendor_name: m?.vendor_name || '' } }); }} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"><option value="">Select Vendor</option>{masters.map(m => (<option key={m.id} value={m.id}>{m.vendor_name} ({m.vendor_id})</option>))}</select></div><div><label className="block text-sm font-medium text-gray-700">Classification ID</label><input type="text" value={editModal.classification.classification_id} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, classification_id: e.target.value } })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div><div><label className="block text-sm font-medium text-gray-700">Category</label><input type="text" value={editModal.classification.category} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, category: e.target.value } })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div><div><label className="block text-sm font-medium text-gray-700">Sub Category</label><input type="text" value={editModal.classification.sub_category} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, sub_category: e.target.value } })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div><div><label className="block text-sm font-medium text-gray-700">Rating</label><input type="text" value={editModal.classification.rating} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, rating: e.target.value } })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div><div><label className="block text-sm font-medium text-gray-700">Classification Date</label><input type="date" value={editModal.classification.classification_date} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, classification_date: e.target.value } })} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div><div className="col-span-2"><label className="block text-sm font-medium text-gray-700">Remarks</label><textarea value={editModal.classification.remarks} onChange={(e) => setEditModal(st => st && { ...st, classification: { ...st.classification!, remarks: e.target.value } })} rows={3} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" /></div></div><div className="flex justify-end space-x-3 mt-6"><button onClick={() => setEditModal({ open: false, classification: null, isNew: false, vendorMasterId: null })} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button><button onClick={handleSave} className="flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md"><Save size={16} /><span>Save</span></button></div></div></div></div>
       )}
     </div>
   );

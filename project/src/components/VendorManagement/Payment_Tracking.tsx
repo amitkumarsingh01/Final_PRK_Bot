@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { X } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -8,8 +9,8 @@ interface Property {
 }
 
 interface VendorPaymentTracking {
-  id: string;
-  vendor_master_id: string;
+  id?: string;
+  vendor_master_id?: string;
   payment_id: string;
   invoice_number: string;
   amount: number;
@@ -21,9 +22,12 @@ interface VendorPaymentTracking {
   remarks: string;
 }
 
+const API_URL = 'https://server.prktechindia.in/vendor-masters/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+
 const Payment_Tracking: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [data, setData] = useState<VendorPaymentTracking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,35 +39,36 @@ const Payment_Tracking: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<VendorPaymentTracking | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<VendorPaymentTracking>>({});
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedProperty;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (isCadminRoute) return;
+    (async () => {
       try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+        const response = await axios.get(PROPERTIES_URL);
+        const list = response.data || [];
+        setProperties(list);
+        if (!selectedProperty && list.length > 0) setSelectedProperty(list[0].id);
+      } catch {}
+    })();
+  }, [isCadminRoute]);
 
   // Fetch payment tracking data
   useEffect(() => {
-    if (!selectedProperty) return;
+    if (!isCadminRoute && !effectivePropertyId) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
-        // Filter vendors that have payment tracking data and map it
-        const paymentData = response.data
+        const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+        const arr = Array.isArray(response.data) ? response.data : [];
+        const paymentData = arr
+          .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
           .filter((vendor: any) => vendor.payment_tracking)
           .map((vendor: any) => ({
             id: vendor.payment_tracking.id,
@@ -89,7 +94,7 @@ const Payment_Tracking: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedProperty]);
+  }, [selectedProperty, user?.token]);
 
   const handleView = (item: VendorPaymentTracking) => {
     setSelectedItem(item);
@@ -124,19 +129,9 @@ const Payment_Tracking: React.FC = () => {
     }
 
     try {
-      // Find the vendor that has this payment tracking
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.payment_tracking?.id === item.id);
-      
-      if (vendor) {
-        // Update the vendor with payment tracking set to null
-        await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-          ...vendor,
-          payment_tracking: null
-        });
-        
-        setData(data.filter(d => d.id !== item.id));
-      }
+      if (!item.vendor_master_id) return;
+      await axios.put(`${API_URL}${item.vendor_master_id}`, { payment_tracking: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setData(data.filter(d => d.id !== item.id));
     } catch (err) {
       console.error('Error deleting payment tracking:', err);
       setError('Failed to delete payment tracking');
@@ -147,54 +142,26 @@ const Payment_Tracking: React.FC = () => {
     if (!isAdmin) return;
 
     try {
-      if (editingItem.id) {
-        // Update existing payment tracking
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.payment_tracking?.id === editingItem.id);
-        
-        if (vendor) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-            ...vendor,
-            payment_tracking: {
-              payment_id: editingItem.payment_id,
-              invoice_number: editingItem.invoice_number,
-              amount: editingItem.amount,
-              due_date: editingItem.due_date,
-              payment_status: editingItem.payment_status,
-              payment_date: editingItem.payment_date,
-              payment_method: editingItem.payment_method,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
+      if (!(editingItem as any).vendor_master_id) return;
+      await axios.put(`${API_URL}${(editingItem as any).vendor_master_id}`, {
+        payment_tracking: {
+          payment_id: editingItem.payment_id,
+          invoice_number: editingItem.invoice_number,
+          amount: editingItem.amount,
+          due_date: editingItem.due_date,
+          payment_status: editingItem.payment_status,
+          payment_date: editingItem.payment_date,
+          payment_method: editingItem.payment_method,
+          responsible_person: editingItem.responsible_person,
+          remarks: editingItem.remarks,
         }
-      } else {
-        // Create new payment tracking - we need to select a vendor first
-        // For now, we'll use the first vendor without payment tracking
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutPayment = response.data.find((v: any) => !v.payment_tracking);
-        
-        if (vendorWithoutPayment) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutPayment.id}`, {
-            ...vendorWithoutPayment,
-            payment_tracking: {
-              payment_id: editingItem.payment_id,
-              invoice_number: editingItem.invoice_number,
-              amount: editingItem.amount,
-              due_date: editingItem.due_date,
-              payment_status: editingItem.payment_status,
-              payment_date: editingItem.payment_date,
-              payment_method: editingItem.payment_method,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
-        }
-      }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const paymentData = refreshResponse.data
+      const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+      const arr = Array.isArray(response.data) ? response.data : [];
+      const paymentData = arr
+        .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
         .filter((vendor: any) => vendor.payment_tracking)
         .map((vendor: any) => ({
           id: vendor.payment_tracking.id,
@@ -224,7 +191,7 @@ const Payment_Tracking: React.FC = () => {
   };
 
   const getPaymentStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'paid':
         return 'bg-green-100 text-green-800';
       case 'pending':
@@ -239,7 +206,7 @@ const Payment_Tracking: React.FC = () => {
   };
 
   const getPaymentMethodColor = (method: string) => {
-    switch (method.toLowerCase()) {
+    switch ((method || '').toLowerCase()) {
       case 'bank transfer':
         return 'bg-blue-100 text-blue-800';
       case 'cheque':
@@ -328,7 +295,7 @@ const Payment_Tracking: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.payment_status.toLowerCase() === 'pending').length}
+                {data.filter(item => (item.payment_status || '').toLowerCase() === 'pending').length}
               </p>
             </div>
           </div>

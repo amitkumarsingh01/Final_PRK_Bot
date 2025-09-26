@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { X } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -8,8 +9,8 @@ interface Property {
 }
 
 interface VendorReportingAndAnalysis {
-  id: string;
-  vendor_master_id: string;
+  id?: string;
+  vendor_master_id?: string;
   report_id: string;
   report_type: string;
   period_start: string;
@@ -21,9 +22,12 @@ interface VendorReportingAndAnalysis {
   remarks: string;
 }
 
+const API_URL = 'https://server.prktechindia.in/vendor-masters/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+
 const Vendor_Reporting_and_Analysis: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [data, setData] = useState<VendorReportingAndAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,35 +39,36 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<VendorReportingAndAnalysis | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<VendorReportingAndAnalysis>>({});
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedProperty;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (isCadminRoute) return;
+    (async () => {
       try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+        const response = await axios.get(PROPERTIES_URL);
+        const list = response.data || [];
+        setProperties(list);
+        if (!selectedProperty && list.length > 0) setSelectedProperty(list[0].id);
+      } catch {}
+    })();
+  }, [isCadminRoute]);
 
   // Fetch reporting and analysis data
   useEffect(() => {
-    if (!selectedProperty) return;
+    if (!isCadminRoute && !effectivePropertyId) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
-        // Filter vendors that have reporting and analysis data and map it
-        const reportingData = response.data
+        const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+        const arr = Array.isArray(response.data) ? response.data : [];
+        const reportingData = arr
+          .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
           .filter((vendor: any) => vendor.reporting_and_analysis)
           .map((vendor: any) => ({
             id: vendor.reporting_and_analysis.id,
@@ -89,7 +94,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedProperty]);
+  }, [selectedProperty, user?.token]);
 
   const handleView = (item: VendorReportingAndAnalysis) => {
     setSelectedItem(item);
@@ -124,19 +129,9 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
     }
 
     try {
-      // Find the vendor that has this reporting
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === item.id);
-      
-      if (vendor) {
-        // Update the vendor with reporting set to null
-        await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-          ...vendor,
-          reporting_and_analysis: null
-        });
-        
-        setData(data.filter(d => d.id !== item.id));
-      }
+      if (!item.vendor_master_id) return;
+      await axios.put(`${API_URL}${item.vendor_master_id}`, { reporting_and_analysis: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setData(data.filter(d => d.id !== item.id));
     } catch (err) {
       console.error('Error deleting report:', err);
       setError('Failed to delete report');
@@ -147,54 +142,26 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
     if (!isAdmin) return;
 
     try {
-      if (editingItem.id) {
-        // Update existing report
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.reporting_and_analysis?.id === editingItem.id);
-        
-        if (vendor) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-            ...vendor,
-            reporting_and_analysis: {
-              report_id: editingItem.report_id,
-              report_type: editingItem.report_type,
-              period_start: editingItem.period_start,
-              period_end: editingItem.period_end,
-              metrics: editingItem.metrics,
-              findings: editingItem.findings,
-              generated_date: editingItem.generated_date,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
+      if (!(editingItem as any).vendor_master_id) return;
+      await axios.put(`${API_URL}${(editingItem as any).vendor_master_id}`, {
+        reporting_and_analysis: {
+          report_id: editingItem.report_id,
+          report_type: editingItem.report_type,
+          period_start: editingItem.period_start,
+          period_end: editingItem.period_end,
+          metrics: editingItem.metrics,
+          findings: editingItem.findings,
+          generated_date: editingItem.generated_date,
+          responsible_person: editingItem.responsible_person,
+          remarks: editingItem.remarks,
         }
-      } else {
-        // Create new report - we need to select a vendor first
-        // For now, we'll use the first vendor without reporting
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutReporting = response.data.find((v: any) => !v.reporting_and_analysis);
-        
-        if (vendorWithoutReporting) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutReporting.id}`, {
-            ...vendorWithoutReporting,
-            reporting_and_analysis: {
-              report_id: editingItem.report_id,
-              report_type: editingItem.report_type,
-              period_start: editingItem.period_start,
-              period_end: editingItem.period_end,
-              metrics: editingItem.metrics,
-              findings: editingItem.findings,
-              generated_date: editingItem.generated_date,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
-        }
-      }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const reportingData = refreshResponse.data
+      const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+      const arr = Array.isArray(response.data) ? response.data : [];
+      const reportingData = arr
+        .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
         .filter((vendor: any) => vendor.reporting_and_analysis)
         .map((vendor: any) => ({
           id: vendor.reporting_and_analysis.id,
@@ -304,7 +271,7 @@ const Vendor_Reporting_and_Analysis: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Performance</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.report_type.toLowerCase() === 'performance').length}
+                {data.filter(item => (item.report_type || '').toLowerCase() === 'performance').length}
               </p>
             </div>
           </div>

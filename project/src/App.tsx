@@ -789,6 +789,8 @@ const AppRoutes = () => {
         {/* Vendor Management Routes */}
         <Route path="vendor-master-management" element={<VendorMasterManagement />} />
         <Route path="vendor-classication" element={<VendorClassication />} />
+        {/* Alias for correct spelling to avoid redirect issues */}
+        <Route path="vendor-classification" element={<VendorClassication />} />
         <Route path="vendor-evaluation" element={<VendorEvaluation />} />
         <Route path="integration-with-purchase-process" element={<IntegrationWithPurchaseProcess />} />
         <Route path="vendor-relationship-management" element={<VendorRelationshipManagement />} />

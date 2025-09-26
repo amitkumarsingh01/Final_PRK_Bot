@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { X } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -8,8 +9,8 @@ interface Property {
 }
 
 interface IntegrationWithPurchaseProcess {
-  id: string;
-  vendor_master_id: string;
+  id?: string;
+  vendor_master_id?: string;
   integration_id: string;
   purchase_system: string;
   integration_type: string;
@@ -19,9 +20,12 @@ interface IntegrationWithPurchaseProcess {
   remarks: string;
 }
 
+const API_URL = 'https://server.prktechindia.in/vendor-masters/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+
 const Integration_with_Purchase_Process: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [data, setData] = useState<IntegrationWithPurchaseProcess[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,35 +37,37 @@ const Integration_with_Purchase_Process: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<IntegrationWithPurchaseProcess | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<IntegrationWithPurchaseProcess>>({});
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedProperty;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (isCadminRoute) return;
+    (async () => {
       try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
+        const response = await axios.get(PROPERTIES_URL);
+        const list = response.data || [];
+        setProperties(list);
+        if (!selectedProperty && list.length > 0) setSelectedProperty(list[0].id);
       }
-    };
-    fetchProperties();
-  }, []);
+      catch { /* ignore */ }
+    })();
+  }, [isCadminRoute]);
 
   // Fetch integration data
   useEffect(() => {
-    if (!selectedProperty) return;
+    if (!isCadminRoute && !effectivePropertyId) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
-        // Filter vendors that have integration data and map it
-        const integrationData = response.data
+        const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+        const arr = Array.isArray(response.data) ? response.data : [];
+        const integrationData = arr
+          .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
           .filter((vendor: any) => vendor.integration_with_purchase_process)
           .map((vendor: any) => ({
             id: vendor.integration_with_purchase_process.id,
@@ -85,7 +91,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedProperty]);
+  }, [selectedProperty, user?.token]);
 
   const handleView = (item: IntegrationWithPurchaseProcess) => {
     setSelectedItem(item);
@@ -118,19 +124,9 @@ const Integration_with_Purchase_Process: React.FC = () => {
     }
 
     try {
-      // Find the vendor that has this integration
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.integration_with_purchase_process?.id === item.id);
-      
-      if (vendor) {
-        // Update the vendor with integration set to null
-        await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-          ...vendor,
-          integration_with_purchase_process: null
-        });
-        
-        setData(data.filter(d => d.id !== item.id));
-      }
+      if (!item.vendor_master_id) return;
+      await axios.put(`${API_URL}${item.vendor_master_id}`, { integration_with_purchase_process: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setData(data.filter(d => d.id !== item.id));
     } catch (err) {
       console.error('Error deleting integration:', err);
       setError('Failed to delete integration');
@@ -141,50 +137,24 @@ const Integration_with_Purchase_Process: React.FC = () => {
     if (!isAdmin) return;
 
     try {
-      if (editingItem.id) {
-        // Update existing integration
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.integration_with_purchase_process?.id === editingItem.id);
-        
-        if (vendor) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-            ...vendor,
-            integration_with_purchase_process: {
-              integration_id: editingItem.integration_id,
-              purchase_system: editingItem.purchase_system,
-              integration_type: editingItem.integration_type,
-              status: editingItem.status,
-              last_sync: editingItem.last_sync,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
+      if (!(editingItem as any).vendor_master_id) return;
+      await axios.put(`${API_URL}${(editingItem as any).vendor_master_id}`, {
+        integration_with_purchase_process: {
+          integration_id: editingItem.integration_id,
+          purchase_system: editingItem.purchase_system,
+          integration_type: editingItem.integration_type,
+          status: editingItem.status,
+          last_sync: editingItem.last_sync,
+          responsible_person: editingItem.responsible_person,
+          remarks: editingItem.remarks,
         }
-      } else {
-        // Create new integration - we need to select a vendor first
-        // For now, we'll use the first vendor without integration
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutIntegration = response.data.find((v: any) => !v.integration_with_purchase_process);
-        
-        if (vendorWithoutIntegration) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutIntegration.id}`, {
-            ...vendorWithoutIntegration,
-            integration_with_purchase_process: {
-              integration_id: editingItem.integration_id,
-              purchase_system: editingItem.purchase_system,
-              integration_type: editingItem.integration_type,
-              status: editingItem.status,
-              last_sync: editingItem.last_sync,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
-        }
-      }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const integrationData = refreshResponse.data
+      const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+      const arr = Array.isArray(response.data) ? response.data : [];
+      const integrationData = arr
+        .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
         .filter((vendor: any) => vendor.integration_with_purchase_process)
         .map((vendor: any) => ({
           id: vendor.integration_with_purchase_process.id,
@@ -212,7 +182,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'inactive':
@@ -225,7 +195,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
   };
 
   const getIntegrationTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch ((type || '').toLowerCase()) {
       case 'api':
         return 'bg-blue-100 text-blue-800';
       case 'manual':
@@ -279,7 +249,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.status.toLowerCase() === 'active').length}
+                {data.filter(item => (item.status || '').toLowerCase() === 'active').length}
               </p>
             </div>
           </div>
@@ -295,7 +265,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.status.toLowerCase() === 'pending').length}
+                {data.filter(item => (item.status || '').toLowerCase() === 'pending').length}
               </p>
             </div>
           </div>
@@ -312,7 +282,7 @@ const Integration_with_Purchase_Process: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">API Integrations</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.integration_type.toLowerCase() === 'api').length}
+                {data.filter(item => (item.integration_type || '').toLowerCase() === 'api').length}
               </p>
             </div>
           </div>

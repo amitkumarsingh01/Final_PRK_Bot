@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { X } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -8,8 +9,8 @@ interface Property {
 }
 
 interface VendorDocumentation {
-  id: string;
-  vendor_master_id: string;
+  id?: string;
+  vendor_master_id?: string;
   document_id: string;
   document_type: string;
   document_name: string;
@@ -21,9 +22,12 @@ interface VendorDocumentation {
   remarks: string;
 }
 
+const API_URL = 'https://server.prktechindia.in/vendor-masters/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+
 const Vendor_Documentation: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [data, setData] = useState<VendorDocumentation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,35 +39,29 @@ const Vendor_Documentation: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<VendorDocumentation | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<VendorDocumentation>>({});
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedProperty;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    if (isCadminRoute) return;
+    (async () => { try { const response = await axios.get(PROPERTIES_URL); setProperties(response.data || []); } catch {} })();
+  }, [isCadminRoute]);
 
   // Fetch vendor documentation data
   useEffect(() => {
-    if (!selectedProperty) return;
+    if (!isCadminRoute && !effectivePropertyId) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        
-        // Filter vendors that have documentation data and map it
-        const documentationData = response.data
+        const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+        const arr = Array.isArray(response.data) ? response.data : [];
+        const documentationData = arr
+          .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
           .filter((vendor: any) => vendor.vendor_documentation)
           .map((vendor: any) => ({
             id: vendor.vendor_documentation.id,
@@ -89,7 +87,7 @@ const Vendor_Documentation: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedProperty]);
+  }, [selectedProperty, user?.token]);
 
   const handleView = (item: VendorDocumentation) => {
     setSelectedItem(item);
@@ -124,19 +122,9 @@ const Vendor_Documentation: React.FC = () => {
     }
 
     try {
-      // Find the vendor that has this documentation
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.vendor_documentation?.id === item.id);
-      
-      if (vendor) {
-        // Update the vendor with documentation set to null
-        await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-          ...vendor,
-          vendor_documentation: null
-        });
-        
-        setData(data.filter(d => d.id !== item.id));
-      }
+      if (!item.vendor_master_id) return;
+      await axios.put(`${API_URL}${item.vendor_master_id}`, { vendor_documentation: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setData(data.filter(d => d.id !== item.id));
     } catch (err) {
       console.error('Error deleting documentation:', err);
       setError('Failed to delete documentation');
@@ -147,54 +135,26 @@ const Vendor_Documentation: React.FC = () => {
     if (!isAdmin) return;
 
     try {
-      if (editingItem.id) {
-        // Update existing documentation
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.vendor_documentation?.id === editingItem.id);
-        
-        if (vendor) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-            ...vendor,
-            vendor_documentation: {
-              document_id: editingItem.document_id,
-              document_type: editingItem.document_type,
-              document_name: editingItem.document_name,
-              upload_date: editingItem.upload_date,
-              expiry_date: editingItem.expiry_date,
-              document_status: editingItem.document_status,
-              file_reference: editingItem.file_reference,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
+      if (!(editingItem as any).vendor_master_id) return;
+      await axios.put(`${API_URL}${(editingItem as any).vendor_master_id}`, {
+        vendor_documentation: {
+          document_id: editingItem.document_id,
+          document_type: editingItem.document_type,
+          document_name: editingItem.document_name,
+          upload_date: editingItem.upload_date,
+          expiry_date: editingItem.expiry_date,
+          document_status: editingItem.document_status,
+          file_reference: editingItem.file_reference,
+          responsible_person: editingItem.responsible_person,
+          remarks: editingItem.remarks,
         }
-      } else {
-        // Create new documentation - we need to select a vendor first
-        // For now, we'll use the first vendor without documentation
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutDocumentation = response.data.find((v: any) => !v.vendor_documentation);
-        
-        if (vendorWithoutDocumentation) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutDocumentation.id}`, {
-            ...vendorWithoutDocumentation,
-            vendor_documentation: {
-              document_id: editingItem.document_id,
-              document_type: editingItem.document_type,
-              document_name: editingItem.document_name,
-              upload_date: editingItem.upload_date,
-              expiry_date: editingItem.expiry_date,
-              document_status: editingItem.document_status,
-              file_reference: editingItem.file_reference,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
-        }
-      }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
 
       // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const documentationData = refreshResponse.data
+      const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+      const arr = Array.isArray(response.data) ? response.data : [];
+      const documentationData = arr
+        .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
         .filter((vendor: any) => vendor.vendor_documentation)
         .map((vendor: any) => ({
           id: vendor.vendor_documentation.id,
@@ -224,7 +184,7 @@ const Vendor_Documentation: React.FC = () => {
   };
 
   const getDocumentStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'expired':
@@ -239,7 +199,7 @@ const Vendor_Documentation: React.FC = () => {
   };
 
   const getDocumentTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch ((type || '').toLowerCase()) {
       case 'contract':
         return 'bg-purple-100 text-purple-800';
       case 'license':
@@ -314,7 +274,7 @@ const Vendor_Documentation: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.document_status.toLowerCase() === 'active').length}
+                {data.filter(item => (item.document_status || '').toLowerCase() === 'active').length}
               </p>
             </div>
           </div>

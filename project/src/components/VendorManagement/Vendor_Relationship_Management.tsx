@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -8,8 +9,8 @@ interface Property {
 }
 
 interface VendorRelationshipManagement {
-  id: string;
-  vendor_master_id: string;
+  id?: string;
+  vendor_master_id?: string;
   relationship_id: string;
   relationship_type: string;
   communication_frequency: string;
@@ -20,10 +21,12 @@ interface VendorRelationshipManagement {
   remarks: string;
 }
 
+const API_URL = 'https://server.prktechindia.in/vendor-masters/';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+
 const Vendor_Relationship_Management: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
+  const [isAdmin, setIsAdmin] = useState(false);
   const [data, setData] = useState<VendorRelationshipManagement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,35 +37,37 @@ const Vendor_Relationship_Management: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<VendorRelationshipManagement | null>(null);
   const [editingItem, setEditingItem] = useState<Partial<VendorRelationshipManagement>>({});
 
+  const isCadminRoute = useMemo(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/cadmin'), []);
+  const effectivePropertyId = isCadminRoute ? user?.propertyId || '' : selectedProperty;
+
+  useEffect(() => { setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin'); }, [user?.userType]);
+
   // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (isCadminRoute) return;
+    (async () => {
       try {
-        const response = await axios.get('https://server.prktechindia.in/properties');
-        setProperties(response.data);
-        if (response.data.length > 0) {
-          setSelectedProperty(response.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+        const res = await axios.get(PROPERTIES_URL);
+        const list = res.data || [];
+        setProperties(list);
+        if (!selectedPropertyId && list.length > 0) setSelectedPropertyId(list[0].id);
+      } catch { /* ignore */ }
+    })();
+  }, [isCadminRoute]);
 
   // Fetch relationship management data
   useEffect(() => {
-    if (!selectedProperty) return;
+    if (!isCadminRoute && !effectivePropertyId) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
+        const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
         
-        // Filter vendors that have relationship management data and map it
-        const relationshipData = response.data
+        const arr = Array.isArray(response.data) ? response.data : [];
+        const relationshipData = arr
+          .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
           .filter((vendor: any) => vendor.vendor_relationship_management)
           .map((vendor: any) => ({
             id: vendor.vendor_relationship_management.id,
@@ -87,7 +92,7 @@ const Vendor_Relationship_Management: React.FC = () => {
     };
 
     fetchData();
-  }, [selectedProperty]);
+  }, [selectedProperty, user?.token]);
 
   const handleView = (item: VendorRelationshipManagement) => {
     setSelectedItem(item);
@@ -121,19 +126,9 @@ const Vendor_Relationship_Management: React.FC = () => {
     }
 
     try {
-      // Find the vendor that has this relationship management
-      const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === item.id);
-      
-      if (vendor) {
-        // Update the vendor with relationship management set to null
-        await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-          ...vendor,
-          vendor_relationship_management: null
-        });
-        
-        setData(data.filter(d => d.id !== item.id));
-      }
+      if (!item.vendor_master_id) return;
+      await axios.put(`${API_URL}${item.vendor_master_id}`, { vendor_relationship_management: null }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      setData(data.filter(d => d.id !== item.id));
     } catch (err) {
       console.error('Error deleting relationship management:', err);
       setError('Failed to delete relationship management');
@@ -144,52 +139,26 @@ const Vendor_Relationship_Management: React.FC = () => {
     if (!isAdmin) return;
 
     try {
-      if (editingItem.id) {
-        // Update existing relationship management
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendor = response.data.find((v: any) => v.vendor_relationship_management?.id === editingItem.id);
-        
-        if (vendor) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendor.id}`, {
-            ...vendor,
-            vendor_relationship_management: {
-              relationship_id: editingItem.relationship_id,
-              relationship_type: editingItem.relationship_type,
-              communication_frequency: editingItem.communication_frequency,
-              last_contact: editingItem.last_contact,
-              next_contact: editingItem.next_contact,
-              relationship_status: editingItem.relationship_status,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
+      const vendorId = (editingItem as any).vendor_master_id;
+      if (!vendorId) return;
+      await axios.put(`${API_URL}${vendorId}`, {
+        vendor_relationship_management: {
+          relationship_id: editingItem.relationship_id,
+          relationship_type: editingItem.relationship_type,
+          communication_frequency: editingItem.communication_frequency,
+          last_contact: editingItem.last_contact,
+          next_contact: editingItem.next_contact,
+          relationship_status: editingItem.relationship_status,
+          responsible_person: editingItem.responsible_person,
+          remarks: editingItem.remarks,
         }
-      } else {
-        // Create new relationship management - we need to select a vendor first
-        // For now, we'll use the first vendor without relationship management
-        const response = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-        const vendorWithoutRelationship = response.data.find((v: any) => !v.vendor_relationship_management);
-        
-        if (vendorWithoutRelationship) {
-          await axios.put(`https://server.prktechindia.in/vendor-master/${vendorWithoutRelationship.id}`, {
-            ...vendorWithoutRelationship,
-            vendor_relationship_management: {
-              relationship_id: editingItem.relationship_id,
-              relationship_type: editingItem.relationship_type,
-              communication_frequency: editingItem.communication_frequency,
-              last_contact: editingItem.last_contact,
-              next_contact: editingItem.next_contact,
-              relationship_status: editingItem.relationship_status,
-              responsible_person: editingItem.responsible_person,
-              remarks: editingItem.remarks,
-            }
-          });
-        }
-      }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
 
-      // Refresh data
-      const refreshResponse = await axios.get(`https://server.prktechindia.in/vendor-master/${selectedProperty}`);
-      const relationshipData = refreshResponse.data
+      // Refresh
+      const response = await axios.get(API_URL, { headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined });
+      const arr = Array.isArray(response.data) ? response.data : [];
+      const relationshipData = arr
+        .filter((vendor: any) => !effectivePropertyId || vendor.property_id === effectivePropertyId)
         .filter((vendor: any) => vendor.vendor_relationship_management)
         .map((vendor: any) => ({
           id: vendor.vendor_relationship_management.id,
@@ -218,7 +187,7 @@ const Vendor_Relationship_Management: React.FC = () => {
   };
 
   const getRelationshipStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'inactive':
@@ -233,7 +202,7 @@ const Vendor_Relationship_Management: React.FC = () => {
   };
 
   const getRelationshipTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch ((type || '').toLowerCase()) {
       case 'strategic':
         return 'bg-purple-100 text-purple-800';
       case 'preferred':
@@ -248,7 +217,7 @@ const Vendor_Relationship_Management: React.FC = () => {
   };
 
   const getCommunicationFrequencyColor = (frequency: string) => {
-    switch (frequency.toLowerCase()) {
+    switch ((frequency || '').toLowerCase()) {
       case 'daily':
         return 'bg-red-100 text-red-800';
       case 'weekly':
@@ -315,7 +284,7 @@ const Vendor_Relationship_Management: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.relationship_status.toLowerCase() === 'active').length}
+                {data.filter(item => (item.relationship_status || '').toLowerCase() === 'active').length}
               </p>
             </div>
           </div>
@@ -331,7 +300,7 @@ const Vendor_Relationship_Management: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Strategic</p>
               <p className="text-2xl font-semibold text-gray-900">
-                {data.filter(item => item.relationship_type.toLowerCase() === 'strategic').length}
+                {data.filter(item => (item.relationship_type || '').toLowerCase() === 'strategic').length}
               </p>
             </div>
           </div>
