@@ -33,7 +33,7 @@ interface FireSafetyReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/fire-safety-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -61,16 +61,60 @@ const RecordKeepingPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: RecordKeeping | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: RecordKeeping | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
   const handleEdit = (item: RecordKeeping, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
     setEditModal({
       open: true,
       isNew: true,
       item: { ...emptyRecord },
-      reportId,
+      reportId: id,
     });
   };
 
@@ -153,42 +197,55 @@ const RecordKeepingPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
-            ) : (
-              <>
-                {data.flatMap((report, rIdx) =>
-                  report.records.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                      <td className="border px-2 py-1">{idx + 1}</td>
-                      <td className="border px-2 py-1">{item.Record_ID}</td>
-                      <td className="border px-2 py-1">{item.Site_Name}</td>
-                      <td className="border px-2 py-1">{item.Record_Type}</td>
-                      <td className="border px-2 py-1">{item.Title}</td>
-                      <td className="border px-2 py-1">{item.Created_Date}</td>
-                      <td className="border px-2 py-1">{item.Author}</td>
-                      <td className="border px-2 py-1">{item.Storage_Location}</td>
-                      <td className="border px-2 py-1">{item.Retention_Period}</td>
-                      <td className="border px-2 py-1">{item.Status}</td>
-                      <td className="border px-2 py-1 text-center">
-                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+            ) : (() => {
+              const rows = data.flatMap((report, rIdx) =>
+                report.records.map((item, idx) => (
+                  <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                    <td className="border px-2 py-1">{idx + 1}</td>
+                    <td className="border px-2 py-1">{item.Record_ID}</td>
+                    <td className="border px-2 py-1">{item.Site_Name}</td>
+                    <td className="border px-2 py-1">{item.Record_Type}</td>
+                    <td className="border px-2 py-1">{item.Title}</td>
+                    <td className="border px-2 py-1">{item.Created_Date}</td>
+                    <td className="border px-2 py-1">{item.Author}</td>
+                    <td className="border px-2 py-1">{item.Storage_Location}</td>
+                    <td className="border px-2 py-1">{item.Retention_Period}</td>
+                    <td className="border px-2 py-1">{item.Status}</td>
+                    <td className="border px-2 py-1 text-center">
+                      <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              );
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={11} className="text-center py-6">
+                      <div className="flex items-center justify-center gap-3">
+                        <span>No record keeping entries found</span>
                         {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                          <button onClick={() => handleAdd()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Record Entry</button>
                         )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </>
-            )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
       </div>
 
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={() => handleAdd(data[0]?.id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Record Entry

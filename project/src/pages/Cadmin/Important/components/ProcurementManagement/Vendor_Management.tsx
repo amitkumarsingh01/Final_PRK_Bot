@@ -34,7 +34,7 @@ interface ProcurementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/procurement-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -63,6 +63,48 @@ const VendorManagementPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; vendor: Vendor | null }>({ open: false, vendor: null });
   const [editModal, setEditModal] = useState<{ open: boolean; vendor: Vendor | null; isNew: boolean; reportId: string | null }>({ open: false, vendor: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
   const getAllVendors = (): Vendor[] => {
     return data.flatMap(report => 
       report.vendors.map(vendor => ({
@@ -76,8 +118,10 @@ const VendorManagementPage: React.FC = () => {
     setEditModal({ open: true, vendor: { ...vendor }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
-    setEditModal({ open: true, vendor: { ...emptyVendor }, isNew: true, reportId });
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditModal({ open: true, vendor: { ...emptyVendor }, isNew: true, reportId: id });
   };
 
   const handleDelete = async (vendorId: string, reportId: string) => {

@@ -34,7 +34,7 @@ interface ProcurementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/procurement-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -134,7 +134,56 @@ const ProcurementPlanningPage: React.FC = () => {
     }
   };
 
-  
+  // Set admin status
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  // Fetch data
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  // Ensure report exists for property
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
+  // Updated handleAdd to use ensureReportForProperty
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditModal({ open: true, plan: { ...emptyProcurementPlan }, isNew: true, reportId: id });
   };
 
   if (loading) {
@@ -210,12 +259,7 @@ const ProcurementPlanningPage: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900">Procurement Plans</h2>
               {isAdmin && user?.propertyId && (
                 <button
-                  onClick={() => {
-                    const report = data[0];
-                    if (report) {
-                      handleAdd(report.id);
-                    }
-                  }}
+                  onClick={() => handleAdd()}
                   className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors"
                 >
                   <Plus size={16} />
@@ -226,67 +270,82 @@ const ProcurementPlanningPage: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item/Service</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated Cost</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {plans.map((plan) => (
-                  <tr key={plan.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{plan.Plan_ID}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Project_Department}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Item_Service}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Quantity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{plan.Estimated_Cost.toLocaleString()}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Priority}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        plan.Status === 'Completed' ? 'bg-green-100 text-green-800' :
-                        plan.Status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {plan.Status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleView(plan)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(plan, plan.report_id!)}
-                              className="text-orange-600 hover:text-orange-900"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(plan.id!, plan.report_id!)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+            {plans.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-500 mb-4">No procurement plans found</div>
+                {isAdmin && user?.propertyId && (
+                  <button
+                    onClick={() => handleAdd()}
+                    className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors mx-auto"
+                  >
+                    <Plus size={16} />
+                    <span>Add Procurement Plan</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item/Service</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated Cost</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {plans.map((plan) => (
+                    <tr key={plan.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{plan.Plan_ID}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Project_Department}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Item_Service}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{plan.Estimated_Cost.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.Priority}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          plan.Status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          plan.Status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {plan.Status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleView(plan)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(plan, plan.report_id!)}
+                                className="text-orange-600 hover:text-orange-900"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(plan.id!, plan.report_id!)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -428,10 +487,10 @@ const ProcurementPlanningPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, plan: { ...editModal.plan!, Priority: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
-                    
+                    <option value="">Select Priority</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
                   </select>
                 </div>
                 <div>
@@ -468,11 +527,12 @@ const ProcurementPlanningPage: React.FC = () => {
                     onChange={(e) => setEditModal({ ...editModal, plan: { ...editModal.plan!, Status: e.target.value } })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
-                    
-                    
+                    <option value="">Select Status</option>
+                    <option value="Planning">Planning</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="On Hold">On Hold</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
                 <div className="col-span-2">

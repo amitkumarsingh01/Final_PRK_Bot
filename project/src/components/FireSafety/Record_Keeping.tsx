@@ -51,83 +51,75 @@ const emptyRecord: RecordKeeping = {
 };
 
 const RecordKeepingPage: React.FC = () => {
+  console.log('🚀 RecordKeeping: Component initialized');
   const { user } = useAuth();
+  console.log('👤 RecordKeeping: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: RecordKeeping | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: RecordKeeping | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
 
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
+  const fetchData = async () => {
+    if (!user?.token) return;
     setLoading(true);
+    setError(null);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
     } catch (e) {
-      setError('Failed to fetch fire safety reports');
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
     }
-  }, [selectedPropertyId]);
+  };
 
   const handleEdit = (item: RecordKeeping, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
     setEditModal({
       open: true,
       isNew: true,
       item: { ...emptyRecord },
-      reportId,
+      reportId: id,
     });
   };
 
   const handleDelete = async (itemId: string, reportId: string) => {
-    if (!window.confirm('Delete this record keeping entry?')) return;
+    if (!window.confirm('Delete this record entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
@@ -135,7 +127,7 @@ const RecordKeepingPage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Record_Keeping: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -162,7 +154,7 @@ const RecordKeepingPage: React.FC = () => {
         Fire_Safety_Management: { Record_Keeping: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -172,26 +164,16 @@ const RecordKeepingPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Record Keeping</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -215,42 +197,55 @@ const RecordKeepingPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
-            ) : (
-              <>
-                {data.flatMap((report, rIdx) =>
-                  report.records.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                      <td className="border px-2 py-1">{idx + 1}</td>
-                      <td className="border px-2 py-1">{item.Record_ID}</td>
-                      <td className="border px-2 py-1">{item.Site_Name}</td>
-                      <td className="border px-2 py-1">{item.Record_Type}</td>
-                      <td className="border px-2 py-1">{item.Title}</td>
-                      <td className="border px-2 py-1">{item.Created_Date}</td>
-                      <td className="border px-2 py-1">{item.Author}</td>
-                      <td className="border px-2 py-1">{item.Storage_Location}</td>
-                      <td className="border px-2 py-1">{item.Retention_Period}</td>
-                      <td className="border px-2 py-1">{item.Status}</td>
-                      <td className="border px-2 py-1 text-center">
-                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+            ) : (() => {
+              const rows = data.flatMap((report, rIdx) =>
+                report.records.map((item, idx) => (
+                  <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                    <td className="border px-2 py-1">{idx + 1}</td>
+                    <td className="border px-2 py-1">{item.Record_ID}</td>
+                    <td className="border px-2 py-1">{item.Site_Name}</td>
+                    <td className="border px-2 py-1">{item.Record_Type}</td>
+                    <td className="border px-2 py-1">{item.Title}</td>
+                    <td className="border px-2 py-1">{item.Created_Date}</td>
+                    <td className="border px-2 py-1">{item.Author}</td>
+                    <td className="border px-2 py-1">{item.Storage_Location}</td>
+                    <td className="border px-2 py-1">{item.Retention_Period}</td>
+                    <td className="border px-2 py-1">{item.Status}</td>
+                    <td className="border px-2 py-1 text-center">
+                      <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              );
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={11} className="text-center py-6">
+                      <div className="flex items-center justify-center gap-3">
+                        <span>No record keeping entries found</span>
                         {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                          <button onClick={() => handleAdd()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Record Entry</button>
                         )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </>
-            )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
       </div>
 
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={() => handleAdd(data[0]?.id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Record Entry
@@ -276,40 +271,13 @@ const RecordKeepingPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Record ID" value={editModal.item.Record_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Record_ID: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Site Name" value={editModal.item.Site_Name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Site_Name: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Record_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Record_Type: e.target.value } })} required>
-                  <option value="">Select Record Type</option>
-                  <option value="Inspection Report">Inspection Report</option>
-                  <option value="Maintenance Record">Maintenance Record</option>
-                  <option value="Training Certificate">Training Certificate</option>
-                  <option value="Incident Report">Incident Report</option>
-                  <option value="Compliance Certificate">Compliance Certificate</option>
-                  <option value="Audit Report">Audit Report</option>
-                  <option value="Equipment Manual">Equipment Manual</option>
-                  <option value="Emergency Plan">Emergency Plan</option>
-                  <option value="Other">Other</option>
-                </select>
+                <input className="border rounded px-3 py-2" placeholder="Record Type" value={editModal.item.Record_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Record_Type: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Title" value={editModal.item.Title} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Title: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Created Date" type="date" value={editModal.item.Created_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Created_Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Author" value={editModal.item.Author} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Author: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Storage Location" value={editModal.item.Storage_Location} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Storage_Location: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Retention_Period} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Retention_Period: e.target.value } })} required>
-                  <option value="">Select Retention Period</option>
-                  <option value="1 Year">1 Year</option>
-                  <option value="3 Years">3 Years</option>
-                  <option value="5 Years">5 Years</option>
-                  <option value="7 Years">7 Years</option>
-                  <option value="10 Years">10 Years</option>
-                  <option value="Permanent">Permanent</option>
-                  <option value="Other">Other</option>
-                </select>
-                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Archived">Archived</option>
-                  <option value="Expired">Expired</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Disposed">Disposed</option>
-                </select>
+                <input className="border rounded px-3 py-2" placeholder="Retention Period" value={editModal.item.Retention_Period} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Retention_Period: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Status" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -327,7 +295,7 @@ const RecordKeepingPage: React.FC = () => {
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
-                Record Details
+                Record Entry Details
               </h3>
               <button
                 onClick={() => setViewModal({ open: false, item: null })}

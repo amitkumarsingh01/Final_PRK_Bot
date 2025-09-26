@@ -35,7 +35,7 @@ interface ProcurementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/procurement-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 

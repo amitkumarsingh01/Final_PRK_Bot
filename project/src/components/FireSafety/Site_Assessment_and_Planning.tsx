@@ -53,78 +53,70 @@ const emptySiteAssessment: SiteAssessmentAndPlanning = {
 };
 
 const SiteAssessmentAndPlanningPage: React.FC = () => {
+  console.log('🚀 SiteAssessmentAndPlanning: Component initialized');
   const { user } = useAuth();
+  console.log('👤 SiteAssessmentAndPlanning: User loaded', { userId: user?.userId });
   const [data, setData] = useState<FireSafetyReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: SiteAssessmentAndPlanning | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: SiteAssessmentAndPlanning | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
 
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
+  const fetchData = async () => {
+    if (!user?.token) return;
     setLoading(true);
+    setError(null);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
     } catch (e) {
-      setError('Failed to fetch fire safety reports');
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
     }
-  }, [selectedPropertyId]);
+  };
 
   const handleEdit = (item: SiteAssessmentAndPlanning, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
     setEditModal({
       open: true,
       isNew: true,
       item: { ...emptySiteAssessment },
-      reportId,
+      reportId: id,
     });
   };
 
@@ -137,7 +129,7 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Site_Assessment_and_Planning: newArr }
       });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to delete');
     }
@@ -164,7 +156,7 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
         Fire_Safety_Management: { Site_Assessment_and_Planning: newArr }
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
-      fetchData(selectedPropertyId);
+      fetchData();
     } catch (e) {
       setError('Failed to save changes');
     }
@@ -174,26 +166,16 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Site Assessment and Planning</h2>
       
-      {/* Property Selection Dropdown */}
+      {/* Property Display */}
       <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
+          </div>
         </div>
-      </div>
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
 
@@ -208,7 +190,7 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
               <th className="px-3 py-2 border">Assessment Date</th>
               <th className="px-3 py-2 border">Assessor</th>
               <th className="px-3 py-2 border">Risk Areas</th>
-              <th className="px-3 py-2 border">Fire Hazards</th>
+              <th className="px-3 py-2 border">Fire Hazards Identified</th>
               <th className="px-3 py-2 border">Status</th>
               <th className="px-3 py-2 border">Actions</th>
             </tr>
@@ -216,41 +198,54 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={10} className="text-center py-6">Loading...</td></tr>
-            ) : (
-              <>
-                {data.flatMap((report, rIdx) =>
-                  report.site_assessments.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                      <td className="border px-2 py-1">{idx + 1}</td>
-                      <td className="border px-2 py-1">{item.Assessment_ID}</td>
-                      <td className="border px-2 py-1">{item.Site_Name}</td>
-                      <td className="border px-2 py-1">{item.Location}</td>
-                      <td className="border px-2 py-1">{item.Assessment_Date}</td>
-                      <td className="border px-2 py-1">{item.Assessor}</td>
-                      <td className="border px-2 py-1">{item.Risk_Areas}</td>
-                      <td className="border px-2 py-1">{item.Fire_Hazards_Identified}</td>
-                      <td className="border px-2 py-1">{item.Status}</td>
-                      <td className="border px-2 py-1 text-center">
-                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+            ) : (() => {
+              const rows = data.flatMap((report, rIdx) =>
+                report.site_assessments.map((item, idx) => (
+                  <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                    <td className="border px-2 py-1">{idx + 1}</td>
+                    <td className="border px-2 py-1">{item.Assessment_ID}</td>
+                    <td className="border px-2 py-1">{item.Site_Name}</td>
+                    <td className="border px-2 py-1">{item.Location}</td>
+                    <td className="border px-2 py-1">{item.Assessment_Date}</td>
+                    <td className="border px-2 py-1">{item.Assessor}</td>
+                    <td className="border px-2 py-1">{item.Risk_Areas}</td>
+                    <td className="border px-2 py-1">{item.Fire_Hazards_Identified}</td>
+                    <td className="border px-2 py-1">{item.Status}</td>
+                    <td className="border px-2 py-1 text-center">
+                      <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              );
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={10} className="text-center py-6">
+                      <div className="flex items-center justify-center gap-3">
+                        <span>No site assessment records found</span>
                         {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                          <button onClick={() => handleAdd()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Site Assessment</button>
                         )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </>
-            )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
       </div>
 
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={() => handleAdd(data[0]?.id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Site Assessment
@@ -279,17 +274,11 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
                 <input className="border rounded px-3 py-2" placeholder="Location" value={editModal.item.Location} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Location: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Assessment Date" type="date" value={editModal.item.Assessment_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Assessment_Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Assessor" value={editModal.item.Assessor} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Assessor: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Risk Areas" value={editModal.item.Risk_Areas} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Risk_Areas: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Status" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Compliance Standards" value={editModal.item.Compliance_Standards} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_Standards: e.target.value } })} required />
+                <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Risk Areas" value={editModal.item.Risk_Areas} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Risk_Areas: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Fire Hazards Identified" value={editModal.item.Fire_Hazards_Identified} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Fire_Hazards_Identified: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Recommendations" value={editModal.item.Recommendations} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Recommendations: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Compliance Standards" value={editModal.item.Compliance_Standards} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_Standards: e.target.value } })} required />
-                <select className="border rounded px-3 py-2" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required>
-                  <option value="">Select Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Review Required">Review Required</option>
-                </select>
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -322,11 +311,11 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
               <div><b>Location:</b> {viewModal.item.Location}</div>
               <div><b>Assessment Date:</b> {viewModal.item.Assessment_Date}</div>
               <div><b>Assessor:</b> {viewModal.item.Assessor}</div>
-              <div><b>Risk Areas:</b> {viewModal.item.Risk_Areas}</div>
+              <div><b>Status:</b> {viewModal.item.Status}</div>
+              <div><b>Compliance Standards:</b> {viewModal.item.Compliance_Standards}</div>
+              <div className="col-span-2"><b>Risk Areas:</b> {viewModal.item.Risk_Areas}</div>
               <div className="col-span-2"><b>Fire Hazards Identified:</b> {viewModal.item.Fire_Hazards_Identified}</div>
               <div className="col-span-2"><b>Recommendations:</b> {viewModal.item.Recommendations}</div>
-              <div><b>Compliance Standards:</b> {viewModal.item.Compliance_Standards}</div>
-              <div><b>Status:</b> {viewModal.item.Status}</div>
               <div className="col-span-2"><b>Remarks:</b> {viewModal.item.Remarks}</div>
             </div>
           </div>

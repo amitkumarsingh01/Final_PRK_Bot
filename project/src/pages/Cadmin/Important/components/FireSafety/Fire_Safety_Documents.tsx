@@ -33,7 +33,7 @@ interface FireSafetyReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/fire-safety-reports/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -61,16 +61,60 @@ const FireSafetyDocumentsPage: React.FC = () => {
   const [viewModal, setViewModal] = useState<{ open: boolean; item: FireSafetyDocument | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: FireSafetyDocument | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
   const handleEdit = (item: FireSafetyDocument, reportId: string) => {
     setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
     setEditModal({
       open: true,
       isNew: true,
       item: { ...emptyDocument },
-      reportId,
+      reportId: id,
     });
   };
 
@@ -152,41 +196,54 @@ const FireSafetyDocumentsPage: React.FC = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan={10} className="text-center py-6">Loading...</td></tr>
-            ) : (
-              <>
-                {data.flatMap((report, rIdx) =>
-                  report.documents.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
-                      <td className="border px-2 py-1">{idx + 1}</td>
-                      <td className="border px-2 py-1">{item.Document_ID}</td>
-                      <td className="border px-2 py-1">{item.Site_Name}</td>
-                      <td className="border px-2 py-1">{item.Document_Type}</td>
-                      <td className="border px-2 py-1">{item.Title}</td>
-                      <td className="border px-2 py-1">{item.Created_Date}</td>
-                      <td className="border px-2 py-1">{item.Author}</td>
-                      <td className="border px-2 py-1">{item.Status}</td>
-                      <td className="border px-2 py-1">{item.Storage_Location}</td>
-                      <td className="border px-2 py-1 text-center">
-                        <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+            ) : (() => {
+              const rows = data.flatMap((report, rIdx) =>
+                report.documents.map((item, idx) => (
+                  <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                    <td className="border px-2 py-1">{idx + 1}</td>
+                    <td className="border px-2 py-1">{item.Document_ID}</td>
+                    <td className="border px-2 py-1">{item.Site_Name}</td>
+                    <td className="border px-2 py-1">{item.Document_Type}</td>
+                    <td className="border px-2 py-1">{item.Title}</td>
+                    <td className="border px-2 py-1">{item.Created_Date}</td>
+                    <td className="border px-2 py-1">{item.Author}</td>
+                    <td className="border px-2 py-1">{item.Status}</td>
+                    <td className="border px-2 py-1">{item.Storage_Location}</td>
+                    <td className="border px-2 py-1 text-center">
+                      <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              );
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={10} className="text-center py-6">
+                      <div className="flex items-center justify-center gap-3">
+                        <span>No document records found</span>
                         {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                          <button onClick={() => handleAdd()} className="ml-2 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow">Add Document Record</button>
                         )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </>
-            )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
           </tbody>
         </table>
       </div>
 
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={() => handleAdd(data[0]?.id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Document Record
@@ -212,11 +269,11 @@ const FireSafetyDocumentsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Document ID" value={editModal.item.Document_ID} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Document_ID: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Site Name" value={editModal.item.Site_Name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Site_Name: e.target.value } })} required />
-                
+                <input className="border rounded px-3 py-2" placeholder="Document Type" value={editModal.item.Document_Type} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Document_Type: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Title" value={editModal.item.Title} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Title: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Created Date" type="date" value={editModal.item.Created_Date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Created_Date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Author" value={editModal.item.Author} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Author: e.target.value } })} required />
-                
+                <input className="border rounded px-3 py-2" placeholder="Status" value={editModal.item.Status} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Status: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Storage Location" value={editModal.item.Storage_Location} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Storage_Location: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Compliance Standards" value={editModal.item.Compliance_Standards} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Compliance_Standards: e.target.value } })} required />
                 <textarea className="border rounded px-3 py-2 col-span-2" placeholder="Remarks" value={editModal.item.Remarks} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, Remarks: e.target.value } })} />

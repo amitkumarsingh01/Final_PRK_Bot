@@ -51,69 +51,15 @@ const emptyComplianceRecord: ComplianceRecord = {
 };
 
 const ComplianceAndPolicyPage: React.FC = () => {
+  console.log('🚀 ComplianceAndPolicy: Component initialized');
   const { user } = useAuth();
+  console.log('👤 ComplianceAndPolicy: User loaded', { userId: user?.userId });
   const [data, setData] = useState<ProcurementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; compliance: ComplianceRecord | null }>({ open: false, compliance: null });
   const [editModal, setEditModal] = useState<{ open: boolean; compliance: ComplianceRecord | null; isNew: boolean; reportId: string | null }>({ open: false, compliance: null, isNew: false, reportId: null });
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await axios.get(PROPERTIES_URL);
-        setProperties(res.data);
-      } catch (e) {
-        setError('Failed to fetch properties');
-      }
-    };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProperty = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    fetchUserProperty();
-  }, [user]);
-
-  const fetchData = async (propertyId: string) => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
-      setData(res.data);
-      setError(null);
-    } catch (e) {
-      setError('Failed to fetch compliance data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPropertyId) {
-      fetchData(selectedPropertyId);
-    }
-  }, [selectedPropertyId]);
 
   const getAllCompliances = (): ComplianceRecord[] => {
     return data.flatMap(report => 
@@ -128,10 +74,6 @@ const ComplianceAndPolicyPage: React.FC = () => {
     setEditModal({ open: true, compliance: { ...compliance }, isNew: false, reportId });
   };
 
-  const handleAdd = (reportId: string) => {
-    setEditModal({ open: true, compliance: { ...emptyComplianceRecord }, isNew: true, reportId });
-  };
-
   const handleDelete = async (complianceId: string, reportId: string) => {
     if (!window.confirm('Are you sure you want to delete this compliance record?')) return;
     
@@ -140,12 +82,12 @@ const ComplianceAndPolicyPage: React.FC = () => {
       if (report) {
         const updatedCompliances = report.compliances.filter(c => c.id !== complianceId);
         await axios.put(`${API_URL}${reportId}`, {
-          property_id: selectedPropertyId,
+          property_id: user?.propertyId,
           Procurement_Management: {
             Compliance_and_Policy: updatedCompliances
           }
         });
-        fetchData(selectedPropertyId);
+        fetchData();
       }
     } catch (e) {
       setError('Failed to delete compliance record');
@@ -173,21 +115,69 @@ const ComplianceAndPolicyPage: React.FC = () => {
         }
 
         await axios.put(`${API_URL}${editModal.reportId}`, {
-          property_id: selectedPropertyId,
+          property_id: user?.propertyId,
           Procurement_Management: {
             Compliance_and_Policy: updatedCompliances
           }
         });
         setEditModal({ open: false, compliance: null, isNew: false, reportId: null });
-        fetchData(selectedPropertyId);
+        fetchData();
       }
     } catch (e) {
       setError('Failed to save compliance record');
     }
   };
 
-  const handlePropertyChange = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
+  // Set admin status
+  useEffect(() => {
+    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
+  }, [user?.userType]);
+
+  // Fetch data
+  const fetchData = async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(API_URL, { headers: { Authorization: `Bearer ${user.token}` } });
+      const arr = Array.isArray(res.data) ? res.data : [];
+      const filtered = user?.propertyId ? arr.filter((r: any) => r.property_id === user.propertyId) : arr;
+      setData(filtered);
+    } catch (e) {
+      setError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.token, user?.propertyId]);
+
+  // Ensure report exists for property
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    try {
+      const existing = data.find(r => r.property_id === user?.propertyId);
+      if (existing) return existing.id;
+      const res = await axios.post(
+        API_URL,
+        { property_id: user?.propertyId },
+        { headers: { Authorization: `Bearer ${user?.token}` } }
+      );
+      const newId = res.data?.id || res.data?.report?.id || null;
+      await fetchData();
+      return newId;
+    } catch (e) {
+      setError('Failed to prepare report for adding');
+      return null;
+    }
+  };
+
+  // Updated handleAdd to use ensureReportForProperty
+  const handleAdd = async (reportId?: string) => {
+    const id = reportId || (await ensureReportForProperty());
+    if (!id) return;
+    setEditModal({ open: true, compliance: { ...emptyComplianceRecord }, isNew: true, reportId: id });
   };
 
   if (loading) {
@@ -210,30 +200,23 @@ const ComplianceAndPolicyPage: React.FC = () => {
               <Building size={32} style={{ color: orange }} />
               <h1 className="text-3xl font-bold text-gray-900">Compliance and Policy</h1>
             </div>
-            {isAdmin && (
-              <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Select Property:</label>
-                <select
-                  value={selectedPropertyId}
-                  onChange={(e) => handlePropertyChange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">Select a property</option>
-                  {properties.map((property) => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
+            {/* Property Display */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Building className="h-5 w-5 text-gray-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Property</h2>
               </div>
-            )}
+              <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+              </div>
+            </div>
           </div>
           
           {/* Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-4 rounded-lg">
               <div className="text-2xl font-bold">{compliances.length}</div>
-              <div className="text-sm">Total Audits</div>
+              <div className="text-sm">Total Records</div>
             </div>
             <div className="bg-gradient-to-r from-green-400 to-green-600 text-white p-4 rounded-lg">
               <div className="text-2xl font-bold">
@@ -241,17 +224,17 @@ const ComplianceAndPolicyPage: React.FC = () => {
               </div>
               <div className="text-sm">Compliant</div>
             </div>
-            <div className="bg-gradient-to-r from-red-400 to-red-600 text-white p-4 rounded-lg">
+            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-4 rounded-lg">
               <div className="text-2xl font-bold">
                 {compliances.filter(c => c.Compliance_Status === 'Non-Compliant').length}
               </div>
               <div className="text-sm">Non-Compliant</div>
             </div>
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-4 rounded-lg">
+            <div className="bg-gradient-to-r from-blue-400 to-blue-600 text-white p-4 rounded-lg">
               <div className="text-2xl font-bold">
-                {compliances.filter(c => c.Compliance_Status === 'Pending Review').length}
+                {compliances.filter(c => c.Compliance_Status === 'Under Review').length}
               </div>
-              <div className="text-sm">Pending Review</div>
+              <div className="text-sm">Under Review</div>
             </div>
           </div>
         </div>
@@ -268,87 +251,96 @@ const ComplianceAndPolicyPage: React.FC = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Compliance Records</h2>
-              {isAdmin && selectedPropertyId && (
+              {isAdmin && user?.propertyId && (
                 <button
-                  onClick={() => {
-                    const report = data[0];
-                    if (report) {
-                      handleAdd(report.id);
-                    }
-                  }}
+                  onClick={() => handleAdd()}
                   className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors"
                 >
                   <Plus size={16} />
-                  <span>Add Compliance</span>
+                  <span>Add Record</span>
                 </button>
               )}
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project/PO ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy/Regulation</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Audit Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auditor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Audit Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {compliances.map((compliance) => (
-                  <tr key={compliance.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{compliance.Compliance_ID}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Project_PO_ID}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Policy_Regulation}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Audit_Date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Auditor}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        compliance.Compliance_Status === 'Compliant' ? 'bg-green-100 text-green-800' :
-                        compliance.Compliance_Status === 'Non-Compliant' ? 'bg-red-100 text-red-800' :
-                        compliance.Compliance_Status === 'Pending Review' ? 'bg-yellow-100 text-yellow-800' :
-                        compliance.Compliance_Status === 'Under Review' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {compliance.Compliance_Status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Next_Audit_Date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleView(compliance)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(compliance, compliance.report_id!)}
-                              className="text-orange-600 hover:text-orange-900"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(compliance.id!, compliance.report_id!)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+            {compliances.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-500 mb-4">No compliance records found</div>
+                {isAdmin && user?.propertyId && (
+                  <button
+                    onClick={() => handleAdd()}
+                    className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-colors mx-auto"
+                  >
+                    <Plus size={16} />
+                    <span>Add Compliance Record</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project/PO ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy/Regulation</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Audit Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auditor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Audit Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {compliances.map((compliance) => (
+                    <tr key={compliance.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{compliance.Compliance_ID}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Project_PO_ID}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Policy_Regulation}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Audit_Date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Auditor}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          compliance.Compliance_Status === 'Compliant' ? 'bg-green-100 text-green-800' :
+                          compliance.Compliance_Status === 'Non-Compliant' ? 'bg-red-100 text-red-800' :
+                          compliance.Compliance_Status === 'Under Review' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {compliance.Compliance_Status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{compliance.Next_Audit_Date}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleView(compliance)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(compliance, compliance.report_id!)}
+                                className="text-orange-600 hover:text-orange-900"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(compliance.id!, compliance.report_id!)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -488,9 +480,8 @@ const ComplianceAndPolicyPage: React.FC = () => {
                     <option value="">Select Status</option>
                     <option value="Compliant">Compliant</option>
                     <option value="Non-Compliant">Non-Compliant</option>
-                    <option value="Pending Review">Pending Review</option>
                     <option value="Under Review">Under Review</option>
-                    <option value="Conditional">Conditional</option>
+                    <option value="Pending">Pending</option>
                   </select>
                 </div>
                 <div>
