@@ -3,20 +3,13 @@ import {
   Home, 
   Users, 
   Building2, 
-  CheckSquare, 
-  ClipboardList, 
-  Bell, 
-  Activity,
-  Settings,
   LogOut,
-  Menu,
   X,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   User,
-  Heart,
   Search,
   Calendar,
   FileText,
@@ -216,10 +209,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
   // Role-based access control mapping
   const getRoleBasedNavItems = (userRole: string): NavItem[] => {
-    const baseItems: NavItem[] = [
-      { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
-    ];
 
     // Define access permissions for each role
     const rolePermissions: Record<string, string[]> = {
@@ -299,7 +288,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     return getFilteredNavItems(userPermissions);
   };
 
+  const getDailyAllDeptPath = (): string => {
+    return userProfile?.user_type === 'cadmin' ? '/cadmin/daily-task-management-all-department' : '/daily-task-management-all-department';
+  };
+
   const getFullNavItems = (): NavItem[] => {
+    // For admin/cadmin (full access), avoid duplicating the Daily Task link since it's already inside the
+    // "Daily Task Management" group below. Keep only Dashboard and Profile at the top level.
     const baseItems: NavItem[] = [
       { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
@@ -307,13 +302,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
     // If user is admin, show all admin items
     if (userProfile?.user_type === 'admin') {
-      console.log('👑 Generating ADMIN navigation items');
       return [...baseItems, ...getAdminNavItems()];
     }
 
     // If user is cadmin, show all cadmin items
     if (userProfile?.user_type === 'cadmin') {
-      console.log('🏢 Generating CADMIN navigation items');
       return [...baseItems, ...getCadminNavItems()];
     }
 
@@ -321,9 +314,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   };
 
   const getFilteredNavItems = (permissions: string[]): NavItem[] => {
+    // For non-admin roles, surface the direct Daily Task link at the top level
     const baseItems: NavItem[] = [
       { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
+      { path: getDailyAllDeptPath(), icon: <Calendar size={20} />, label: 'Daily Task Management of all department' },
     ];
 
     const filteredItems: NavItem[] = [];

@@ -199,6 +199,19 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
     setEditRow({ ...item });
   };
 
+  // Allow non-admin/cadmin users to directly change only the User (Yes/No) column
+  const handleUserOnlyChange = async (item: ChecklistItem, value: boolean) => {
+    try {
+      // Optimistic update
+      setData(prev => prev.map(r => r.id === item.id ? { ...r, user_required: value } : r));
+      await axios.put(API_URL + item.id, { ...item, user_required: value, property_id: selectedPropertyId });
+    } catch (e) {
+      // Revert on failure by refetching
+      fetchData(selectedPropertyId);
+      setError('Failed to update user option');
+    }
+  };
+
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (!editRow) return;
     const { name, value, type } = e.target;
@@ -706,7 +719,7 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
               <th className="px-3 py-2 border">Standard</th>
               <th className="px-3 py-2 border">Frequency</th>
               <th className="px-3 py-2 border">User</th>
-              {isAdmin && <th className="px-3 py-2 border">Actions</th>}
+              {['cadmin','admin'].includes(user?.userType || '') && <th className="px-3 py-2 border">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -751,8 +764,22 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                       </select>
-                    ) : item.user_required ? 'Yes' : 'No'}</td>
-                    {isAdmin && (
+                    ) : (
+                      // For non-admin/cadmin: inline editable Yes/No select; for admin/cadmin: plain text unless editing
+                      !['cadmin','admin'].includes(user?.userType || '') ? (
+                        <select
+                          value={item.user_required ? 'Yes' : 'No'}
+                          onChange={e => handleUserOnlyChange(item, e.target.value === 'Yes')}
+                          className="border rounded px-1"
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                      ) : (
+                        item.user_required ? 'Yes' : 'No'
+                      )
+                    )}</td>
+                    {['cadmin','admin'].includes(user?.userType || '') && (
                       <td className="border px-2 py-1 text-center">
                         {editId === item.id ? (
                           <>
@@ -817,14 +844,14 @@ const DailyTaskManagementAllDepartment: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && !newRow && (
+      {!['cadmin','admin'].includes(user?.userType || '') ? null : (!newRow && (
         <button
           onClick={handleAddRow}
           className="mt-4 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Row
         </button>
-      )}
+      ))}
 
       {/* View Modal */}
       {viewModal.open && viewModal.item && (
