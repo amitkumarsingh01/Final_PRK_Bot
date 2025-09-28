@@ -3,13 +3,20 @@ import {
   Home, 
   Users, 
   Building2, 
+  CheckSquare, 
+  ClipboardList, 
+  Bell, 
+  Activity,
+  Settings,
   LogOut,
+  Menu,
   X,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   User,
+  Heart,
   Search,
   Calendar,
   FileText,
@@ -34,7 +41,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../../../context/AuthContext';
 import logo from '../../../assets/logo.png';
 
 interface NavItemProps {
@@ -122,72 +129,53 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user?.userId) {
-        console.log('🔍 SIDEBAR - Fetching user profile...');
-        console.log('👤 Current user ID:', user.userId);
-        console.log('🎫 User token:', user.token ? 'Present' : 'Missing');
-        console.log('👥 User type from context:', user.userType);
+        console.log('Current user ID:', user.userId);
         try {
-          console.log('🌐 Making profile request to server...');
           const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
             headers: {
               'Authorization': `Bearer ${user.token}`
             }
           });
           
-          console.log('📡 Profile response status:', response.status);
-          console.log('📡 Profile response ok:', response.ok);
-          
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           
           const currentUserProfile = await response.json();
-          console.log('📦 Full profile API response:', currentUserProfile);
+          console.log('API response data:', currentUserProfile);
           
           if (currentUserProfile) {
-            console.log('✅ Profile found! Setting user profile...');
-            console.log('👥 Profile user_type:', currentUserProfile.user_type);
-            console.log('🏢 Profile property_id:', currentUserProfile.property_id);
             setUserProfile(currentUserProfile);
-            
-            // Fetch property logo for cadmin/user
-            if (currentUserProfile.user_type !== 'admin' && currentUserProfile.property_id) {
-              console.log('🏢 Fetching property logo for non-admin user...');
+                        if (currentUserProfile.user_type !== 'admin' && currentUserProfile.property_id) {
               try {
-                const propRes = await fetch(`https://server.prktechindia.in/properties/${currentUserProfile.property_id}`);
-                if (propRes.ok) {
+                const propRes = await fetch(`https:                if (propRes.ok) {
                   const propData = await propRes.json();
                   if (propData.logo_base64) {
-                    console.log('🖼️ Property logo found and set');
                     setPropertyLogo(propData.logo_base64);
                   } else {
-                    console.log('❌ No property logo in response');
                     setPropertyLogo(null);
                   }
                 } else {
-                  console.log('❌ Failed to fetch property data');
                   setPropertyLogo(null);
                 }
-              } catch (error) {
-                console.log('💥 Error fetching property:', error);
+              } catch {
                 setPropertyLogo(null);
               }
             } else {
-              console.log('👑 Admin user - no property logo needed');
               setPropertyLogo(null);
             }
           } else {
-            console.log('❌ No profile found for user ID:', user.userId);
+            console.log('No profile found for user ID:', user.userId);
             setUserProfile(null);
             setPropertyLogo(null);
           }
         } catch (error) {
-          console.error('💥 SIDEBAR - Error fetching user profile:', error);
+          console.error('Error fetching user profile:', error);
           setUserProfile(null);
           setPropertyLogo(null);
         }
       } else {
-        console.log('❌ SIDEBAR - No user ID available');
+        console.log('No user ID available');
         setUserProfile(null);
         setPropertyLogo(null);
       }
@@ -207,94 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     });
   };
 
-  // Role-based access control mapping
-  const getRoleBasedNavItems = (userRole: string): NavItem[] => {
-
-    // Define access permissions for each role
-    const rolePermissions: Record<string, string[]> = {
-      // Administrative roles
-      'admin': ['All Pages'],
-      'cadmin': ['All Pages'],
-      'helpdesk': [
-        'Daily Management Report', 'Daily Complete work Details', 'Monthly Management Report',
-        '52 Week Work Calendar', '52 week training calendar format', 'Incident Report',
-        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
-        'Tickets Management', 'Ticket Assignment', 'Notice Management',
-        'Parking Sticker Management', 'Communication & Announcements',
-        'Move-In Coordination', 'Move-Out Coordination', 'Interior Work Approvals',
-        'Work Permit Tracking', 'Inventory Management', 'Asset Management',
-        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
-        'Minutes of Meetings', 'Escalation Matrix', 'Work Permits'
-      ],
-      
-      // Management roles
-      'general_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'assistant_general_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'operations_head': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'operations_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'training_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'area_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'field_officer': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      
-      // Security roles
-      'security_supervisor': [
-        'Site Security Patrolling Report', 'Gate Management', 'Work Permits'
-      ],
-      'security_officer': [
-        'Site Security Patrolling Report', 'Gate Management', 'Work Permits',
-        'Inventory Management', 'Asset Management', 'CCTV Department'
-      ],
-      
-      // Technical roles
-      'electrical_supervisor': [
-        'Generator', 'Diesel Generator', 'Facility or Technical team Patrolling Report',
-        'Inventory Management', 'Asset Management'
-      ],
-      'electrical_technician': [
-        'Generator', 'Diesel Generator', 'Facility or Technical team Patrolling Report'
-      ],
-      'plumber': ['Fresh Water', 'Facility or Technical team Patrolling Report'],
-      'plumbing_supervisor': ['Inventory Management', 'Asset Management'],
-      'stp_supervisor': ['STP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'stp_technician': ['STP', 'Facility or Technical team Patrolling Report'],
-      'wtp_supervisor': ['WTP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'wtp_technician': ['WTP', 'Facility or Technical team Patrolling Report'],
-      'swimming_pool_supervisor': ['Swimming Pool', 'Facility or Technical team Patrolling Report'],
-      'swimming_pool_technician': ['Swimming Pool', 'Facility or Technical team Patrolling Report'],
-      'lift_technician': ['Facility or Technical team Patrolling Report'],
-      'gym_technician': ['Facility or Technical team Patrolling Report'],
-      'gas_technician': ['Facility or Technical team Patrolling Report'],
-      'multi_technician': ['Facility or Technical team Patrolling Report'],
-      
-      // Other roles
-      'housekeeping_supervisor': ['Inventory Management', 'Asset Management'],
-      'pest_control_supervisor': ['Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'pest_control_technician': ['Facility or Technical team Patrolling Report'],
-      'fire_officer': [
-        'Facility or Technical team Patrolling Report', 'Fire and Safety', 'Work Permits'
-      ],
-      'garden_supervisor': ['Facility or Technical team Patrolling Report'],
-      'cctv_technician': ['CCTV Department']
-    };
-
-    const userPermissions = rolePermissions[userRole] || [];
-    
-    // If user has access to all pages (admin/cadmin)
-    if (userPermissions.includes('All Pages')) {
-      return getFullNavItems();
-    }
-
-    // Filter navigation items based on user permissions
-    return getFilteredNavItems(userPermissions);
-  };
-
-  const getDailyAllDeptPath = (): string => {
-    return userProfile?.user_type === 'cadmin' ? '/cadmin/daily-task-management-all-department' : '/daily-task-management-all-department';
-  };
-
-  const getFullNavItems = (): NavItem[] => {
-    // For admin/cadmin (full access), avoid duplicating the Daily Task link since it's already inside the
-    // "Daily Task Management" group below. Keep only Dashboard and Profile at the top level.
+  const getNavItems = (): NavItem[] => {
     const baseItems: NavItem[] = [
       { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
       { path: '/profile', icon: <User size={20} />, label: 'Profile' },
@@ -302,109 +203,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
 
     // If user is admin, show all admin items
     if (userProfile?.user_type === 'admin') {
-      return [...baseItems, ...getAdminNavItems()];
-    }
-
-    // If user is cadmin, show all cadmin items
-    if (userProfile?.user_type === 'cadmin') {
-      return [...baseItems, ...getCadminNavItems()];
-    }
-
-    return baseItems;
-  };
-
-  const getFilteredNavItems = (permissions: string[]): NavItem[] => {
-    // For non-admin roles, surface the direct Daily Task link at the top level
-    const baseItems: NavItem[] = [
-      { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-      { path: '/profile', icon: <User size={20} />, label: 'Profile' },
-      { path: getDailyAllDeptPath(), icon: <Calendar size={20} />, label: 'Daily Task Management of all department' },
-    ];
-
-    // For property users, redirect to UserProperty layout
-    if (userProfile?.user_type === 'property_user') {
-      // Property users will be redirected to /user-property route which has its own layout
-      return baseItems;
-    }
-
-    const filteredItems: NavItem[] = [];
-
-    // Check each navigation item against user permissions
-    const allNavItems = userProfile?.user_type === 'admin' ? getAdminNavItems() : getCadminNavItems();
-    
-    for (const item of allNavItems) {
-      if (hasAccessToItem(item, permissions)) {
-        filteredItems.push(item);
-      }
-    }
-
-    console.log('🔒 Filtered navigation items for role:', userProfile?.user_role, 'Items:', filteredItems.length);
-    return [...baseItems, ...filteredItems];
-  };
-
-  const hasAccessToItem = (item: NavItem, permissions: string[]): boolean => {
-    // Check if user has access to this specific item
-    const itemLabel = item.label;
-    
-    // Direct permission check
-    if (permissions.includes(itemLabel)) {
-      return true;
-    }
-
-    // Check submenu items
-    if (item.hasSubmenu && item.submenuItems) {
-      const accessibleSubmenus = item.submenuItems.filter(subItem => 
-        hasAccessToSubItem(subItem, permissions)
-      );
-      
-      if (accessibleSubmenus.length > 0) {
-        // Return item with filtered submenus
-        item.submenuItems = accessibleSubmenus;
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  const hasAccessToSubItem = (subItem: SubMenuItem, permissions: string[]): boolean => {
-    if (permissions.includes(subItem.label)) {
-      return true;
-    }
-
-    // Check nested submenus
-    if (subItem.hasSubmenu && subItem.submenuItems) {
-      const accessibleNestedSubmenus = subItem.submenuItems.filter(nestedItem => 
-        hasAccessToSubItem(nestedItem, permissions)
-      );
-      
-      if (accessibleNestedSubmenus.length > 0) {
-        subItem.submenuItems = accessibleNestedSubmenus;
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  const getNavItems = (): NavItem[] => {
-    console.log('🧭 SIDEBAR - Generating navigation items...');
-    console.log('👥 User profile user_type:', userProfile?.user_type);
-    console.log('👤 User context userType:', user?.userType);
-    console.log('🎭 User role:', userProfile?.user_role);
-    
-    // Use role-based navigation
-    return getRoleBasedNavItems(userProfile?.user_role || '');
-  };
-
-  const getAdminNavItems = (): NavItem[] => {
-    console.log('👑 Generating ADMIN navigation items');
     const adminItems: NavItem[] = [
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-        // { path: '/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
-        { path: '/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      // { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+        { path: '/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
+      { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
       {
         path: '#',
@@ -423,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
               { path: '/daily-logs/stp', label: 'STP' },
               { path: '/daily-logs/wtp', label: 'WTP' },
               { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
-              // { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
+              { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
             ]
           },
           { path: '/daily-management-report', label: 'Daily Management Report' },
@@ -560,14 +363,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         label: 'Project Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '/project-management', label: 'All Project Management Dashboard' },
-          { path: '/project-initiation', label: 'Project Initiation' },
-          { path: '/project-planning', label: 'Project Planning' },
-          { path: '/team-resource-allocation', label: 'Team Resource Allocation' },
-          { path: '/execution-and-implementation', label: 'Execution and Implementation' },
-          { path: '/monitoring-and-control', label: 'Monitoring and Control' },
-          // { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
-          { path: '/project-closure', label: 'Project Closure' },
+          { path: '/cadmin/project-management', label: 'All Project Management Dashboard' },
+          { path: '/cadmin/project-initiation', label: 'Project Initiation' },
+          { path: '/cadmin/project-planning', label: 'Project Planning' },
+          { path: '/cadmin/team-resource-allocation', label: 'Team Resource Allocation' },
+          { path: '/cadmin/execution-and-implementation', label: 'Execution and Implementation' },
+          { path: '/cadmin/monitoring-and-control', label: 'Monitoring and Control' },
+          { path: '/cadmin/documentation-and-reporting', label: 'Documentation and Reporting' },
+          { path: '/cadmin/project-closure', label: 'Project Closure' },
         ]
       },
         // Quality and Process Management
@@ -749,40 +552,397 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         }
     ];
 
-    return adminItems;
-  };
+      return [...baseItems, ...adminItems];
+    }
 
-  const getCadminNavItems = (): NavItem[] => {
-    console.log('🏢 Generating CADMIN navigation items');
+    // If user is cadmin, show cadmin items
+    if (userProfile?.user_type === 'cadmin') {
     const cadminItems: NavItem[] = [
       { path: '/cadmin/users', icon: <Users size={20} />, label: 'Users' },
-      // { path: '/cadmin/properties', icon: <Building2 size={20} />, label: 'Properties' },
-      // { path: '/cadmin/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
-      { path: '/cadmin/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      // { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
-      { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
+      { 
+        path: '/cadmin/daily-logs', 
+        icon: <CheckSquare size={20} />, 
+        label: 'Daily Logs',
+        hasSubmenu: true,
+        submenuItems: [ 
+          { path: '/cadmin/daily-logs/fresh-water', label: 'Fresh Water' },
+          { path: '/cadmin/daily-logs/generator', label: 'Generator' },
+          { path: '/cadmin/daily-logs/stp', label: 'STP' },
+          { path: '/cadmin/daily-logs/wtp', label: 'WTP' },
+          { path: '/cadmin/daily-logs/swimming-pool', label: 'Swimming Pool' },
+          { path: '/cadmin/daily-logs/diesel-generator', label: 'Diesel Generator' },
+        ]
+      },
+      { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/cadmin/assets-management', icon: <Database size={20} />, label: 'Assets Management' },
+      { path: '/cadmin/inventory-management', icon: <Package size={20} />, label: 'Inventory Management' },
       {
         path: '#',
         icon: <Calendar size={20} />,
         label: 'Daily Task Management',
         hasSubmenu: true,
         submenuItems: [
-          { path: '/cadmin/daily-task-management-all-department', label: 'Daily Task Management of all department' },
+          { path: '#', label: 'Daily Task Management of all department' },
+          { path: '/tasks', label: 'Daily logs of all department' },
+          { path: '#', label: 'Daily Management Report' },
+          { path: '#', label: 'Daily Complete work Details ' },
+        ]
+      },
+      {
+        path: '#',
+        icon: <Calendar size={20} />,
+        label: 'Monthly Task Management',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Monthly Checklist' },
+          { path: '#', label: 'Monthly Management Report' },
+        ]
+      },
+      {
+        path: '#',
+        icon: <Calendar size={20} />,
+        label: '52 Week',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: '52 Week Work Calendar' },
+          { path: '#', label: '52 week training calendar format' },
+        ]
+      },
+      { path: '/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },
+      {
+        path: '#',
+        icon: <Shield size={20} />,
+        label: 'Patrolling Report',
+        hasSubmenu: true,
+        submenuItems: [
+          { path: '#', label: 'Site Security Patrolling Report' },
+          { path: '#', label: 'Facility or Technical team Patrolling Report' },
+          { path: '#', label: 'Back-end team Patrolling Report' },
+        ]
+      },
+      {
+        path: '#',
+        icon: <FileCheck size={20} />,
+        label: 'Reports and Audit',
+        hasSubmenu: true,
+        submenuItems: [
+          {
+            path: '#',
+            label: 'Departmental Reporting and Audit',
+            hasSubmenu: true,
+            submenuItems: [
+              {
+                path: '#',
+                label: 'FMS Department',
+                hasSubmenu: true,
+                submenuItems: [
+                  {
+                    path: '#',
+                    label: 'Housekeeping and Waste Management',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Chute Room Audit' },
+                      { path: '#', label: 'OWC Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Landscaping and Gardening Maintenance',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Landscaping and Garden Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Pest Control',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Pest Control Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Carpet and Upholstery',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Carpet and Upholstery Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Common Area Management',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Common Area Housekeeping Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Restroom Hygiene Management',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Restroom Hygiene Management Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Pantry Service',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Pantry Service Audit' },
+                    ]
+                  },
+                  {
+                    path: '#',
+                    label: 'Civil Maintenance',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Civil Audit Format' },
+                    ]
+                  },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Technical Department',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'BMS (Building Management Software)' },
+                  { path: '#', label: 'Booster Pump Audit' },
+                  { path: '#', label: 'CCTV System' },
+                  { path: '#', label: 'Electrical Department' },
+                  { path: '#', label: 'Fire Protection System' },
+                  { path: '#', label: 'Intercom System Audit Report' },
+                  { path: '#', label: 'Plumbing Department' },
+                  { path: '#', label: 'Storm Water System Audit' },
+                  { path: '#', label: 'STP Audit Format' },
+                  { path: '#', label: 'Swimming Pool Plant Audit Format' },
+                  { path: '#', label: 'WTP Audit Format' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Administration Department',
+                hasSubmenu: true,
+                submenuItems: [
+                  {
+                    path: '#',
+                    label: 'Front Office and Reception',
+                    hasSubmenu: true,
+                    submenuItems: [
+                      { path: '#', label: 'Attendance and Leave Management' },
+                      { path: '#', label: 'HR Coordination and Payroll Support' },
+                      { path: '#', label: 'Procurement and Inventory' },
+                      { path: '#', label: 'Record Keeping and Documents' },
+                      { path: '#', label: 'Client Coordinator' },
+                      { path: '#', label: 'Vendor Management' },
+                      { path: '#', label: 'Office Supply Management' },
+                      { path: '#', label: 'Transport & Courier Services' },
+                      { path: '#', label: 'Staff Verification' },
+                    ]
+                  },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Security Department',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Guarding Manpower' },
+                  { path: '#', label: 'Patrol Team (Day and Night)' },
+                  { path: '#', label: 'Control Room Monitoring' },
+                  { path: '#', label: 'Access Control Operations' },
+                  { path: '#', label: 'Risk Management' },
+                  { path: '#', label: 'Visitor Management' },
+                  { path: '#', label: 'Fire and Emergency Response Team' },
+                  { path: '#', label: 'CCTV Monitoring' },
+                  { path: '#', label: 'Escort and Protocol Security' },
+                  { path: '#', label: 'Training and Drill Coordinator' },
+                  { path: '#', label: 'Security New Site Survey' },
+                  { path: '#', label: 'Residents Vehicle Parking Verification' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Common Snag Audit',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Basement Audit' },
+                  { path: '#', label: 'Common Snag Audit Format' },
+                  { path: '#', label: 'EHS Audit' },
+                  { path: '#', label: 'Helipad Audit' },
+                  { path: '#', label: 'Multi-Level Parking' },
+                  { path: '#', label: 'Safety Audit' },
+                  { path: '#', label: 'Tower Snag Audit' },
+                ]
+              },
+            ]
+          },
+          {
+            path: '#',
+            label: 'Internal Audit',
+            hasSubmenu: true,
+            submenuItems: [
+              {
+                path: '#',
+                label: 'Security Department',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Security Deployment Internal Audit' },
+                  { path: '#', label: 'Access Control Internal Audit' },
+                  { path: '#', label: 'Patrol Logs' },
+                  { path: '#', label: 'CCTV Monitoring' },
+                  { path: '#', label: 'Incident Management' },
+                  { path: '#', label: 'Escort and Protocol' },
+                  { path: '#', label: 'Control Room' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Facility and Soft Services',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Carpet and Upholstery Internal Audit' },
+                  { path: '#', label: 'Cleaning Checklist Internal Audit' },
+                  { path: '#', label: 'Common Area Internal Audit' },
+                  { path: '#', label: 'Pantry Services Internal Audit' },
+                  { path: '#', label: 'Pest Control Internal Audit' },
+                  { path: '#', label: 'Restroom Hygiene Audit' },
+                  { path: '#', label: 'Waste Management Internal Audit' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Fire and Safety',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Fire Extinguisher Internal Audit' },
+                  { path: '#', label: 'Fire Alarm Panel Internal Audit' },
+                  { path: '#', label: 'Emergency Exit Audit Format' },
+                  { path: '#', label: 'Fire Drill Audit' },
+                  { path: '#', label: 'First Aid Kit Internal Audit' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Technical and Maintenance',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Electrical Systems – Internal Audit Format' },
+                  { path: '#', label: 'STP/WTP – Internal Audit Format' },
+                  { path: '#', label: 'DG Set – Internal Audit Format' },
+                  { path: '#', label: 'Lift/HVAC – Internal Audit Format' },
+                  { path: '#', label: 'Tools & Equipment – Internal Audit Format' },
+                  { path: '#', label: 'Plumbing Systems – Internal Audit Format' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Back-End Office',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Attendance & Leave Audit Format' },
+                  { path: '#', label: 'ID Cards Verification Audit Format' },
+                  { path: '#', label: 'Payroll Processing Audit Format' },
+                  { path: '#', label: 'Staff Record Verification Audit Format' },
+                  { path: '#', label: 'Office Supplies Audit Format' },
+                  { path: '#', label: 'Stationery & Inventory Stock Audit Format' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Finance and Procurement',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'Invoice Processing Audit – PO vs GRN vs Invoice Matching' },
+                  { path: '#', label: 'Petty Cash Audit Format' },
+                  { path: '#', label: 'Vendor Payment Compliance Audit Format' },
+                  { path: '#', label: 'Contract AMC Management Audit Format' },
+                  { path: '#', label: 'Inventory Audit Format – Inward vs Outward vs Physical Stock' },
+                  { path: '#', label: 'Budget Control & Site-Wise Expense Audit Format' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'IT and Digital Tools',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'FMS Software Internal Audit Format' },
+                  { path: '#', label: 'Biometric CCTV Internal Audit Format' },
+                  { path: '#', label: 'Visitor App QR Tools Internal Audit Format' },
+                  { path: '#', label: 'Data Security Audit Format' },
+                ]
+              },
+              {
+                path: '#',
+                label: 'Compliance and Documents',
+                hasSubmenu: true,
+                submenuItems: [
+                  { path: '#', label: 'ISO Legal Documents Audit Format' },
+                  { path: '#', label: 'Site Agreement Audit Format' },
+                  { path: '#', label: 'Training Logs Audit Format' },
+                  { path: '#', label: 'Escalation Record Audit Format' },
+                  { path: '#', label: 'Client Feedback Audit Format' },
+                ]
+              },
+            ]
+          },
+          {
+            path: '#',
+            label: 'Compliance Audit',
+            hasSubmenu: true,
+            submenuItems: [
+              { path: '#', label: 'Statutory and Compliance Details' },
+              { path: '#', label: 'HR & Manpower Compliance' },
+              { path: '#', label: 'Finance & Tax Compliance Audit Format' },
+              { path: '#', label: 'Site Operations & Safety Compliance' },
+            ]
+          },
+          {
+            path: '#',
+            label: 'New Site Proposal Audit',
+            hasSubmenu: true,
+            submenuItems: [
+              { path: '#', label: 'Security New Site Proposal' },
+              { path: '#', label: 'Facility New Site Proposal' },
+            ]
+          },
+        ]
+        }
+      ];
+
+      return [...baseItems, ...cadminItems];
+    }
+
+        if (userProfile?.user_type === 'property_user' && userProfile?.property_id) {
+      const propertyUserItems: NavItem[] = [
+        { path: '/users', icon: <Users size={20} />, label: 'Users' },
+        { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
+        { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+        { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
+        {
+          path: '#',
+          icon: <Calendar size={20} />,
+          label: 'Daily Task Management',
+        hasSubmenu: true,
+        submenuItems: [
+            { path: '/daily-task-management-all-department', label: 'Daily Task Management of all department' },
             { 
               path: '#', 
               label: 'Daily logs of all department',
               hasSubmenu: true,
               submenuItems: [
-          { path: '/cadmin/daily-logs/fresh-water', label: 'Fresh Water' },
-          { path: '/cadmin/daily-logs/generator', label: 'Generator' },
-          { path: '/cadmin/daily-logs/stp', label: 'STP' },
-          { path: '/cadmin/daily-logs/wtp', label: 'WTP' },
-          { path: '/cadmin/daily-logs/swimming-pool', label: 'Swimming Pool' },
-          // { path: '/cadmin/daily-logs/diesel-generator', label: 'Diesel Generator' },
-        ]
-      },
-          { path: '/cadmin/daily-management-report', label: 'Daily Management Report' },
-          { path: '/cadmin/daily-reports', label: 'Daily Complete work Details ' },
+                { path: '/daily-logs/fresh-water', label: 'Fresh Water' },
+                { path: '/daily-logs/generator', label: 'Generator' },
+                { path: '/daily-logs/stp', label: 'STP' },
+                { path: '/daily-logs/wtp', label: 'WTP' },
+                { path: '/daily-logs/swimming-pool', label: 'Swimming Pool' },
+                { path: '/daily-logs/diesel-generator', label: 'Diesel Generator' },
+              ]
+            },
+            { path: '/daily-management-report', label: 'Daily Management Report' },
+            { path: '/daily-reports', label: 'Daily Complete work Details ' },
           ]
         },
         {
@@ -791,7 +951,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Monthly Task Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/monthly-task-management', label: 'Monthly Checklist' },
+            { path: '/monthly-task-management', label: 'Monthly Checklist' },
             { path: '#', label: 'Monthly Management Report' },
           ]
         },
@@ -801,20 +961,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: '52 Week',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/52-week-work-calendar', label: '52 Week Work Calendar' },
-          { path: '/cadmin/52-week-training-calendar', label: '52 week training calendar format' },
+            { path: '/52-week-work-calendar', label: '52 Week Work Calendar' },
+            { path: '/52-week-training-calendar', label: '52 week training calendar format' },
           ]
         },
-      { path: '/cadmin/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },
+        { path: '/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },
         {
           path: '#',
           icon: <Shield size={20} />,
           label: 'Patrolling Report',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/site-security-patrolling-report', label: 'Site Security Patrolling Report' },
-          { path: '/cadmin/technical-team-patrolling-report', label: 'Facility or Technical team Patrolling Report' },
-          { path: '/cadmin/night-patrolling-report', label: 'Back-end team Patrolling Report' },
+            { path: '/site-security-patrolling-report', label: 'Site Security Patrolling Report' },
+            { path: '/technical-team-patrolling-report', label: 'Facility or Technical team Patrolling Report' },
+            { path: '/night-patrolling-report', label: 'Back-end team Patrolling Report' },
           ]
         },
         {
@@ -823,7 +983,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Reports and Audit',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/audit-reports', label: 'Audit Reports' },
+            { path: '/audit-reports', label: 'Audit Reports' },
           ]
         },
         // Transition Management
@@ -833,8 +993,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Transition Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/transition-checklists', label: 'Site Pre-Transition' },
-          { path: '/cadmin/post-transition-checklist', label: 'Post-Transition' },
+            { path: '/transition-checklists', label: 'Site Pre-Transition' },
+            { path: '/post-transition-checklist', label: 'Post-Transition' },
           ]
         },
         // Gate Management
@@ -844,21 +1004,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Gate Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/inward-non-returnable', label: 'Inward – Non-Returnable' },
-          { path: '/cadmin/inward-returnable', label: 'Inward – Returnable' },
-          { path: '/cadmin/outward-non-returnable', label: 'Outward – Non-Returnable' },
-          { path: '/cadmin/outward-returnable', label: 'Outward – Returnable' },
-          { path: '/cadmin/move-in', label: 'Move-In' },
-          { path: '/cadmin/move-out', label: 'Move-Out' },
-          { path: '/cadmin/interior-work-tracking', label: 'Interior Work Tracking' },
-          { path: '/cadmin/work-permit-issuance', label: 'Work Permit Issuance' },
-          { path: '/cadmin/gate-pass-management', label: 'Gate Pass Management' },
-          { path: '/cadmin/blocklist-management', label: 'Blocklist Management' },
-          { path: '/cadmin/daily-entry-details', label: 'Daily Entry Details' },
-          { path: '/cadmin/water-tanker-management', label: 'Water Tanker Management' },
-          { path: '/cadmin/vendor-entry-management', label: 'Vendor Entry Management' },
-          { path: '/cadmin/sta-entry-management', label: 'Staff Entry Management' },
-          { path: '/cadmin/emergency-contact-details', label: 'Emergency Contact Details' },
+            { path: '/inward-non-returnable', label: 'Inward – Non-Returnable' },
+            { path: '/inward-returnable', label: 'Inward – Returnable' },
+            { path: '/outward-non-returnable', label: 'Outward – Non-Returnable' },
+            { path: '/outward-returnable', label: 'Outward – Returnable' },
+            { path: '/move-in', label: 'Move-In' },
+            { path: '/move-out', label: 'Move-Out' },
+            { path: '/interior-work-tracking', label: 'Interior Work Tracking' },
+            { path: '/work-permit-issuance', label: 'Work Permit Issuance' },
+            { path: '/gate-pass-management', label: 'Gate Pass Management' },
+            { path: '/blocklist-management', label: 'Blocklist Management' },
+            { path: '/daily-entry-details', label: 'Daily Entry Details' },
+            { path: '/water-tanker-management', label: 'Water Tanker Management' },
+            { path: '/vendor-entry-management', label: 'Vendor Entry Management' },
+            { path: '/sta-entry-management', label: 'Staff Entry Management' },
+            { path: '/emergency-contact-details', label: 'Emergency Contact Details' },
           ]
         },
         // Helpdesk and Front Desk
@@ -868,15 +1028,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Helpdesk and Front Desk',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/tickets-management', label: 'Tickets Management' },
-          { path: '/cadmin/ticket-assignment', label: 'Ticket Assignment' },
-          { path: '/cadmin/notice-management', label: 'Notice Management' },
-          { path: '/cadmin/parking-sticker-management', label: 'Parking Sticker Management' },
-          { path: '/cadmin/communication-announcements', label: 'Communication & Announcements' },
-          { path: '/cadmin/move-in-coordination', label: 'Move-In Coordination' },
-          { path: '/cadmin/move-out-coordination', label: 'Move-Out Coordination' },
-          { path: '/cadmin/interior-work-approvals', label: 'Interior Work Approvals' },
-          { path: '/cadmin/work-permit-tracking', label: 'Work Permit Tracking' },
+            { path: '/tickets-management', label: 'Tickets Management' },
+            { path: '/ticket-assignment', label: 'Ticket Assignment' },
+            { path: '/notice-management', label: 'Notice Management' },
+            { path: '/parking-sticker-management', label: 'Parking Sticker Management' },
+            { path: '/communication-announcements', label: 'Communication & Announcements' },
+            { path: '/move-in-coordination', label: 'Move-In Coordination' },
+            { path: '/move-out-coordination', label: 'Move-Out Coordination' },
+            { path: '/interior-work-approvals', label: 'Interior Work Approvals' },
+            { path: '/work-permit-tracking', label: 'Work Permit Tracking' },
           ]
         },
         // Inventory Management
@@ -886,11 +1046,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Inventory Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/inventory-tracking', label: 'Inventory Tracking' },
-          { path: '/cadmin/stock-entry-issue', label: 'Stock Entry & Issue' },
-          { path: '/cadmin/min-max-level-monitoring', label: 'Minimum & Maximum Level Monitoring' },
-          { path: '/cadmin/consumption-reports', label: 'Consumption Reports' },
-          { path: '/cadmin/expiry-damage-log', label: 'Expiry & Damage Log' },
+            { path: '/inventory-tracking', label: 'Inventory Tracking' },
+            { path: '/stock-entry-issue', label: 'Stock Entry & Issue' },
+            { path: '/min-max-level-monitoring', label: 'Minimum & Maximum Level Monitoring' },
+            { path: '/consumption-reports', label: 'Consumption Reports' },
+            { path: '/expiry-damage-log', label: 'Expiry & Damage Log' },
           ]
         },
         // Asset Management
@@ -900,12 +1060,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Asset Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/asset-tagging-management', label: 'Asset Tagging & Management' },
-          { path: '/cadmin/asset-movement-log', label: 'Asset Movement Log' },
-          { path: '/cadmin/amc-warranty-tracker', label: 'AMC & Warranty Tracker' },
-          { path: '/cadmin/maintenance-schedule', label: 'Maintenance Schedule' },
-          { path: '/cadmin/asset-audit', label: 'Asset Audit' },
-          { path: '/cadmin/depreciation-replacement', label: 'Depreciation & Replacement' },
+            { path: '/asset-tagging-management', label: 'Asset Tagging & Management' },
+            { path: '/asset-movement-log', label: 'Asset Movement Log' },
+            { path: '/amc-warranty-tracker', label: 'AMC & Warranty Tracker' },
+            { path: '/maintenance-schedule', label: 'Maintenance Schedule' },
+            { path: '/asset-audit', label: 'Asset Audit' },
+            { path: '/depreciation-replacement', label: 'Depreciation & Replacement' },
           ]
         },
         // Project Management
@@ -915,14 +1075,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Project Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/project-management', label: 'All Project Management Dashboard' },
-          { path: '/cadmin/project-initiation', label: 'Project Initiation' },
-          { path: '/cadmin/project-planning', label: 'Project Planning' },
-          { path: '/cadmin/team-resource-allocation', label: 'Team Resource Allocation' },
-          { path: '/cadmin/execution-and-implementation', label: 'Execution and Implementation' },
-          { path: '/cadmin/monitoring-and-control', label: 'Monitoring and Control' },
-          // { path: '/cadmin/documentation-and-reporting', label: 'Documentation and Reporting' },
-          { path: '/cadmin/project-closure', label: 'Project Closure' },
+            { path: '/project-management', label: 'All Project Management Dashboard' },
+            { path: '/project-initiation', label: 'Project Initiation' },
+            { path: '/project-planning', label: 'Project Planning' },
+            { path: '/team-resource-allocation', label: 'Team Resource Allocation' },
+            { path: '/execution-and-implementation', label: 'Execution and Implementation' },
+            { path: '/monitoring-and-control', label: 'Monitoring and Control' },
+            { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
+            { path: '/project-closure', label: 'Project Closure' },
           ]
         },
         // Quality and Process Management
@@ -932,12 +1092,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Quality and Process Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/quality-planning', label: 'Quality Planning' },
-          { path: '/cadmin/process-management-setup', label: 'Process Management Setup' },
-          { path: '/cadmin/quality-assurance', label: 'Quality Assurance' },
-          { path: '/cadmin/quality-control', label: 'Quality Control' },
-          { path: '/cadmin/performance-monitoring', label: 'Performance Monitoring' },
-          { path: '/cadmin/documentation-and-reporting', label: 'Documentation and Reporting' },
+            { path: '/quality-planning', label: 'Quality Planning' },
+            { path: '/process-management-setup', label: 'Process Management Setup' },
+            { path: '/quality-assurance', label: 'Quality Assurance' },
+            { path: '/quality-control', label: 'Quality Control' },
+            { path: '/performance-monitoring', label: 'Performance Monitoring' },
+            { path: '/documentation-and-reporting', label: 'Documentation and Reporting' },
           ]
         },
         // CCTV Department
@@ -947,14 +1107,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'CCTV Department',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/site-assessment', label: 'Site Assessment' },
-          { path: '/cadmin/system-design-and-planning', label: 'System Design & Planning' },
-          { path: '/cadmin/installation-checklist', label: 'Installation Checklist' },
-          { path: '/cadmin/configuration-and-testing', label: 'Configuration and Testing' },
-          { path: '/cadmin/daily-operations-and-monitoring', label: 'Daily Operations & Monitoring' },
-          { path: '/cadmin/maintenance-schedule', label: 'Maintenance Schedule' },
-          { path: '/cadmin/documentation', label: 'Documentation' },
-          { path: '/cadmin/amc-and-compliance', label: 'AMC and Compliance' },
+            { path: '/site-assessment', label: 'Site Assessment' },
+            { path: '/system-design-and-planning', label: 'System Design & Planning' },
+            { path: '/installation-checklist', label: 'Installation Checklist' },
+            { path: '/configuration-and-testing', label: 'Configuration and Testing' },
+            { path: '/daily-operations-and-monitoring', label: 'Daily Operations & Monitoring' },
+            { path: '/maintenance-schedule', label: 'Maintenance Schedule' },
+            { path: '/documentation', label: 'Documentation' },
+            { path: '/amc-and-compliance', label: 'AMC and Compliance' },
           ]
         },
         // Fire and Safety
@@ -964,17 +1124,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Fire and Safety',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/site-assessment-and-planning', label: 'Site Assessment and Planning' },
-          { path: '/cadmin/installation-and-equipment-setup', label: 'Installation and Equipment Setup' },
-          { path: '/cadmin/fire-safety-documents', label: 'Fire Safety Documents' },
-          { path: '/cadmin/compliance-reports', label: 'Compliance Reports' },
-          { path: '/cadmin/fire-and-safety-training', label: 'Fire and Safety Training' },
-          { path: '/cadmin/daily-checklist', label: 'Daily Checklist' },
-          { path: '/cadmin/weekly-checklist', label: 'Weekly Checklist' },
-          { path: '/cadmin/monthly-checklist', label: 'Monthly Checklist' },
-          { path: '/cadmin/quarterly-checklist', label: 'Quarterly Checklist' },
-          { path: '/cadmin/emergency-preparedness-plan', label: 'Emergency Preparedness Plan' },
-          { path: '/cadmin/record-keeping', label: 'Record Keeping' },
+            { path: '/site-assessment-and-planning', label: 'Site Assessment and Planning' },
+            { path: '/installation-and-equipment-setup', label: 'Installation and Equipment Setup' },
+            { path: '/fire-safety-documents', label: 'Fire Safety Documents' },
+            { path: '/compliance-reports', label: 'Compliance Reports' },
+            { path: '/fire-and-safety-training', label: 'Fire and Safety Training' },
+            { path: '/daily-checklist', label: 'Daily Checklist' },
+            { path: '/weekly-checklist', label: 'Weekly Checklist' },
+            { path: '/monthly-checklist', label: 'Monthly Checklist' },
+            { path: '/quarterly-checklist', label: 'Quarterly Checklist' },
+            { path: '/emergency-preparedness-plan', label: 'Emergency Preparedness Plan' },
+            { path: '/record-keeping', label: 'Record Keeping' },
           ]
         },
         // Procurement Management
@@ -984,16 +1144,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Procurement Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/procurement-planning', label: 'Procurement Planning' },
-          { path: '/cadmin/vendor-management', label: 'Vendor Management' },
-          { path: '/cadmin/purchase-requisition-to-order', label: 'Purchase Requisition to Order' },
-          { path: '/cadmin/goods-receipt-and-inspection', label: 'Goods Receipt and Inspection' },
-          { path: '/cadmin/inventory-and-stock-management', label: 'Inventory and Stock Management' },
-          { path: '/cadmin/payment-tracking', label: 'Payment Tracking' },
-          { path: '/cadmin/procurement-documentation', label: 'Procurement Documentation' },
-          { path: '/cadmin/compliance-and-policy', label: 'Compliance and Policy' },
-          { path: '/cadmin/reporting-and-analysis', label: 'Reporting and Analysis' },
-          { path: '/cadmin/procurement-categories', label: 'Procurement Categories' },
+            { path: '/procurement-planning', label: 'Procurement Planning' },
+            { path: '/vendor-management', label: 'Vendor Management' },
+            { path: '/purchase-requisition-to-order', label: 'Purchase Requisition to Order' },
+            { path: '/goods-receipt-and-inspection', label: 'Goods Receipt and Inspection' },
+            { path: '/inventory-and-stock-management', label: 'Inventory and Stock Management' },
+            { path: '/payment-tracking', label: 'Payment Tracking' },
+            { path: '/procurement-documentation', label: 'Procurement Documentation' },
+            { path: '/compliance-and-policy', label: 'Compliance and Policy' },
+            { path: '/reporting-and-analysis', label: 'Reporting and Analysis' },
+            { path: '/procurement-categories', label: 'Procurement Categories' },
           ]
         },
         // Vendor Management
@@ -1003,15 +1163,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Vendor Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/vendor-master-management', label: 'Vendor Master Management' },
-          { path: '/cadmin/vendor-classification', label: 'Vendor Classification' },
-          { path: '/cadmin/vendor-evaluation', label: 'Vendor Evaluation' },
-          { path: '/cadmin/integration-with-purchase-process', label: 'Integration with Purchase Process' },
-          { path: '/cadmin/payment-tracking', label: 'Payment Tracking' },
-          { path: '/cadmin/vendor-relationship-management', label: 'Vendor Relationship Management' },
-          { path: '/cadmin/compliance-and-legal-check', label: 'Compliance and Legal Check' },
-          { path: '/cadmin/vendor-documentation', label: 'Vendor Documentation' },
-          { path: '/cadmin/reporting-and-analysis', label: 'Reporting and Analysis' },
+            { path: '/vendor-master-management', label: 'Vendor Master Management' },
+            { path: '/vendor-classification', label: 'Vendor Classification' },
+            { path: '/vendor-evaluation', label: 'Vendor Evaluation' },
+            { path: '/integration-with-purchase-process', label: 'Integration with Purchase Process' },
+            { path: '/payment-tracking', label: 'Payment Tracking' },
+            { path: '/vendor-relationship-management', label: 'Vendor Relationship Management' },
+            { path: '/compliance-and-legal-check', label: 'Compliance and Legal Check' },
+            { path: '/vendor-documentation', label: 'Vendor Documentation' },
+            { path: '/reporting-and-analysis', label: 'Reporting and Analysis' },
           ]
         },
         // Service Level Agreement (SLA)
@@ -1021,12 +1181,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Service Level Agreement (SLA)',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/sla-planning-and-definition', label: 'SLA Planning and Definition' },
-          { path: '/cadmin/key-sla-components', label: 'Key SLA Components' },
-          { path: '/cadmin/sla-implementation', label: 'SLA Implementation' },
-          { path: '/cadmin/sla-monitoring', label: 'SLA Monitoring' },
-          { path: '/cadmin/sla-evaluation', label: 'SLA Evaluation' },
-          { path: '/cadmin/sla-renewal-and-exit-process', label: 'SLA Renewal and Exit Process' },
+            { path: '/sla-planning-and-definition', label: 'SLA Planning and Definition' },
+            { path: '/key-sla-components', label: 'Key SLA Components' },
+            { path: '/sla-implementation', label: 'SLA Implementation' },
+            { path: '/sla-monitoring', label: 'SLA Monitoring' },
+            { path: '/sla-evaluation', label: 'SLA Evaluation' },
+            { path: '/sla-renewal-and-exit-process', label: 'SLA Renewal and Exit Process' },
           ]
         },  
         // Key Performance Indicators (KPI)
@@ -1036,7 +1196,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Key Performance Indicators (KPI)',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/kpi', label: 'KPI' },
+            { path: '/kpi', label: 'KPI' },
           ]
         },
         // Raise Complaints and Solutions
@@ -1046,7 +1206,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Raise Complaints and Solutions',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/complaint-management', label: 'Complaint' },
+            { path: '/complaint-management', label: 'Complaint' },
           ]
         },
         // Back-End Office Management
@@ -1056,11 +1216,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Back-End Office Management',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/site-visit-reports', label: 'Site Visit Reports' },
-          { path: '/cadmin/training-reports', label: 'Training Reports' },
-          { path: '/cadmin/night-patrolling-reports', label: 'Night Patrolling Reports' },
-          { path: '/cadmin/minutes-of-meetings', label: 'Minutes of Meetings' },
-          { path: '/cadmin/escalation-matrix', label: 'Escalation Matrix' },
+            { path: '/site-visit-reports', label: 'Site Visit Reports' },
+            { path: '/training-reports', label: 'Training Reports' },
+            { path: '/night-patrolling-reports', label: 'Night Patrolling Reports' },
+            { path: '/minutes-of-meetings', label: 'Minutes of Meetings' },
+            { path: '/escalation-matrix', label: 'Escalation Matrix' },
           ]
         },
         // Work Permit
@@ -1070,21 +1230,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           label: 'Work Permit',
           hasSubmenu: true,
           submenuItems: [
-          { path: '/cadmin/hot-work-permit', label: 'Hot Work Permit' },
-          { path: '/cadmin/cold-work-permit', label: 'Cold Work Permit' },
-          { path: '/cadmin/electrical-work-permit', label: 'Electrical Work Permit' },
-          { path: '/cadmin/height-work-permit', label: 'Height Work Permit' },
-          { path: '/cadmin/confined-space-work-permit', label: 'Confined Space Work Permit' },
-          { path: '/cadmin/excavation-permit', label: 'Excavation Permit' },
-          { path: '/cadmin/lockout-tagout-permit', label: 'Lockout Tagout Permit' },
-          { path: '/cadmin/chemical-work-permit', label: 'Chemical Work Permit' },
-          { path: '/cadmin/lift-work-permit', label: 'Lift Work Permit' },
-          { path: '/cadmin/demolition-work-permit', label: 'Demolition Work Permit' },
-          { path: '/cadmin/general-maintenance-work-permit', label: 'General Maintenance Work Permit' },
-          { path: '/cadmin/temporary-structure-work-permit', label: 'Temporary Structure Work Permit' },
-          { path: '/cadmin/vehicle-work-permit', label: 'Vehicle Work Permit' },
-          { path: '/cadmin/interior-work-permit', label: 'Interior Work Permit' },
-          { path: '/cadmin/working-alone-work-permit', label: 'Working Alone Work Permit' },
+            { path: '/hot-work-permit', label: 'Hot Work Permit' },
+            { path: '/cold-work-permit', label: 'Cold Work Permit' },
+            { path: '/electrical-work-permit', label: 'Electrical Work Permit' },
+            { path: '/height-work-permit', label: 'Height Work Permit' },
+            { path: '/confined-space-work-permit', label: 'Confined Space Work Permit' },
+            { path: '/excavation-permit', label: 'Excavation Permit' },
+            { path: '/lockout-tagout-permit', label: 'Lockout Tagout Permit' },
+            { path: '/chemical-work-permit', label: 'Chemical Work Permit' },
+            { path: '/lift-work-permit', label: 'Lift Work Permit' },
+            { path: '/demolition-work-permit', label: 'Demolition Work Permit' },
+            { path: '/general-maintenance-work-permit', label: 'General Maintenance Work Permit' },
+            { path: '/temporary-structure-work-permit', label: 'Temporary Structure Work Permit' },
+            { path: '/vehicle-work-permit', label: 'Vehicle Work Permit' },
+            { path: '/interior-work-permit', label: 'Interior Work Permit' },
+            { path: '/working-alone-work-permit', label: 'Working Alone Work Permit' },
           ]
         },
         // All Reports
@@ -1104,7 +1264,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         }
       ];
 
-    return cadminItems;
+      return [...baseItems, ...propertyUserItems];
+    }
+
+    // Default case: return base items
+    return baseItems;
   };
 
   const navItems = getNavItems();

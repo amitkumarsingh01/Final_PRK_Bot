@@ -48,6 +48,20 @@ import CIncidentReportPage from './pages/Cadmin/Important/components/IncidentRep
 import NightIncidentPage from './components/Patrolling/NightIncident';
 import SiteSecurityPage from './components/Patrolling/SiteSecurity';
 import TechnicalTeamPatrollingPage from './components/Patrolling/TechnicalTeamPatrolling';
+// UserProperty pages
+import UserPropertyDashboard from './pages/UserProperty/UserPropertyDashboard';
+import UserPropertyDailyReports from './pages/UserProperty/UserPropertyDailyReports';
+import UserPropertyMonthlyTask from './pages/UserProperty/UserPropertyMonthlyTask';
+import UserProperty52WeekCalender from './pages/UserProperty/UserProperty52WeekCalender';
+import UserProperty52WeekTraining from './pages/UserProperty/UserProperty52WeekTraining';
+import UserPropertyIncidentReport from './pages/UserProperty/UserPropertyIncidentReport';
+import UserPropertySiteSecurity from './pages/UserProperty/UserPropertySiteSecurity';
+import UserPropertyTechnicalPatrolling from './pages/UserProperty/UserPropertyTechnicalPatrolling';
+import UserPropertyNightIncident from './pages/UserProperty/UserPropertyNightIncident';
+import UserPropertyAuditReport from './pages/UserProperty/UserPropertyAuditReport';
+import UserPropertySitePreTransition from './pages/UserProperty/UserPropertySitePreTransition';
+import UserPropertyPostTransition from './pages/UserProperty/UserPropertyPostTransition';
+import UserPropertyLayout from './pages/UserProperty/Important/components/userpropertylayout/UserPropertyLayout';
 import CNightIncidentPage from './pages/Cadmin/Important/components/Patrolling/NightIncident';
 import CSiteSecurityPage from './pages/Cadmin/Important/components/Patrolling/SiteSecurity';
 import CTechnicalTeamPatrollingPage from './pages/Cadmin/Important/components/Patrolling/TechnicalTeamPatrolling';
@@ -284,7 +298,7 @@ const AppRoutes = () => {
       }>
         <Route index element={
           user?.userType === 'property_user' ? 
-            <Navigate to="/daily-task-management-all-department" replace /> : 
+            <Navigate to="/user-property" replace /> : 
             <Navigate to="/profile" replace />
         } />
         {/* <Route path="dashboard" element={<Dashboard />} /> */}
@@ -732,6 +746,24 @@ const AppRoutes = () => {
         <Route path="user/general-maintenance-work-permit" element={<GeneralMaintenancePage />} />
         <Route path="user/temporary-structure-work-permit" element={<TemporaryStructurePage />} />
         <Route path="user/working-alone-work-permit" element={<VehicleEntryPermitPage />} />
+
+        {/* UserProperty Routes - Edit-only access for property users */}
+        <Route path="user-property" element={<UserPropertyLayout />}>
+          <Route index element={<UserPropertyDashboard />} />
+          <Route path="dashboard" element={<UserPropertyDashboard />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="daily-reports" element={<UserPropertyDailyReports />} />
+          <Route path="monthly-task-management" element={<UserPropertyMonthlyTask />} />
+          <Route path="52-week-work-calendar" element={<UserProperty52WeekCalender />} />
+          <Route path="52-week-training-calendar" element={<UserProperty52WeekTraining />} />
+          <Route path="incident-report" element={<UserPropertyIncidentReport />} />
+          <Route path="site-security-patrolling" element={<UserPropertySiteSecurity />} />
+          <Route path="technical-team-patrolling" element={<UserPropertyTechnicalPatrolling />} />
+          <Route path="night-incident-patrolling" element={<UserPropertyNightIncident />} />
+          <Route path="audit-reports" element={<UserPropertyAuditReport />} />
+          <Route path="site-pre-transition" element={<UserPropertySitePreTransition />} />
+          <Route path="post-transition" element={<UserPropertyPostTransition />} />
+        </Route>
 
         {/* Quality and Process Management Routes */}
         <Route path="quality-planning" element={<QualityPlanning />} />
