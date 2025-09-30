@@ -51,7 +51,7 @@ const BlocklistManagementPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isCadmin = user?.userType === 'cadmin';
   const [viewModal, setViewModal] = useState<{ open: boolean; item: BlocklistManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: BlocklistManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -61,33 +61,32 @@ const BlocklistManagementPage: React.FC = () => {
         const res = await axios.get(PROPERTIES_URL);
         setProperties(res.data);
       } catch (e) {
-        setError('Failed to fetch properties');
+        // ignore
       }
     };
     fetchProperties();
   }, []);
 
   useEffect(() => {
-    const fetchUserProperty = async () => {
+    const resolveProperty = async () => {
+      if (user?.propertyId) {
+        setSelectedPropertyId(user.propertyId);
+        return;
+      }
       if (!user?.token || !user?.userId) return;
       try {
         const res = await axios.get('https://server.prktechindia.in/profile', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
+        if (matchedUser?.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
         }
       } catch (e) {
         setError('Failed to fetch user profile');
       }
     };
-    fetchUserProperty();
+    resolveProperty();
   }, [user]);
 
   const fetchData = async (propertyId: string) => {
@@ -158,25 +157,7 @@ const BlocklistManagementPage: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Blocklist Management</h2>
-      <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* Property selection dropdown removed for both cadmin and property users */}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -211,10 +192,15 @@ const BlocklistManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
+                        {isCadmin && (
                           <>
                             <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
                             <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                          </>
+                        )}
+                        {!isCadmin && (
+                          <>
+                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
                           </>
                         )}
                       </td>
@@ -226,7 +212,7 @@ const BlocklistManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {isCadmin && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"

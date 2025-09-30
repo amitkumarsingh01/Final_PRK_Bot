@@ -329,7 +329,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     const filteredItems: NavItem[] = [];
 
     // Check each navigation item against user permissions
-    const allNavItems = userProfile?.user_type === 'admin' ? getAdminNavItems() : getCadminNavItems();
+    // Use admin-style paths for non-cadmin users so property users don't see cadmin routes
+    const allNavItems = userProfile?.user_type === 'cadmin' ? getCadminNavItems() : getAdminNavItems();
     
     for (const item of allNavItems) {
       if (hasAccessToItem(item, permissions)) {
