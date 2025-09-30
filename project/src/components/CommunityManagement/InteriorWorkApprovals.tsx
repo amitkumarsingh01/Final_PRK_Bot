@@ -85,13 +85,13 @@ const InteriorWorkApprovalsPage: React.FC = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.property_id) {
-          setSelectedPropertyId(matchedUser.property_id);
-        }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
+        if (matchedUser) {
+          if (matchedUser.user_type === 'cadmin' || matchedUser.user_type === 'property_user') {
+            setSelectedPropertyId(matchedUser.property_id);
+            setIsAdmin(false); // Not an admin, so hide dropdown and restrict actions
+          } else if (matchedUser.user_type === 'admin') {
+            setIsAdmin(true); // Is an admin, show dropdown and allow all actions
+          }
         }
       } catch (e) {
         setError('Failed to fetch user profile');
@@ -168,26 +168,28 @@ const InteriorWorkApprovalsPage: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Interior Work Approvals</h2>
-      {/* Property Selection Dropdown */}
-      <div className="mb-6 max-w-md">
-        <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <select
-            id="propertySelect"
-            value={selectedPropertyId}
-            onChange={e => setSelectedPropertyId(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
-          >
-            <option value="">Select a property...</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name} - {property.title}
-              </option>
-            ))}
-          </select>
+      {/* Property Selection Dropdown - Conditionally rendered */}
+      {isAdmin && (
+        <div className="mb-6 max-w-md">
+          <label htmlFor="propertySelect" className="block text-sm font-medium text-gray-700 mb-1">Select Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <select
+              id="propertySelect"
+              value={selectedPropertyId}
+              onChange={e => setSelectedPropertyId(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+            >
+              <option value="">Select a property...</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name} - {property.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      )}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -232,11 +234,11 @@ const InteriorWorkApprovalsPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
+                        {/* Edit button always visible */}
+                        <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        {/* Delete button - Conditionally rendered */}
                         {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -247,6 +249,7 @@ const InteriorWorkApprovalsPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {/* Add Button - Conditionally rendered */}
       {isAdmin && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}

@@ -243,6 +243,7 @@ const TicketAssignmentPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {/* Add Button - Conditionally rendered */}
       {isAdmin && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
