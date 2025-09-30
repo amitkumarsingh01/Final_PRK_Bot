@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -50,17 +50,6 @@ import SiteSecurityPage from './components/Patrolling/SiteSecurity';
 import TechnicalTeamPatrollingPage from './components/Patrolling/TechnicalTeamPatrolling';
 // UserProperty pages
 import UserPropertyDashboard from './pages/UserProperty/UserPropertyDashboard';
-import UserPropertyDailyReports from './pages/UserProperty/UserPropertyDailyReports';
-import UserPropertyMonthlyTask from './pages/UserProperty/UserPropertyMonthlyTask';
-import UserProperty52WeekCalender from './pages/UserProperty/UserProperty52WeekCalender';
-import UserProperty52WeekTraining from './pages/UserProperty/UserProperty52WeekTraining';
-import UserPropertyIncidentReport from './pages/UserProperty/UserPropertyIncidentReport';
-import UserPropertySiteSecurity from './pages/UserProperty/UserPropertySiteSecurity';
-import UserPropertyTechnicalPatrolling from './pages/UserProperty/UserPropertyTechnicalPatrolling';
-import UserPropertyNightIncident from './pages/UserProperty/UserPropertyNightIncident';
-import UserPropertyAuditReport from './pages/UserProperty/UserPropertyAuditReport';
-import UserPropertySitePreTransition from './pages/UserProperty/UserPropertySitePreTransition';
-import UserPropertyPostTransition from './pages/UserProperty/UserPropertyPostTransition';
 import UserPropertyLayout from './pages/UserProperty/Important/components/userpropertylayout/UserPropertyLayout';
 import CNightIncidentPage from './pages/Cadmin/Important/components/Patrolling/NightIncident';
 import CSiteSecurityPage from './pages/Cadmin/Important/components/Patrolling/SiteSecurity';
@@ -298,7 +287,7 @@ const AppRoutes = () => {
       }>
         <Route index element={
           user?.userType === 'property_user' ? 
-            <Navigate to="/user-property" replace /> : 
+            <Navigate to="/user-property/dashboard" replace /> : 
             <Navigate to="/profile" replace />
         } />
         {/* <Route path="dashboard" element={<Dashboard />} /> */}
@@ -747,22 +736,192 @@ const AppRoutes = () => {
         <Route path="user/temporary-structure-work-permit" element={<TemporaryStructurePage />} />
         <Route path="user/working-alone-work-permit" element={<VehicleEntryPermitPage />} />
 
-        {/* UserProperty Routes - Edit-only access for property users */}
+        {/* UserProperty Routes - Full access for property users */}
         <Route path="user-property" element={<UserPropertyLayout />}>
           <Route index element={<UserPropertyDashboard />} />
           <Route path="dashboard" element={<UserPropertyDashboard />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="daily-reports" element={<UserPropertyDailyReports />} />
-          <Route path="monthly-task-management" element={<UserPropertyMonthlyTask />} />
-          <Route path="52-week-work-calendar" element={<UserProperty52WeekCalender />} />
-          <Route path="52-week-training-calendar" element={<UserProperty52WeekTraining />} />
-          <Route path="incident-report" element={<UserPropertyIncidentReport />} />
-          <Route path="site-security-patrolling" element={<UserPropertySiteSecurity />} />
-          <Route path="technical-team-patrolling" element={<UserPropertyTechnicalPatrolling />} />
-          <Route path="night-incident-patrolling" element={<UserPropertyNightIncident />} />
-          <Route path="audit-reports" element={<UserPropertyAuditReport />} />
-          <Route path="site-pre-transition" element={<UserPropertySitePreTransition />} />
-          <Route path="post-transition" element={<UserPropertyPostTransition />} />
+          
+          {/* Daily Task Management */}
+          <Route path="daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
+          <Route path="daily-management-report" element={<DailyManagementReport />} />
+          <Route path="daily-reports" element={<DailyReports />} />
+          
+          {/* Daily Logs */}
+          <Route path="daily-logs">
+            <Route index element={<Navigate to="/user-property/daily-logs/fresh-water" replace />} />
+            <Route path="fresh-water" element={<FreshWater />} />
+            <Route path="generator" element={<DieselGeneratorManager />} />
+            <Route path="stp" element={<STPDashboard />} />
+            <Route path="wtp" element={<WTPDashboard />} />
+            <Route path="swimming-pool" element={<SwimmingPoolManager />} />
+            <Route path="diesel-generator" element={<DieselGeneratorDashboard/>} />
+          </Route>
+          
+          {/* Monthly Task Management */}
+          <Route path="monthly-task-management" element={<MonthlyTask />} />
+          
+          {/* 52 Week */}
+          <Route path="52-week-work-calendar" element={<WeekCalendar />} />
+          <Route path="52-week-training-calendar" element={<WeekTraining />} />
+          
+          {/* Incident & Patrolling */}
+          <Route path="incident-report" element={<IncidentReportPage />} />
+          <Route path="night-patrolling-report" element={<NightIncidentPage />} />
+          <Route path="site-security-patrolling-report" element={<SiteSecurityPage />} />
+          <Route path="technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
+          
+          {/* Reports and Audit */}
+          <Route path="audit-reports" element={<AuditReportPage />} />
+          
+          {/* Transition Management */}
+          <Route path="transition-checklists" element={<TransitionChecklistsPage />} />
+          <Route path="post-transition-checklist" element={<PostTransitionChecklistsPage />} />
+          
+          {/* Gate Management */}
+          <Route path="visitor-management" element={<VisitorManagement />} />
+          <Route path="inward-non-returnable" element={<InwardNonReturnable />} />
+          <Route path="inward-returnable" element={<InwardReturnable />} />
+          <Route path="outward-non-returnable" element={<OutwardNonReturnable />} />
+          <Route path="outward-returnable" element={<OutwardReturnable />} />
+          <Route path="move-in" element={<MoveIn />} />
+          <Route path="move-out" element={<MoveOut />} />
+          <Route path="interior-work-tracking" element={<InteriorWorkTracking />} />
+          <Route path="work-permit-issuance" element={<WorkPermitIssuance />} />
+          <Route path="gate-pass-management" element={<GatePassManagement />} />  
+          <Route path="blocklist-management" element={<BlocklistManagement />} />
+          <Route path="daily-entry-details" element={<DailyEntryDetails />} />
+          <Route path="water-tanker-management" element={<WaterTankerManagement />} />
+          <Route path="vendor-entry-management" element={<VendorEntryManagement />} />
+          <Route path="sta-entry-management" element={<StaEntryManagement />} />
+          <Route path="emergency-contact-details" element={<EmergencyContactDetails />} />
+          
+          {/* Community Management */}
+          <Route path="tickets-management" element={<TicketsManagement />} />
+          <Route path="ticket-assignment" element={<TicketAssignment />} />
+          <Route path="notice-management" element={<NoticeManagement />} />
+          <Route path="parking-sticker-management" element={<ParkingStickerManagement />} />
+          <Route path="communication-announcements" element={<CommunicationAnnouncements />} />
+          <Route path="move-in-coordination" element={<MoveInCoordination />} />
+          <Route path="move-out-coordination" element={<MoveOutCoordination />} />
+          <Route path="interior-work-approvals" element={<InteriorWorkApprovals />} />
+          <Route path="work-permit-tracking" element={<WorkPermitTracking />} />
+          
+          {/* Asset Management */}
+          <Route path="asset-tagging-management" element={<AssetTaggingManagement />} />
+          <Route path="asset-movement-log" element={<AssetMovementLog />} />
+          <Route path="amc-warranty-tracker" element={<AMCWarrantyTracker />} />
+          <Route path="maintenance-schedule" element={<MaintenanceSchedule />} />
+          <Route path="asset-audit" element={<AssetAudit />} />
+          <Route path="depreciation-replacement" element={<DepreciationReplacement />} />
+          
+          {/* Inventory Management */}
+          <Route path="inventory-tracking" element={<InventoryTracking />} />
+          <Route path="stock-entry-issue" element={<StockEntryIssue />} />
+          <Route path="min-max-level-monitoring" element={<MinMaxLevelMonitoring />} />
+          <Route path="consumption-reports" element={<ConsumptionReports />} />
+          <Route path="expiry-damage-log" element={<ExpiryDamageLog />} />
+          
+          {/* Quality and Process Management */}
+          <Route path="quality-planning" element={<QualityPlanning />} />
+          <Route path="process-management-setup" element={<ProcessManagementSetup />} />
+          <Route path="quality-assurance" element={<QualityAssurance />} />
+          <Route path="quality-control" element={<QualityControl />} />
+          <Route path="performance-monitoring" element={<PerformanceMonitoring />} />
+          <Route path="documentation-and-reporting" element={<DocumentationReporting />} />
+          
+          {/* Fire and Safety */}
+          <Route path="site-assessment-and-planning" element={<SiteAssessmentAndPlanning />} />
+          <Route path="installation-and-equipment-setup" element={<InstallationAndEquipmentSetup />} />
+          <Route path="fire-safety-documents" element={<FireSafetyDocuments />} />
+          <Route path="compliance-reports" element={<ComplianceReports />} />
+          <Route path="fire-and-safety-training" element={<FireAndSafetyTraining />} />
+          <Route path="daily-checklist" element={<DailyChecklist />} />
+          <Route path="weekly-checklist" element={<WeeklyChecklist />} />
+          <Route path="monthly-checklist" element={<MonthlyChecklist />} />
+          <Route path="quarterly-checklist" element={<QuarterlyChecklist />} />
+          <Route path="emergency-preparedness-plan" element={<EmergencyPreparednessPlan />} />
+          <Route path="record-keeping" element={<RecordKeeping />} />
+          
+          {/* CCTV Department */}
+          <Route path="site-assessment" element={<SiteAssessment />} />
+          <Route path="system-design-and-planning" element={<SystemDesignPlanningPage />} />
+          <Route path="installation-checklist" element={<InstallationChecklist />} />
+          <Route path="configuration-and-testing" element={<ConfigurationTestingPage />} />
+          <Route path="daily-operations-and-monitoring" element={<DailyOperationsMonitoringPage />} />
+          <Route path="maintenance-schedule" element={<MaintenanceSchedulePage />} />
+          <Route path="documentation" element={<Documentation />} />
+          <Route path="amc-and-compliance" element={<AmcAndCompliance />} />
+          
+          {/* Project Management */}
+          <Route path="project-management" element={<ProjectManagement />} />
+          <Route path="project-initiation" element={<ProjectInitiation />} />
+          <Route path="project-planning" element={<ProjectPlanning />} />
+          <Route path="team-resource-allocation" element={<TeamResourceAllocation />} />
+          <Route path="execution-and-implementation" element={<ExecutionAndImplementation />} />
+          <Route path="monitoring-and-control" element={<MonitoringAndControl />} />
+          <Route path="documentation-and-reporting" element={<DocumentationAndReporting />} />
+          <Route path="project-closure" element={<ProjectClosure />} />
+          
+          {/* Procurement Management */}
+          <Route path="procurement-planning" element={<ProcurementPlanning />} />
+          <Route path="vendor-management" element={<VendorManagement />} />
+          <Route path="purchase-requisition-to-order" element={<PurchaseRequisitionToOrder />} />
+          <Route path="goods-receipt-and-inspection" element={<GoodsReceiptAndInspection />} /> 
+          <Route path="inventory-and-stock-management" element={<InventoryAndStockManagement />} />
+          <Route path="payment-tracking" element={<PaymentTracking />} />
+          <Route path="procurement-documentation" element={<ProcurementDocumentation />} />
+          <Route path="compliance-and-policy" element={<ComplianceAndPolicy />} />
+          <Route path="reporting-and-analysis" element={<ReportingAndAnalysis />} />
+          <Route path="procurement-categories" element={<ProcurementCategories />} />
+          
+          {/* Vendor Management */}
+          <Route path="vendor-master-management" element={<VendorMasterManagement />} />
+          <Route path="vendor-classification" element={<VendorClassication />} />
+          <Route path="vendor-evaluation" element={<VendorEvaluation />} />
+          <Route path="integration-with-purchase-process" element={<IntegrationWithPurchaseProcess />} />
+          <Route path="vendor-relationship-management" element={<VendorRelationshipManagement />} />
+          <Route path="compliance-and-legal-check" element={<ComplianceAndLegalCheck />} />
+          <Route path="vendor-documentation" element={<VendorDocumentation />} />
+          <Route path="reporting-and-analysis" element={<Vendor_Reporting_and_Analysis />} />
+          
+          {/* SLA Management */}
+          <Route path="sla-planning-and-definition" element={<SLA_Planning_and_Denition />} />
+          <Route path="key-sla-components" element={<Key_SLA_Components />} />
+          <Route path="sla-implementation" element={<SLA_Implementation />} />
+          <Route path="sla-monitoring" element={<SLA_Monitoring />} />
+          <Route path="sla-evaluation" element={<SLA_Evaluation />} />
+          <Route path="sla-renewal-and-exit-process" element={<SLA_Renewal_and_Exit_Process />} />
+          
+          {/* KPI Management */}
+          <Route path="kpi" element={<KPIPage />} />
+          
+          {/* Complaint Management */}
+          <Route path="complaint-management" element={<ComplaintPage />} />
+          
+          {/* Back-End Office Management */}
+          <Route path="site-visit-reports" element={<SiteVisitPage />} />
+          <Route path="training-reports" element={<TrainingReportPage />} />
+          <Route path="night-patrolling-reports" element={<NightPatrollingPage />} />
+          <Route path="minutes-of-meetings" element={<MinutesOfMeetingPage />} />
+          <Route path="escalation-matrix" element={<EscalationMatrix />} />
+          
+          {/* Work Permit */}
+          <Route path="interior-work-permit" element={<InteriorWorkPermitPage />} />
+          <Route path="vehicle-entry-permit" element={<VehicleEntryPermitPage />} />
+          <Route path="hot-work-permit" element={<HotWorkPermitPage />} />
+          <Route path="cold-work-permit" element={<ColdWorkPermitPage />} />
+          <Route path="electrical-work-permit" element={<ElectricalWorkPermitPage />} />
+          <Route path="height-work-permit" element={<HeightWorkPermitPage />} />
+          <Route path="confined-space-work-permit" element={<ConfinedSpaceWorkPage />} />
+          <Route path="excavation-permit" element={<ExcavationPermitPage />} />
+          <Route path="lockout-tagout-permit" element={<LockoutTagoutPermitPage />} />
+          <Route path="chemical-work-permit" element={<ChemicalWorkPermitPage />} />
+          <Route path="lift-work-permit" element={<LiftingPage />} />
+          <Route path="demolition-work-permit" element={<DemolitionPage />} />
+          <Route path="general-maintenance-work-permit" element={<GeneralMaintenancePage />} />
+          <Route path="temporary-structure-work-permit" element={<TemporaryStructurePage />} />
+          <Route path="working-alone-work-permit" element={<VehicleEntryPermitPage />} />
         </Route>
 
         {/* Quality and Process Management Routes */}
@@ -928,7 +1087,7 @@ const AppRoutes = () => {
         <Navigate to={
           !isAuthenticated ? "/login" : 
           user?.status === 'active' ? 
-            (user?.userType === 'property_user' ? "/daily-task-management-all-department" : "/profile") : 
+            (user?.userType === 'property_user' ? "/user-property/dashboard" : "/profile") : 
             "/verify"
         } replace />  
       } />

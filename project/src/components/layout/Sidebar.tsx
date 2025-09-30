@@ -216,7 +216,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       'admin': ['All Pages'],
       'cadmin': ['All Pages'],
       'helpdesk': [
-        'Daily Management Report', 'Daily Complete work Details', 'Monthly Management Report',
+        'Daily Task Management of all department', 'Daily Management Report', 'Daily Complete work Details', 'Monthly Management Report',
         '52 Week Work Calendar', '52 week training calendar format', 'Incident Report',
         'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
         'Tickets Management', 'Ticket Assignment', 'Notice Management',
@@ -228,53 +228,144 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       ],
       
       // Management roles
-      'general_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'assistant_general_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'operations_head': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'operations_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'training_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'area_manager': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
-      'field_officer': ['Audit Reports', 'Site Pre-Transition', 'Post-Transition', 'Back-End Office Management'],
+      'general_manager': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'assistant_general_manager': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'operations_head': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'operations_manager': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'training_manager': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'area_manager': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
+      'field_officer': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Audit Reports', 'Site Pre-Transition', 'Post-Transition',
+        'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
+        'Minutes of Meetings', 'Escalation Matrix', 'Back-end team Patrolling Report'
+      ],
       
       // Security roles
       'security_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
         'Site Security Patrolling Report', 'Gate Management', 'Work Permits'
       ],
       'security_officer': [
+        'Daily Task Management of all department', 'Monthly Checklist',
         'Site Security Patrolling Report', 'Gate Management', 'Work Permits',
         'Inventory Management', 'Asset Management', 'CCTV Department'
       ],
       
       // Technical roles
       'electrical_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
         'Generator', 'Diesel Generator', 'Facility or Technical team Patrolling Report',
         'Inventory Management', 'Asset Management'
       ],
       'electrical_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
         'Generator', 'Diesel Generator', 'Facility or Technical team Patrolling Report'
       ],
-      'plumber': ['Fresh Water', 'Facility or Technical team Patrolling Report'],
-      'plumbing_supervisor': ['Inventory Management', 'Asset Management'],
-      'stp_supervisor': ['STP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'stp_technician': ['STP', 'Facility or Technical team Patrolling Report'],
-      'wtp_supervisor': ['WTP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'wtp_technician': ['WTP', 'Facility or Technical team Patrolling Report'],
-      'swimming_pool_supervisor': ['Swimming Pool', 'Facility or Technical team Patrolling Report'],
-      'swimming_pool_technician': ['Swimming Pool', 'Facility or Technical team Patrolling Report'],
-      'lift_technician': ['Facility or Technical team Patrolling Report'],
-      'gym_technician': ['Facility or Technical team Patrolling Report'],
-      'gas_technician': ['Facility or Technical team Patrolling Report'],
-      'multi_technician': ['Facility or Technical team Patrolling Report'],
+      'plumber': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Fresh Water', 'Facility or Technical team Patrolling Report'
+      ],
+      'plumbing_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Inventory Management', 'Asset Management'
+      ],
+      'stp_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'STP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'
+      ],
+      'stp_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'STP', 'Facility or Technical team Patrolling Report'
+      ],
+      'wtp_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'WTP', 'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'
+      ],
+      'wtp_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'WTP', 'Facility or Technical team Patrolling Report'
+      ],
+      'swimming_pool_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Swimming Pool', 'Facility or Technical team Patrolling Report'
+      ],
+      'swimming_pool_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Swimming Pool', 'Facility or Technical team Patrolling Report'
+      ],
+      'lift_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
+      'gym_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
+      'gas_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
+      'multi_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
       
       // Other roles
-      'housekeeping_supervisor': ['Inventory Management', 'Asset Management'],
-      'pest_control_supervisor': ['Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'],
-      'pest_control_technician': ['Facility or Technical team Patrolling Report'],
+      'housekeeping_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Inventory Management', 'Asset Management'
+      ],
+      'pest_control_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report', 'Inventory Management', 'Asset Management'
+      ],
+      'pest_control_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
       'fire_officer': [
+        'Daily Task Management of all department', 'Monthly Checklist',
         'Facility or Technical team Patrolling Report', 'Fire and Safety', 'Work Permits'
       ],
-      'garden_supervisor': ['Facility or Technical team Patrolling Report'],
-      'cctv_technician': ['CCTV Department']
+      'garden_supervisor': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'Facility or Technical team Patrolling Report'
+      ],
+      'cctv_technician': [
+        'Daily Task Management of all department', 'Monthly Checklist',
+        'CCTV Department'
+      ]
     };
 
     const userPermissions = rolePermissions[userRole] || [];
@@ -314,6 +405,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   };
 
   const getFilteredNavItems = (permissions: string[]): NavItem[] => {
+    // For property users (including helpdesk), redirect to UserProperty layout
+    if (userProfile?.user_type === 'property_user') {
+      // Property users will be redirected to /user-property route which has its own layout
+      const baseItems: NavItem[] = [
+        { path: '/user-property/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
+        { path: '/user-property/profile', icon: <User size={20} />, label: 'Profile' },
+        { path: '/user-property/daily-task-management-all-department', icon: <Calendar size={20} />, label: 'Daily Task Management of all department' },
+      ];
+      return baseItems;
+    }
+
     // For non-admin roles, surface the direct Daily Task link at the top level
     const baseItems: NavItem[] = [
       { path: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
@@ -321,16 +423,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
       { path: getDailyAllDeptPath(), icon: <Calendar size={20} />, label: 'Daily Task Management of all department' },
     ];
 
-    // For property users, redirect to UserProperty layout
-    if (userProfile?.user_type === 'property_user') {
-      // Property users will be redirected to /user-property route which has its own layout
-      return baseItems;
-    }
-
     const filteredItems: NavItem[] = [];
 
     // Check each navigation item against user permissions
-    const allNavItems = userProfile?.user_type === 'admin' ? getAdminNavItems() : getCadminNavItems();
+    // Helpdesk users should use admin navigation items, not cadmin
+    const allNavItems = (userProfile?.user_type === 'admin' || userProfile?.user_role === 'helpdesk') ? getAdminNavItems() : getCadminNavItems();
     
     for (const item of allNavItems) {
       if (hasAccessToItem(item, permissions)) {
