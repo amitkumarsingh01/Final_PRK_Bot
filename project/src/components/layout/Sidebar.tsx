@@ -405,15 +405,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
   };
 
   const getFilteredNavItems = (permissions: string[]): NavItem[] => {
-    // For property users (including helpdesk), redirect to UserProperty layout
+    // For property users, show all role-based navigation items with user paths
     if (userProfile?.user_type === 'property_user') {
-      // Property users will be redirected to /user-property route which has its own layout
       const baseItems: NavItem[] = [
-        { path: '/user-property/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-        { path: '/user-property/profile', icon: <User size={20} />, label: 'Profile' },
-        { path: '/user-property/daily-task-management-all-department', icon: <Calendar size={20} />, label: 'Daily Task Management of all department' },
+        { path: '/user/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
+        { path: '/user/profile', icon: <User size={20} />, label: 'Profile' },
       ];
-      return baseItems;
+
+      const filteredItems: NavItem[] = [];
+
+      // Get all navigation items and filter based on permissions
+      const allNavItems = getCadminNavItems(); // Use cadmin structure for property users
+      
+      for (const item of allNavItems) {
+        if (hasAccessToItem(item, permissions)) {
+          // Convert paths to user-property paths
+          const convertedItem = convertToUserPropertyPath(item);
+          filteredItems.push(convertedItem);
+        }
+      }
+
+      console.log('🔒 Filtered navigation items for property user role:', userProfile?.user_role, 'Items:', filteredItems.length);
+      return [...baseItems, ...filteredItems];
     }
 
     // For non-admin roles, surface the direct Daily Task link at the top level
@@ -484,6 +497,30 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     return false;
   };
 
+  const convertToUserPropertyPath = (item: NavItem): NavItem => {
+    const convertPath = (path: string): string => {
+      if (path === '#') return '#';
+      if (path.startsWith('/cadmin/')) {
+        return path.replace('/cadmin/', '/user/');
+      }
+      return `/user${path}`;
+    };
+
+    const convertSubMenuItem = (subItem: SubMenuItem): SubMenuItem => {
+      return {
+        ...subItem,
+        path: convertPath(subItem.path),
+        submenuItems: subItem.submenuItems?.map(convertSubMenuItem)
+      };
+    };
+
+    return {
+      ...item,
+      path: convertPath(item.path),
+      submenuItems: item.submenuItems?.map(convertSubMenuItem)
+    };
+  };
+
   const getNavItems = (): NavItem[] => {
     console.log('🧭 SIDEBAR - Generating navigation items...');
     console.log('👥 User profile user_type:', userProfile?.user_type);
@@ -499,9 +536,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     const adminItems: NavItem[] = [
       { path: '/users', icon: <Users size={20} />, label: 'Users' },
       { path: '/properties', icon: <Building2 size={20} />, label: 'Properties' },
-        // { path: '/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
-        { path: '/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      // { path: '/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
+      { path: '/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
       { path: '/tasks', icon: <Search size={20} />, label: 'Tasks' },
       {
         path: '#',
@@ -534,7 +569,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         hasSubmenu: true,
         submenuItems: [
           { path: '/monthly-task-management', label: 'Monthly Checklist' },
-          { path: '#', label: 'Monthly Management Report' },
+          { path: '/monthly-management-report', label: 'Monthly Management Report' },
         ]
       },
       {
@@ -843,7 +878,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           { path: '#', label: 'Custom Report Generator' },
           { path: '#', label: 'Exportable Reports (PDF/Excel)' },
         ]
-        }
+      }
     ];
 
     return adminItems;
@@ -853,10 +888,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
     console.log('🏢 Generating CADMIN navigation items');
     const cadminItems: NavItem[] = [
       { path: '/cadmin/users', icon: <Users size={20} />, label: 'Users' },
-      // { path: '/cadmin/properties', icon: <Building2 size={20} />, label: 'Properties' },
-      // { path: '/cadmin/property-user-management', icon: <UserPlus size={20} />, label: 'Property User Management' },
       { path: '/cadmin/user-role-management', icon: <UserPlus size={20} />, label: 'User Role Management' },
-      // { path: '/cadmin/staff-categories', icon: <Users size={20} />, label: 'Staff Categories' },
       { path: '/cadmin/tasks', icon: <Search size={20} />, label: 'Tasks' },
       {
         path: '#',
@@ -889,7 +921,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           hasSubmenu: true,
           submenuItems: [
           { path: '/cadmin/monthly-task-management', label: 'Monthly Checklist' },
-            { path: '#', label: 'Monthly Management Report' },
+          { path: '/cadmin/monthly-management-report', label: 'Monthly Management Report' },
           ]
         },
         {

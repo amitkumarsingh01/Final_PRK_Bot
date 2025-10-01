@@ -319,6 +319,7 @@ const AppRoutes = () => {
         <Route path="daily-management-report" element={<DailyManagementReport />} />
         <Route path="daily-reports" element={<DailyReports />} />
         <Route path="monthly-task-management" element={<MonthlyTask />} />
+        <Route path="monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
         <Route path="52-week-work-calendar" element={<WeekCalendar />} />
         <Route path="52-week-training" element={<WeekTraining />} />
         <Route path="incident-report" element={<IncidentReportPage />} />
@@ -408,6 +409,7 @@ const AppRoutes = () => {
 
         {/* Cadmin - Monthly Task Management */}
         <Route path="cadmin/monthly-task-management" element={<MonthlyTask />} />
+        <Route path="cadmin/monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
 
         {/* Cadmin - 52 Week */}
         <Route path="cadmin/52-week-work-calendar" element={<WeekCalendar />} />
@@ -581,6 +583,7 @@ const AppRoutes = () => {
         <Route path="user/daily-management-report" element={<DailyManagementReport />} />
         <Route path="user/daily-reports" element={<DailyReports />} />
         <Route path="user/monthly-task-management" element={<MonthlyTask />} />
+        <Route path="user/monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
         <Route path="user/52-week-work-calendar" element={<WeekCalendar />} />
         <Route path="user/52-week-training" element={<WeekTraining />} />
         <Route path="user/incident-report" element={<IncidentReportPage />} />
@@ -760,6 +763,7 @@ const AppRoutes = () => {
           
           {/* Monthly Task Management */}
           <Route path="monthly-task-management" element={<MonthlyTask />} />
+          <Route path="monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
           
           {/* 52 Week */}
           <Route path="52-week-work-calendar" element={<WeekCalendar />} />

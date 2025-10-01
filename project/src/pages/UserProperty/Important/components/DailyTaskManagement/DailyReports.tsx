@@ -123,12 +123,12 @@ const UserPropertyDailyReportsPage: React.FC = () => {
   });
 
   const openAdd = () => {
-    if (!isAdmin) return alert('Only admins can add reports');
-    setEditModal({ open: true, data: getEmptyReport() as SiteReport, isNew: true });
+    // Property users don't have add access
+    return alert('Only admins can add reports');
   };
 
   const openEdit = (report: SiteReport) => {
-    if (!isAdmin) return alert('Only admins can edit reports');
+    // Property users can edit reports
     setEditModal({ open: true, data: { ...report }, isNew: false });
   };
 
@@ -138,18 +138,8 @@ const UserPropertyDailyReportsPage: React.FC = () => {
   };
 
   const handleDelete = async (reportId: number) => {
-    if (!isAdmin) return alert('Only admins can delete reports');
-    if (!confirm('Are you sure you want to delete this report?')) return;
-
-    try {
-      setLoading(true);
-      await axios.delete(`${API_URL}${reportId}`);
-      await fetchReports();
-    } catch (e) {
-      setError('Failed to delete report');
-    } finally {
-      setLoading(false);
-    }
+    // Property users don't have delete access
+    return alert('Only admins can delete reports');
   };
 
   const handleSave = async () => {
