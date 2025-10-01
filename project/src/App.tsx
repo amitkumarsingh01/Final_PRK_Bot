@@ -243,6 +243,35 @@ import LiftingPage from './components/Workpermit/Lifting.tsx';
 import DemolitionPage from './components/Workpermit/Demolition.tsx';
 import TemporaryStructurePage from './components/Workpermit/TemporaryStrucure.tsx';
 import GeneralMaintenancePage from './components/Workpermit/GeneralMaintainence.tsx';
+import CDailyTaskManagementAllDepartmentP from './pages/Users/components/DailyTaskManagement/CDailyTaskManagementAllDepartment.tsx';
+import CDailyManagementReportP from './pages/Users/components/DailyTaskManagement/DailyManagementReport.tsx';
+import CDailyReportsPageP from './pages/Users/components/DailyTaskManagement/DailyReports.tsx';
+import CMonthlyTaskP from './pages/Users/components/MonthlyTaskManagement/MonthlyTask.tsx';
+import CWeekTrainingPageP from './pages/Users/components/52Week/C52WeekTraining.tsx';
+import CWeekCalendarP from './pages/Users/components/52Week/52WeekCalender.tsx';
+import CIncidentReportPageP from './pages/Users/components/IncidentReport/IncidentReport.tsx';
+import CNightIncidentPageP from './pages/Users/components/Patrolling/NightIncident.tsx';
+import CSiteSecurityPageP from './pages/Users/components/Patrolling/SiteSecurity.tsx';
+import CTechnicalTeamPatrollingPageP from './pages/Users/components/Patrolling/TechnicalTeamPatrolling.tsx';
+import CAuditReportPageP from './pages/Users/components/AuditReport/AuditReport.tsx';
+import CTransitionChecklistsPageP from './pages/Users/components/TransitionChecklist/TransitionChecklists.tsx';
+import CPostTransitionChecklistsPageP from './pages/Users/components/TransitionChecklist/PostTransitionChecklists.tsx';
+import CVisitorManagementP from './pages/Users/components/GateManagement/VisitorManagement.tsx';
+import CInwardNonReturnablePageP from './pages/Users/components/GateManagement/InwardNonReturnable.tsx';
+import CInwardReturnablePageP from './pages/Users/components/GateManagement/InwardReturnable.tsx';
+import COutwardNonReturnablePageP from './pages/Users/components/GateManagement/OutwardNonReturnable.tsx';
+import COutwardReturnablePageP from './pages/Users/components/GateManagement/OutwardReturnable.tsx';
+import CMoveInPageP from './pages/Users/components/GateManagement/MoveIn.tsx';
+import CMoveOutPageP from './pages/Users/components/GateManagement/MoveOut.tsx';
+import CInteriorWorkTrackingPageP from './pages/Users/components/GateManagement/InteriorWorkTracking.tsx';
+import CWorkPermitIssuancePageP from './pages/Users/components/GateManagement/WorkPermitIssuance.tsx';
+import CGatePassManagementPageP from './pages/Users/components/GateManagement/GatePassManagement.tsx';
+import CBlocklistManagementPageP from './pages/Users/components/GateManagement/BlocklistManagement.tsx';
+import CDailyEntryDetailsPageP from './pages/Users/components/GateManagement/DailyEntryDetails.tsx';
+import CWaterTankerManagementPageP from './pages/Users/components/GateManagement/WaterTankerManagement.tsx';
+import CVendorEntryManagementPageP from './pages/Users/components/GateManagement/VendorEntryManagement.tsx';
+import CStaEntryManagementPageP from './pages/Users/components/GateManagement/StaEntryManagement.tsx';
+import CEmergencyContactDetailsPageP from './pages/Users/components/GateManagement/EmergencyContactDetails.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -579,38 +608,38 @@ const AppRoutes = () => {
         <Route path="user/tasks" element={<UserTasks />} />
         
         {/* User Routes - Property User Specific */}
-        <Route path="user/daily-task-management-all-department" element={<DailyTaskManagementAllDepartment />} />
-        <Route path="user/daily-management-report" element={<DailyManagementReport />} />
-        <Route path="user/daily-reports" element={<DailyReports />} />
-        <Route path="user/monthly-task-management" element={<MonthlyTask />} />
+        <Route path="user/daily-task-management-all-department" element={<CDailyTaskManagementAllDepartmentP />} />
+        <Route path="user/daily-management-report" element={<CDailyManagementReportP />} />
+        <Route path="user/daily-reports" element={<CDailyReportsPageP />} />
+        <Route path="user/monthly-task-management" element={<CMonthlyTaskP />} />
         <Route path="user/monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
-        <Route path="user/52-week-work-calendar" element={<WeekCalendar />} />
-        <Route path="user/52-week-training" element={<WeekTraining />} />
-        <Route path="user/incident-report" element={<IncidentReportPage />} />
-        <Route path="user/night-patrolling-report" element={<NightIncidentPage />} />
-        <Route path="user/site-security-patrolling-report" element={<SiteSecurityPage />} />
-        <Route path="user/technical-team-patrolling-report" element={<TechnicalTeamPatrollingPage />} />
-        <Route path="user/audit-reports" element={<AuditReportPage />} />
-        <Route path="user/transition-checklists" element={<TransitionChecklistsPage />} />
-        <Route path="user/post-transition-checklist" element={<PostTransitionChecklistsPage />} />
+        <Route path="user/52-week-work-calendar" element={<CWeekCalendarP />} />
+        <Route path="user/52-week-training" element={<CWeekTrainingPageP />} />
+        <Route path="user/incident-report" element={<CIncidentReportPageP />} />
+        <Route path="user/night-patrolling-report" element={<CNightIncidentPageP />} />
+        <Route path="user/site-security-patrolling-report" element={<CSiteSecurityPageP />} />
+        <Route path="user/technical-team-patrolling-report" element={<CTechnicalTeamPatrollingPageP />} />
+        <Route path="user/audit-reports" element={<CAuditReportPageP />} />
+        <Route path="user/transition-checklists" element={<CTransitionChecklistsPageP />} />
+        <Route path="user/post-transition-checklist" element={<CPostTransitionChecklistsPageP />} />
         
         {/* User Gate Management Routes */}
-        <Route path="user/visitor-management" element={<VisitorManagement />} />
-        <Route path="user/inward-non-returnable" element={<InwardNonReturnable />} />
-        <Route path="user/inward-returnable" element={<InwardReturnable />} />
-        <Route path="user/outward-non-returnable" element={<OutwardNonReturnable />} />
-        <Route path="user/outward-returnable" element={<OutwardReturnable />} />
-        <Route path="user/move-in" element={<MoveIn />} />
-        <Route path="user/move-out" element={<MoveOut />} />
-        <Route path="user/interior-work-tracking" element={<InteriorWorkTracking />} />
-        <Route path="user/work-permit-issuance" element={<WorkPermitIssuance />} />
-        <Route path="user/gate-pass-management" element={<GatePassManagement />} />  
-        <Route path="user/blocklist-management" element={<BlocklistManagement />} />
-        <Route path="user/daily-entry-details" element={<DailyEntryDetails />} />
-        <Route path="user/water-tanker-management" element={<WaterTankerManagement />} />
-        <Route path="user/vendor-entry-management" element={<VendorEntryManagement />} />
-        <Route path="user/sta-entry-management" element={<StaEntryManagement />} />
-        <Route path="user/emergency-contact-details" element={<EmergencyContactDetails />} />
+        <Route path="user/visitor-management" element={<CVisitorManagementP />} />
+        <Route path="user/inward-non-returnable" element={<CInwardNonReturnablePageP />} />
+        <Route path="user/inward-returnable" element={<CInwardReturnablePageP />} />
+        <Route path="user/outward-non-returnable" element={<COutwardNonReturnablePageP />} />
+        <Route path="user/outward-returnable" element={<COutwardReturnablePageP />} />
+        <Route path="user/move-in" element={<CMoveInPageP />} />
+        <Route path="user/move-out" element={<CMoveOutPageP />} />
+        <Route path="user/interior-work-tracking" element={<CInteriorWorkTrackingPageP />} />
+        <Route path="user/work-permit-issuance" element={<CWorkPermitIssuancePageP />} />
+        <Route path="user/gate-pass-management" element={<CGatePassManagementPageP />} />  
+        <Route path="user/blocklist-management" element={<CBlocklistManagementPageP />} />
+        <Route path="user/daily-entry-details" element={<CDailyEntryDetailsPageP />} />
+        <Route path="user/water-tanker-management" element={<CWaterTankerManagementPageP />} />
+        <Route path="user/vendor-entry-management" element={<CVendorEntryManagementPageP />} />
+        <Route path="user/sta-entry-management" element={<CStaEntryManagementPageP />} />
+        <Route path="user/emergency-contact-details" element={<CEmergencyContactDetailsPageP />} />
         
         {/* User Community Management Routes */}
         <Route path="user/tickets-management" element={<TicketsManagement />} />
