@@ -63,7 +63,7 @@ const CParkingStickerManagementPage: React.FC = () => {
   const [data, setData] = useState<CommunityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: ParkingSticker | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: ParkingSticker | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -72,8 +72,8 @@ const CParkingStickerManagementPage: React.FC = () => {
   };
   // Treat cadmin as admin
   useEffect(() => {
-    if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    // All users can add/edit, no delete functionality
+    setCanEdit(true);
   }, [user]);
 
   // Fetch reports for user's property
@@ -222,11 +222,8 @@ const CParkingStickerManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
                         )}
                       </td>
                     </tr>
