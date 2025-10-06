@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../../../context/AuthContext';
-import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, BookOpen, Users, CheckCircle, Clock } from 'lucide-react';
+import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, BookOpen, CheckCircle } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -36,7 +36,9 @@ const CWeekTrainingPage: React.FC = () => {
   const { user } = useAuth();
   console.log('👤 C52WeekTraining: User loaded', { userId: user?.userId });
 
+  const [properties, setProperties] = useState<Property[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
 
   const [schedules, setSchedules] = useState<TrainingSchedule[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -66,8 +68,7 @@ const CWeekTrainingPage: React.FC = () => {
           const res = await axios.get(`${PROPERTIES_URL}/${currentUserPropertyId}`);
           const property = res.data;
           setProperties([property]);
-          // Automatically set the property for property users
-          setSelectedPropertyId(currentUserPropertyId);
+          // Property user automatically uses their assigned property
         }
       } catch (e) {
         setError('Failed to fetch properties');
@@ -79,7 +80,6 @@ const CWeekTrainingPage: React.FC = () => {
   // For property users, automatically set their property
   useEffect(() => {
     if (user?.userType === 'property_user' && user?.propertyId) {
-      setSelectedPropertyId(user.propertyId);
       setIsAdmin(false);
     }
   }, [user]);
@@ -94,8 +94,8 @@ const CWeekTrainingPage: React.FC = () => {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const profile = await response.json();
-        if (profile?.property_id) setSelectedPropertyId(profile.property_id);
         setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -105,13 +105,15 @@ const CWeekTrainingPage: React.FC = () => {
 
   // Fetch schedules for property
   const fetchData = async () => {
-    if (!user?.propertyId) return;
+    if (!user?.propertyId) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_URL
-  }?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
       setSchedules(res.data || []);
     } catch (e) {
       setError('Failed to fetch training schedules');
@@ -121,7 +123,7 @@ const CWeekTrainingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user?.propertyId) fetchData();
+    fetchData();
   }, [user?.propertyId]);
 
   
@@ -129,18 +131,17 @@ const CWeekTrainingPage: React.FC = () => {
   const openView = (schedule: TrainingSchedule) => setViewModal({ open: true, data: schedule, title: 'Training Schedule Details' });
 
   const getEmptySchedule = (): Omit<TrainingSchedule, 'id' | 'created_at' | 'updated_at'> => ({
-    property_id: user?.propertyId,
+    property_id: user?.propertyId || '',
     year: new Date().getFullYear(),
     training_schedule: [],
   });
 
   const openAdd = () => {
-    if (!isAdmin) return alert('Only admins can add schedules');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can add schedules');
     setEditModal({ open: true, data: getEmptySchedule() as TrainingSchedule, isNew: true });
   };
 
   const openEdit = (schedule: TrainingSchedule) => {
-    if (!isAdmin) return alert('Only admins can edit schedules');
     setEditModal({ open: true, data: { ...schedule }, isNew: false });
   };
 
@@ -150,7 +151,7 @@ const CWeekTrainingPage: React.FC = () => {
   };
 
   const handleDelete = async (scheduleId: number) => {
-    if (!isAdmin) return alert('Only admins can delete schedules');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can delete schedules');
     if (!confirm('Are you sure you want to delete this training schedule?')) return;
 
     try {
@@ -270,7 +271,7 @@ const CWeekTrainingPage: React.FC = () => {
                 <p className="text-gray-600">View and manage annual training schedules with monthly and weekly breakdowns</p>
               </div>
             </div>
-            {isAdmin && (
+            {(isAdmin || isCadmin) && (
               <button
                 onClick={openAdd}
                 className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -282,17 +283,18 @@ const CWeekTrainingPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
+        {/* Property Display - Only for Admin */}
+        {isAdmin && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Building className="h-5 w-5 text-gray-500" />
+              <h2 className="text-lg font-semibold text-gray-900">Property</h2>
+            </div>
+            <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -373,15 +375,13 @@ const CWeekTrainingPage: React.FC = () => {
                         <button onClick={() => openView(schedule)} className="text-blue-600 hover:text-blue-900">
                           <Eye className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => openEdit(schedule)} className="text-orange-600 hover:text-orange-900">
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleDelete(schedule.id)} className="text-red-600 hover:text-red-900">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
+                        <button onClick={() => openEdit(schedule)} className="text-orange-600 hover:text-orange-900">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        {(isAdmin || isCadmin) && (
+                          <button onClick={() => handleDelete(schedule.id)} className="text-red-600 hover:text-red-900">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>

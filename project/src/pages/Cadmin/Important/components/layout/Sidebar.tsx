@@ -962,7 +962,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
           hasSubmenu: true,
           submenuItems: [
             { path: '/52-week-work-calendar', label: '52 Week Work Calendar' },
-            { path: '/52-week-training-calendar', label: '52 week training calendar format' },
+            { path: '/52-week-training', label: '52 week training calendar format' },
           ]
         },
         { path: '/incident-report', icon: <AlertTriangle size={20} />, label: 'Incident Report' },

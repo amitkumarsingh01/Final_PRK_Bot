@@ -57,6 +57,9 @@ const CWeekCalendarP: React.FC = () => {
   console.log('🚀 52WeekCalendar: Component initialized');
   const { user } = useAuth();
   console.log('👤 52WeekCalendar: User loaded', { userId: user?.userId });
+  
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,24 @@ const CWeekCalendarP: React.FC = () => {
   const [editSchedule, setEditSchedule] = useState<WorkSchedule | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Load profile to detect role
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const profile = await response.json();
+        setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
 
   // Fetch schedules for user's property
   useEffect(() => {
@@ -77,6 +98,7 @@ const CWeekCalendarP: React.FC = () => {
 
   // Handlers
   const handleAdd = () => {
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can add schedules');
     setEditSchedule(initialNewSchedule(user?.propertyId || ''));
     setModal({ open: true, mode: 'add', schedule: null });
   };
@@ -92,6 +114,7 @@ const CWeekCalendarP: React.FC = () => {
 
   const handleDelete = async (id?: string) => {
     if (!id) return;
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can delete schedules');
     if (!window.confirm('Delete this work schedule?')) return;
     setLoading(true);
     try {
@@ -182,18 +205,32 @@ const CWeekCalendarP: React.FC = () => {
 
   return (
     <div className="p-6" style={{ background: '#fff' }}>
-      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>52-Week Work Schedule Management</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold" style={{ color: orangeDark }}>52-Week Work Schedule Management</h2>
+        {(isAdmin || isCadmin) && (
+          <button
+            onClick={handleAdd}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90"
+            style={{ background: orange }}
+          >
+            <Plus size={18} />
+            <span>Add Schedule</span>
+          </button>
+        )}
+      </div>
       
-      {/* Property Display */}
-      <div className="mb-6 max-w-md">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+      {/* Property Display - Only for Admin */}
+      {isAdmin && (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {error && <div className="mb-2 text-red-600">{error}</div>}
       
@@ -228,7 +265,9 @@ const CWeekCalendarP: React.FC = () => {
                     <td className="border px-2 py-1 text-center">
                       <button onClick={() => handleView(schedule)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                       <button onClick={() => handleEdit(schedule)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                      <button onClick={() => handleDelete(schedule.id)} className="text-red-600"><Trash2 size={18} /></button>
+                      {(isAdmin || isCadmin) && (
+                        <button onClick={() => handleDelete(schedule.id)} className="text-red-600"><Trash2 size={18} /></button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -237,14 +276,6 @@ const CWeekCalendarP: React.FC = () => {
           </tbody>
         </table>
       </div>
-
-      <button
-        onClick={handleAdd}
-        className="mt-4 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
-        disabled={!user?.propertyId}
-      >
-        <Plus size={18} className="mr-2" /> Add Work Schedule
-      </button>
 
       {/* Modal for Add/Edit/View */}
       {modal.open && (

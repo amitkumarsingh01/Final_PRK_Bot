@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../../../../context/AuthContext';
-import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react';
-
-interface Property {
-  id: string;
-  name: string;
-  title?: string;
-  description?: string;
-  logo_base64?: string;
-}
+import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, Clock, Users } from 'lucide-react';
 
 interface Task {
   time: string;
@@ -45,14 +37,14 @@ interface SiteReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
 const UserPropertyDailyReportsPage: React.FC = () => {
   console.log('🚀 UserProperty DailyReports: Component initialized');
   const { user } = useAuth();
   console.log('👤 UserProperty DailyReports: User loaded', { userId: user?.userId });
 
-  const [isUserProperty, setIsUserProperty] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
 
   const [reports, setReports] = useState<SiteReport[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -76,7 +68,8 @@ const UserPropertyDailyReportsPage: React.FC = () => {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const profile = await response.json();
-        setIsUserProperty(profile?.user_type === 'property_user');
+        setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -123,8 +116,11 @@ const UserPropertyDailyReportsPage: React.FC = () => {
   });
 
   const openAdd = () => {
-    // Property users don't have add access
-    return alert('Only admins can add reports');
+    // Property users don't have add access, but admins and cadmins do
+    if (!isAdmin && !isCadmin) {
+      return alert('Only admins and cadmins can add reports');
+    }
+    setEditModal({ open: true, data: getEmptyReport() as SiteReport, isNew: true });
   };
 
   const openEdit = (report: SiteReport) => {
@@ -138,8 +134,21 @@ const UserPropertyDailyReportsPage: React.FC = () => {
   };
 
   const handleDelete = async (reportId: number) => {
-    // Property users don't have delete access
-    return alert('Only admins can delete reports');
+    // Property users don't have delete access, but admins and cadmins do
+    if (!isAdmin && !isCadmin) {
+      return alert('Only admins and cadmins can delete reports');
+    }
+    if (!confirm('Are you sure you want to delete this report?')) return;
+
+    try {
+      setLoading(true);
+      await axios.delete(`${API_URL}${reportId}`);
+      await fetchReports();
+    } catch (e) {
+      setError('Failed to delete report');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -266,7 +275,15 @@ const UserPropertyDailyReportsPage: React.FC = () => {
                 <p className="text-gray-600">View and manage daily site reports with department tasks and work summaries</p>
               </div>
             </div>
-            {/* Add button removed for UserProperty - edit-only access */}
+            {(isAdmin || isCadmin) && (
+              <button
+                onClick={openAdd}
+                className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Report</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -374,10 +391,18 @@ const UserPropertyDailyReportsPage: React.FC = () => {
                         <button onClick={() => openView(report)} className="text-blue-600 hover:text-blue-900">
                           <Eye className="h-4 w-4" />
                         </button>
-                        {isUserProperty && (
-                          <button onClick={() => openEdit(report)} className="text-orange-600 hover:text-orange-900">
-                            <Pencil className="h-4 w-4" />
-                          </button>
+                        <button onClick={() => openEdit(report)} className="text-orange-600 hover:text-orange-900">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        {(isAdmin || isCadmin) && (
+                          <>
+                            <button onClick={() => openAdd()} className="text-green-600 hover:text-green-900">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => handleDelete(report.id)} className="text-red-600 hover:text-red-900">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

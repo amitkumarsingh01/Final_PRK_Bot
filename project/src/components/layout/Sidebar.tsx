@@ -559,7 +559,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
             ]
           },
           { path: '/daily-management-report', label: 'Daily Management Report' },
-          { path: '/daily-reports', label: 'Daily Complete work Details ' },
+          { path: '/daily-reports', label: 'Daily Complete work Details' },
         ]
       },
       {
@@ -911,7 +911,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         ]
       },
           { path: '/cadmin/daily-management-report', label: 'Daily Management Report' },
-          { path: '/cadmin/daily-reports', label: 'Daily Complete work Details ' },
+          { path: '/cadmin/daily-reports', label: 'Daily Complete work Details' },
           ]
         },
         {

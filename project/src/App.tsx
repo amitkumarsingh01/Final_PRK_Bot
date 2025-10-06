@@ -247,7 +247,7 @@ import CDailyTaskManagementAllDepartmentP from './pages/Users/components/DailyTa
 import CDailyManagementReportP from './pages/Users/components/DailyTaskManagement/DailyManagementReport.tsx';
 import CDailyReportsPageP from './pages/Users/components/DailyTaskManagement/DailyReports.tsx';
 import CMonthlyTaskP from './pages/Users/components/MonthlyTaskManagement/MonthlyTask.tsx';
-import CWeekTrainingPageP from './pages/Users/components/52Week/C52WeekTraining.tsx';
+import CWeekTrainingPage from './pages/Users/components/52Week/C52WeekTraining.tsx';
 import CWeekCalendarP from './pages/Users/components/52Week/52WeekCalender.tsx';
 import CIncidentReportPageP from './pages/Users/components/IncidentReport/IncidentReport.tsx';
 import CNightIncidentPageP from './pages/Users/components/Patrolling/NightIncident.tsx';
@@ -614,7 +614,7 @@ const AppRoutes = () => {
         <Route path="user/monthly-task-management" element={<CMonthlyTaskP />} />
         <Route path="user/monthly-management-report" element={<div className="p-4">Monthly Management Report Page</div>} />
         <Route path="user/52-week-work-calendar" element={<CWeekCalendarP />} />
-        <Route path="user/52-week-training" element={<CWeekTrainingPageP />} />
+        <Route path="user/52-week-training-calendar" element={<WeekTraining />} />
         <Route path="user/incident-report" element={<CIncidentReportPageP />} />
         <Route path="user/night-patrolling-report" element={<CNightIncidentPageP />} />
         <Route path="user/site-security-patrolling-report" element={<CSiteSecurityPageP />} />

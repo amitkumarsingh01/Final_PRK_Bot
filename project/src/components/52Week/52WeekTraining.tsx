@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, BookOpen, Users, CheckCircle, Clock } from 'lucide-react';
+import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, BookOpen, CheckCircle } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -37,6 +37,7 @@ const WeekTrainingPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
 
   const [schedules, setSchedules] = useState<TrainingSchedule[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -74,6 +75,7 @@ const WeekTrainingPage: React.FC = () => {
         const profile = await response.json();
         if (profile?.property_id) setSelectedPropertyId(profile.property_id);
         setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -110,12 +112,11 @@ const WeekTrainingPage: React.FC = () => {
   });
 
   const openAdd = () => {
-    if (!isAdmin) return alert('Only admins can add schedules');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can add schedules');
     setEditModal({ open: true, data: getEmptySchedule() as TrainingSchedule, isNew: true });
   };
 
   const openEdit = (schedule: TrainingSchedule) => {
-    if (!isAdmin) return alert('Only admins can edit schedules');
     setEditModal({ open: true, data: { ...schedule }, isNew: false });
   };
 
@@ -125,7 +126,7 @@ const WeekTrainingPage: React.FC = () => {
   };
 
   const handleDelete = async (scheduleId: number) => {
-    if (!isAdmin) return alert('Only admins can delete schedules');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can delete schedules');
     if (!confirm('Are you sure you want to delete this training schedule?')) return;
 
     try {
@@ -245,7 +246,7 @@ const WeekTrainingPage: React.FC = () => {
                 <p className="text-gray-600">View and manage annual training schedules with monthly and weekly breakdowns</p>
               </div>
             </div>
-            {isAdmin && (
+            {(isAdmin || isCadmin) && (
               <button
                 onClick={openAdd}
                 className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -358,15 +359,13 @@ const WeekTrainingPage: React.FC = () => {
                         <button onClick={() => openView(schedule)} className="text-blue-600 hover:text-blue-900">
                           <Eye className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => openEdit(schedule)} className="text-orange-600 hover:text-orange-900">
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleDelete(schedule.id)} className="text-red-600 hover:text-red-900">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
+                        <button onClick={() => openEdit(schedule)} className="text-orange-600 hover:text-orange-900">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        {(isAdmin || isCadmin) && (
+                          <button onClick={() => handleDelete(schedule.id)} className="text-red-600 hover:text-red-900">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -522,64 +521,102 @@ const WeekTrainingPage: React.FC = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold">Training Items</h3>
-                <button
-                  onClick={addTrainingItem}
-                  className="text-orange-600 hover:text-orange-800 text-sm"
-                >
-                  + Add Training Item
-                </button>
+                {(isAdmin || isCadmin) && (
+                  <button
+                    onClick={addTrainingItem}
+                    className="text-orange-600 hover:text-orange-800 text-sm"
+                  >
+                    + Add Training Item
+                  </button>
+                )}
               </div>
+              {!(isAdmin || isCadmin) && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <strong>Note:</strong> You can only update the status of training items. Other fields are read-only.
+                  </p>
+                </div>
+              )}
               {editModal.data.training_schedule?.map((item: TrainingItem, idx: number) => (
                 <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 p-2 border rounded">
-                  <select
-                    value={item.Month}
-                    onChange={(e) => updateTrainingItem(idx, 'Month', e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
-                  >
-                    {months.map(month => (
-                      <option key={month} value={month}>{month}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Week"
-                    value={item.Week}
-                    onChange={(e) => updateTrainingItem(idx, 'Week', parseInt(e.target.value) || 1)}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
-                    min="1"
-                    max="52"
-                  />
-                  <select
-                    value={item.type}
-                    onChange={(e) => updateTrainingItem(idx, 'type', e.target.value as 'Theory' | 'Practical')}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
-                  >
-                    <option value="Theory">Theory</option>
-                    <option value="Practical">Practical</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Topics"
-                    value={item.Topics}
-                    onChange={(e) => updateTrainingItem(idx, 'Topics', e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
-                  />
-                  <div className="flex items-center space-x-2">
-                    <select
-                      value={item.status}
-                      onChange={(e) => updateTrainingItem(idx, 'status', e.target.value as 'Yes' | 'No')}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm flex-1"
-                    >
-                      <option value="No">No</option>
-                      <option value="Yes">Yes</option>
-                    </select>
-                    <button
-                      onClick={() => removeTrainingItem(idx)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {(isAdmin || isCadmin) ? (
+                    <>
+                      <select
+                        value={item.Month}
+                        onChange={(e) => updateTrainingItem(idx, 'Month', e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                      >
+                        {months.map(month => (
+                          <option key={month} value={month}>{month}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Week"
+                        value={item.Week}
+                        onChange={(e) => updateTrainingItem(idx, 'Week', parseInt(e.target.value) || 1)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                        min="1"
+                        max="52"
+                      />
+                      <select
+                        value={item.type}
+                        onChange={(e) => updateTrainingItem(idx, 'type', e.target.value as 'Theory' | 'Practical')}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="Theory">Theory</option>
+                        <option value="Practical">Practical</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Topics"
+                        value={item.Topics}
+                        onChange={(e) => updateTrainingItem(idx, 'Topics', e.target.value)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={item.status}
+                          onChange={(e) => updateTrainingItem(idx, 'status', e.target.value as 'Yes' | 'No')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm flex-1"
+                        >
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                        <button
+                          onClick={() => removeTrainingItem(idx)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center">
+                        {item.Month}
+                      </div>
+                      <div className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center">
+                        Week {item.Week}
+                      </div>
+                      <div className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center">
+                        {item.type}
+                      </div>
+                      <div className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center">
+                        {item.Topics}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={item.status}
+                          onChange={(e) => updateTrainingItem(idx, 'status', e.target.value as 'Yes' | 'No')}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm flex-1"
+                        >
+                          <option value="No">No</option>
+                          <option value="Yes">Yes</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

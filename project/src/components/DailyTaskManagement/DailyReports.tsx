@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, Clock, Users } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -53,6 +53,7 @@ const DailyReportsPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
 
   const [reports, setReports] = useState<SiteReport[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -90,6 +91,7 @@ const DailyReportsPage: React.FC = () => {
         const profile = await response.json();
         if (profile?.property_id) setSelectedPropertyId(profile.property_id);
         setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -140,12 +142,11 @@ const DailyReportsPage: React.FC = () => {
   });
 
   const openAdd = () => {
-    if (!isAdmin) return alert('Only admins can add reports');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can add reports');
     setEditModal({ open: true, data: getEmptyReport() as SiteReport, isNew: true });
   };
 
   const openEdit = (report: SiteReport) => {
-    if (!isAdmin) return alert('Only admins can edit reports');
     setEditModal({ open: true, data: { ...report }, isNew: false });
   };
 
@@ -155,7 +156,7 @@ const DailyReportsPage: React.FC = () => {
   };
 
   const handleDelete = async (reportId: number) => {
-    if (!isAdmin) return alert('Only admins can delete reports');
+    if (!isAdmin && !isCadmin) return alert('Only admins and cadmins can delete reports');
     if (!confirm('Are you sure you want to delete this report?')) return;
 
     try {
@@ -293,7 +294,7 @@ const DailyReportsPage: React.FC = () => {
                 <p className="text-gray-600">View and manage daily site reports with department tasks and work summaries</p>
               </div>
             </div>
-            {isAdmin && (
+            {(isAdmin || isCadmin) && (
               <button
                 onClick={openAdd}
                 className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -420,15 +421,13 @@ const DailyReportsPage: React.FC = () => {
                         <button onClick={() => openView(report)} className="text-blue-600 hover:text-blue-900">
                           <Eye className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => openEdit(report)} className="text-orange-600 hover:text-orange-900">
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleDelete(report.id)} className="text-red-600 hover:text-red-900">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
+                        <button onClick={() => openEdit(report)} className="text-orange-600 hover:text-orange-900">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        {(isAdmin || isCadmin) && (
+                          <button onClick={() => handleDelete(report.id)} className="text-red-600 hover:text-red-900">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>
