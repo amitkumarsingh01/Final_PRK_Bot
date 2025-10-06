@@ -234,7 +234,8 @@ const CParkingStickerManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && (
+      {/* Add Button */}
+      {canEdit && (
         <button
           onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
