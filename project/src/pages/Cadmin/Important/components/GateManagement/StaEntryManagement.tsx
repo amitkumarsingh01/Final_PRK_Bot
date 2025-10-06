@@ -59,7 +59,8 @@ const CStaEntryManagementPage: React.FC = () => {
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: StaffEntryManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: StaffEntryManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -72,11 +73,9 @@ const CStaEntryManagementPage: React.FC = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        // All users can add/edit, only admin and cadmin can delete
+        setCanEdit(true);
+        setCanDelete(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -90,7 +89,9 @@ const CStaEntryManagementPage: React.FC = () => {
     
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch visitor management reports');
@@ -116,6 +117,26 @@ const CStaEntryManagementPage: React.FC = () => {
       reportId,
     });
   };
+  
+  // Create an empty report for the property if none exists
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!user?.propertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: user.propertyId,
+        staff_entry_management: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
+  };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
@@ -125,7 +146,9 @@ const CStaEntryManagementPage: React.FC = () => {
       // Remove the entry
       const newArr = report.staff_entry_management.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { staff_entry_management: newArr });
+      await axios.put(`${API_URL}${reportId}`, { staff_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -144,13 +167,17 @@ const CStaEntryManagementPage: React.FC = () => {
       if (!report) return;
       let newArr: StaffEntryManagement[];
       if (editModal.isNew) {
-        newArr = [...report.staff_entry_management, editModal.item];
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.staff_entry_management, newEntry];
       } else {
         newArr = report.staff_entry_management.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { staff_entry_management: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { staff_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
@@ -212,11 +239,11 @@ const CStaEntryManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -227,10 +254,10 @@ const CStaEntryManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {/* Add Button */}
+      {canEdit && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Staff Entry
