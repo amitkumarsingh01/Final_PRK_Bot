@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
 interface Property {
@@ -55,7 +55,7 @@ const emptyAssetAudit: AssetAudit = {
 const CAssetAuditPage: React.FC = () => {
   console.log('🚀 AssetAudit: Component initialized');
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const [data, setData] = useState<AssetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,8 +63,9 @@ const CAssetAuditPage: React.FC = () => {
   const [editModal, setEditModal] = useState<{ open: boolean; item: AssetAudit | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
-    setIsAdmin(user?.userType === 'admin' || user?.userType === 'cadmin');
-  }, [user?.userType]);
+    // All users can add/edit, no delete functionality
+    setCanEdit(true);
+  }, [user]);
 
   const fetchData = async () => {
     if (!user?.token) return;
@@ -202,11 +203,8 @@ const CAssetAuditPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -217,7 +215,8 @@ const CAssetAuditPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && (
+      {/* Add Button */}
+      {canEdit && (
         <button
           onClick={handleAdd}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"

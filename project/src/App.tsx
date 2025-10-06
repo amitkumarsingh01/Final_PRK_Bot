@@ -272,6 +272,27 @@ import CWaterTankerManagementPageP from './pages/Users/components/GateManagement
 import CVendorEntryManagementPageP from './pages/Users/components/GateManagement/VendorEntryManagement.tsx';
 import CStaEntryManagementPageP from './pages/Users/components/GateManagement/StaEntryManagement.tsx';
 import CEmergencyContactDetailsPageP from './pages/Users/components/GateManagement/EmergencyContactDetails.tsx';
+import NoticeManagementPage from './pages/Users/components/CommunityManagement/NoticeManagement.tsx';
+import CTicketsManagementPage from './pages/Users/components/CommunityManagement/TicketsManagement.tsx';
+import TicketAssignmentPage from './pages/Users/components/CommunityManagement/TicketAssignment.tsx';
+import CParkingStickerManagementPage from './pages/Users/components/CommunityManagement/ParkingStickerManagement.tsx';
+import CCommunicationAnnouncementsPage from './pages/Users/components/CommunityManagement/CommunicationAnnouncements.tsx';
+import CMoveInCoordinationPage from './pages/Users/components/CommunityManagement/MoveInCoordination.tsx';
+import CMoveOutCoordinationPage from './pages/Users/components/CommunityManagement/MoveOutCoordination.tsx';
+import CInteriorWorkApprovalsPage from './pages/Users/components/CommunityManagement/InteriorWorkApprovals.tsx';
+import CWorkPermitTrackingPage from './pages/Users/components/CommunityManagement/WorkPermitTracking.tsx';
+import ConsumptionReportsPage from './pages/Users/components/InventoryManagement/ConsumptionReports.tsx';
+import ExpiryDamageLogPage from './pages/Users/components/InventoryManagement/ExpiryDamageLog.tsx';
+import InventoryTrackingPage from './pages/Users/components/InventoryManagement/InventoryTracking.tsx';
+import StockEntryIssuePage from './pages/Users/components/InventoryManagement/StockEntryIssue.tsx';
+import MinMaxLevelMonitoringPage from './pages/Users/components/InventoryManagement/MinMaxLevelMonitoring.tsx';
+import AssetTaggingManagementPage from './pages/Users/components/AssetsManagement/AssetTaggingManagement.tsx';
+import AssetMovementLogPage from './pages/Users/components/AssetsManagement/AssetMovementLog.tsx';
+import AMCWarrantyTrackerPage from './pages/Users/components/AssetsManagement/AMCWarrantyTracker.tsx';
+import AssetAuditPage from './components/AssetsManagement/AssetAudit';
+import CAssetAuditPage from './pages/Users/components/AssetsManagement/AssetAudit.tsx';
+import DepreciationReplacementPage from './pages/Users/components/AssetsManagement/DepreciationReplacement.tsx';
+import MaintenanceSchedulePageP from './pages/Users/components/AssetsManagement/MaintenanceSchedule.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -642,30 +663,30 @@ const AppRoutes = () => {
         <Route path="user/emergency-contact-details" element={<CEmergencyContactDetailsPageP />} />
         
         {/* User Community Management Routes */}
-        <Route path="user/tickets-management" element={<TicketsManagement />} />
-        <Route path="user/ticket-assignment" element={<TicketAssignment />} />
-        <Route path="user/notice-management" element={<NoticeManagement />} />
-        <Route path="user/parking-sticker-management" element={<ParkingStickerManagement />} />
-        <Route path="user/communication-announcements" element={<CommunicationAnnouncements />} />
-        <Route path="user/move-in-coordination" element={<MoveInCoordination />} />
-        <Route path="user/move-out-coordination" element={<MoveOutCoordination />} />
-        <Route path="user/interior-work-approvals" element={<InteriorWorkApprovals />} />
-        <Route path="user/work-permit-tracking" element={<WorkPermitTracking />} />
+        <Route path="user/tickets-management" element={<CTicketsManagementPage />} />
+        <Route path="user/ticket-assignment" element={<TicketAssignmentPage />} />
+        <Route path="user/notice-management" element={<NoticeManagementPage />} />
+        <Route path="user/parking-sticker-management" element={<CParkingStickerManagementPage />} />
+        <Route path="user/communication-announcements" element={<CCommunicationAnnouncementsPage />} />
+        <Route path="user/move-in-coordination" element={<CMoveInCoordinationPage />} />
+        <Route path="user/move-out-coordination" element={<CMoveOutCoordinationPage />} />
+        <Route path="user/interior-work-approvals" element={<CInteriorWorkApprovalsPage />} />
+        <Route path="user/work-permit-tracking" element={<CWorkPermitTrackingPage />} />
         
         {/* User Asset Management Routes */}
-        <Route path="user/asset-tagging-management" element={<AssetTaggingManagement />} />
-        <Route path="user/asset-movement-log" element={<AssetMovementLog />} />
-        <Route path="user/amc-warranty-tracker" element={<AMCWarrantyTracker />} />
-        <Route path="user/maintenance-schedule" element={<MaintenanceSchedule />} />
-        <Route path="user/asset-audit" element={<AssetAudit />} />
-        <Route path="user/depreciation-replacement" element={<DepreciationReplacement />} />
+        <Route path="user/asset-tagging-management" element={<AssetTaggingManagementPage />} />
+        <Route path="user/asset-movement-log" element={<AssetMovementLogPage />} />
+        <Route path="user/amc-warranty-tracker" element={<AMCWarrantyTrackerPage />} />
+        <Route path="user/maintenance-schedule" element={<MaintenanceSchedulePageP />} />
+        <Route path="user/asset-audit" element={<CAssetAuditPage />} />
+        <Route path="user/depreciation-replacement" element={<DepreciationReplacementPage />} />
         
         {/* User Inventory Management Routes */}
-        <Route path="user/inventory-tracking" element={<InventoryTracking />} />
-        <Route path="user/stock-entry-issue" element={<StockEntryIssue />} />
-        <Route path="user/min-max-level-monitoring" element={<MinMaxLevelMonitoring />} />
-        <Route path="user/consumption-reports" element={<ConsumptionReports />} />
-        <Route path="user/expiry-damage-log" element={<ExpiryDamageLog />} />
+        <Route path="user/inventory-tracking" element={<InventoryTrackingPage />} />
+        <Route path="user/stock-entry-issue" element={<StockEntryIssuePage />} />
+        <Route path="user/min-max-level-monitoring" element={<MinMaxLevelMonitoringPage />} />
+        <Route path="user/consumption-reports" element={<ConsumptionReportsPage />} />
+        <Route path="user/expiry-damage-log" element={<ExpiryDamageLogPage />} />
         
         {/* User Quality and Process Management Routes */}
         <Route path="user/quality-planning" element={<QualityPlanning />} />

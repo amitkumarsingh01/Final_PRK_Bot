@@ -238,7 +238,7 @@ const InteriorWorkApprovalsPage: React.FC = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={17} className="text-center py-6">Loading...</td></tr>
+              <tr><td colSpan={14} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
                 {data.flatMap((report) =>
