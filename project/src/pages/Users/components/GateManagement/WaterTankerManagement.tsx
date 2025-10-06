@@ -1,26 +1,19 @@
 ﻿import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
 // --- Types matching backend API ---
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface WaterTankerManagement {
   id?: string;
   report_id?: string;
   tanker_id: string;
   supplier_name: string;
-  supplier_contact: string;
-  quantity: number;
-  delivery_date: string;
-  delivery_time: string;
+  contact_number: string;
+  capacity_liters: number;
+  entry_date: string;
+  entry_time: string;
   gate_no: string;
   vehicle_no: string;
   driver_name: string;
@@ -36,17 +29,16 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
 const emptyTanker: WaterTankerManagement = {
   tanker_id: '',
   supplier_name: '',
-  supplier_contact: '',
-  quantity: 1,
-  delivery_date: '',
-  delivery_time: '',
+  contact_number: '',
+  capacity_liters: 1000,
+  entry_date: '',
+  entry_time: '',
   gate_no: '',
   vehicle_no: '',
   driver_name: '',
@@ -61,40 +53,35 @@ const CWaterTankerManagementPage: React.FC = () => {
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: WaterTankerManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: WaterTankerManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
-  // Check if user is admin
+  // All users can add/edit, only admin and cadmin can delete
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user?.token || !user?.userId) return;
-      try {
-        const res = await axios.get('https://server.prktechindia.in/profile', {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        const matchedUser = res.data.find((u: any) => u.user_id === user.userId);
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (e) {
-        setError('Failed to fetch user profile');
-      }
-    };
-    checkAdminStatus();
+    if (!user) return;
+    setCanEdit(true); // All users can add/edit
+    setCanDelete(user.userType === 'admin' || user.userType === 'cadmin'); // Only admin/cadmin can delete
   }, [user]);
 
   // Fetch visitor management reports for user's property
   const fetchData = async () => {
     if (!user?.propertyId) return;
-    
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
-      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`);
-      setData(res.data);
+      const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const items: VisitorManagementReport[] = res.data || [];
+      const filtered = Array.isArray(items)
+        ? items.filter(r => r.property_id === (user?.propertyId || ''))
+        : [];
+      setData(filtered);
+      console.log('Fetched data:', filtered);
     } catch (e) {
+      console.error('Fetch error:', e);
       setError('Failed to fetch visitor management reports');
     }
     setLoading(false);
@@ -127,7 +114,9 @@ const CWaterTankerManagementPage: React.FC = () => {
       // Remove the entry
       const newArr = report.water_tanker_management.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { water_tanker_management: newArr });
+      await axios.put(`${API_URL}${reportId}`, { water_tanker_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -146,16 +135,25 @@ const CWaterTankerManagementPage: React.FC = () => {
       if (!report) return;
       let newArr: WaterTankerManagement[];
       if (editModal.isNew) {
-        newArr = [...report.water_tanker_management, editModal.item];
+        // For new entries, create a copy without the id field (backend will generate it)
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.water_tanker_management, newEntry];
       } else {
+        // For existing entries, keep the id field
         newArr = report.water_tanker_management.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { water_tanker_management: newArr });
+      console.log('Sending data:', { water_tanker_management: newArr });
+      const response = await axios.put(`${API_URL}${editModal.reportId}`, { water_tanker_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      console.log('Save response:', response.data);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
+      console.error('Save error:', e);
       setError('Failed to save changes');
     }
   };
@@ -183,9 +181,9 @@ const CWaterTankerManagementPage: React.FC = () => {
               <th className="px-3 py-2 border">Tanker ID</th>
               <th className="px-3 py-2 border">Supplier</th>
               <th className="px-3 py-2 border">Contact</th>
-              <th className="px-3 py-2 border">Quantity</th>
-              <th className="px-3 py-2 border">Delivery Date</th>
-              <th className="px-3 py-2 border">Delivery Time</th>
+              <th className="px-3 py-2 border">Capacity (Liters)</th>
+              <th className="px-3 py-2 border">Entry Date</th>
+              <th className="px-3 py-2 border">Entry Time</th>
               <th className="px-3 py-2 border">Gate No</th>
               <th className="px-3 py-2 border">Vehicle No</th>
               <th className="px-3 py-2 border">Driver</th>
@@ -199,16 +197,16 @@ const CWaterTankerManagementPage: React.FC = () => {
               <tr><td colSpan={13} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   report.water_tanker_management.map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{idx + 1}</td>
                       <td className="border px-2 py-1">{item.tanker_id}</td>
                       <td className="border px-2 py-1">{item.supplier_name}</td>
-                      <td className="border px-2 py-1">{item.supplier_contact}</td>
-                      <td className="border px-2 py-1">{item.quantity}</td>
-                      <td className="border px-2 py-1">{item.delivery_date}</td>
-                      <td className="border px-2 py-1">{item.delivery_time}</td>
+                      <td className="border px-2 py-1">{item.contact_number}</td>
+                      <td className="border px-2 py-1">{item.capacity_liters}</td>
+                      <td className="border px-2 py-1">{item.entry_date}</td>
+                      <td className="border px-2 py-1">{item.entry_time}</td>
                       <td className="border px-2 py-1">{item.gate_no}</td>
                       <td className="border px-2 py-1">{item.vehicle_no}</td>
                       <td className="border px-2 py-1">{item.driver_name}</td>
@@ -216,11 +214,11 @@ const CWaterTankerManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -232,7 +230,7 @@ const CWaterTankerManagementPage: React.FC = () => {
         </table>
       </div>
       {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {canEdit && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
@@ -260,10 +258,10 @@ const CWaterTankerManagementPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Tanker ID" value={editModal.item.tanker_id} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, tanker_id: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Supplier Name" value={editModal.item.supplier_name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, supplier_name: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Supplier Contact" value={editModal.item.supplier_contact} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, supplier_contact: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Quantity" type="number" value={editModal.item.quantity} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, quantity: parseInt(e.target.value) } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Delivery Date" type="date" value={editModal.item.delivery_date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, delivery_date: e.target.value } })} required />
-                <input className="border rounded px-3 py-2" placeholder="Delivery Time" type="time" value={editModal.item.delivery_time} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, delivery_time: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Contact Number" value={editModal.item.contact_number} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, contact_number: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Capacity (Liters)" type="number" value={editModal.item.capacity_liters} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, capacity_liters: parseInt(e.target.value) } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Entry Date" type="date" value={editModal.item.entry_date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, entry_date: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Entry Time" type="time" value={editModal.item.entry_time} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, entry_time: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Gate No" value={editModal.item.gate_no} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, gate_no: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Vehicle No" value={editModal.item.vehicle_no} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, vehicle_no: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Driver Name" value={editModal.item.driver_name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, driver_name: e.target.value } })} required />
@@ -297,10 +295,10 @@ const CWaterTankerManagementPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><b>Tanker ID:</b> {viewModal.item.tanker_id}</div>
               <div><b>Supplier Name:</b> {viewModal.item.supplier_name}</div>
-              <div><b>Supplier Contact:</b> {viewModal.item.supplier_contact}</div>
-              <div><b>Quantity:</b> {viewModal.item.quantity}</div>
-              <div><b>Delivery Date:</b> {viewModal.item.delivery_date}</div>
-              <div><b>Delivery Time:</b> {viewModal.item.delivery_time}</div>
+              <div><b>Contact Number:</b> {viewModal.item.contact_number}</div>
+              <div><b>Capacity (Liters):</b> {viewModal.item.capacity_liters}</div>
+              <div><b>Entry Date:</b> {viewModal.item.entry_date}</div>
+              <div><b>Entry Time:</b> {viewModal.item.entry_time}</div>
               <div><b>Gate No:</b> {viewModal.item.gate_no}</div>
               <div><b>Vehicle No:</b> {viewModal.item.vehicle_no}</div>
               <div><b>Driver Name:</b> {viewModal.item.driver_name}</div>

@@ -1,16 +1,9 @@
 ﻿import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
 // --- Types matching backend API ---
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface InwardNonReturnable {
   id?: string;
@@ -37,7 +30,6 @@ interface VisitorManagementReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/visitor-management-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -60,17 +52,20 @@ const CInwardNonReturnablePage: React.FC = () => {
   console.log('?? InwardNonReturnable: Component initialized');
   const { user } = useAuth();
   console.log('?? InwardNonReturnable: User loaded', { userId: user?.userId });
-  const [isAdmin, setIsAdmin] = useState(false);
-  // Treat admin and cadmin as having action permissions
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+  // All users can add/edit, only admin and cadmin can delete
   useEffect(() => {
     if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    setCanEdit(true); // All users can add/edit
+    setCanDelete(user.userType === 'admin' || user.userType === 'cadmin'); // Only admin/cadmin can delete
   }, [user]);
 
   // Fetch data for user's property
   const fetchData = async () => {
     if (!user?.propertyId) return;
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
       const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
@@ -80,7 +75,9 @@ const CInwardNonReturnablePage: React.FC = () => {
         ? items.filter(r => r.property_id === (user?.propertyId || ''))
         : [];
       setData(filtered);
+      console.log('Fetched data:', filtered);
     } catch (e) {
+      console.error('Fetch error:', e);
       setError('Failed to fetch visitor management reports');
     }
     setLoading(false);
@@ -135,20 +132,29 @@ const CInwardNonReturnablePage: React.FC = () => {
       // Find the report
       const report = data.find(r => r.id === editModal.reportId);
       if (!report) return;
+      
       let newArr: InwardNonReturnable[];
       if (editModal.isNew) {
-        newArr = [...report.inward_non_returnable, editModal.item];
+        // For new entries, create a copy without the id field (backend will generate it)
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.inward_non_returnable, newEntry];
       } else {
+        // For existing entries, keep the id field
         newArr = report.inward_non_returnable.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { inward_non_returnable: newArr }, {
+      
+      console.log('Sending data:', { inward_non_returnable: newArr });
+      const response = await axios.put(`${API_URL}${editModal.reportId}`, { inward_non_returnable: newArr }, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
+      console.log('Save response:', response.data);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
+      console.error('Save error:', e);
       setError('Failed to save changes');
     }
   };
@@ -192,7 +198,7 @@ const CInwardNonReturnablePage: React.FC = () => {
               <tr><td colSpan={13} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   report.inward_non_returnable.map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{idx + 1}</td>
@@ -209,11 +215,11 @@ const CInwardNonReturnablePage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -225,7 +231,7 @@ const CInwardNonReturnablePage: React.FC = () => {
         </table>
       </div>
       {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {canEdit && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"

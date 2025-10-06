@@ -42,7 +42,7 @@ interface TransitionChecklistReport {
   sections: SectionsMap;
 }
 
-const API_URL = 'https://server.prktechindia.in/transition-checklists/';
+const API_URL = 'https://server.prktechindia.in/post/transition-checklists/';
 const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 
 // Helper function to format field names
@@ -113,6 +113,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCadmin, setIsCadmin] = useState<boolean>(false);
 
   const [reports, setReports] = useState<TransitionChecklistReport[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -159,6 +160,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
         const profile = await response.json();
         if (profile?.property_id) setSelectedPropertyId(profile.property_id);
         setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -221,17 +223,14 @@ const PostTransitionChecklistsPage: React.FC = () => {
   });
 
   const openAdd = (section: string) => {
-    if (!isAdmin) return alert('Only admins can add items');
     setEditModal({ open: true, section, data: getEmptyItem(), isNew: true });
   };
 
   const openEdit = (section: string, item: ChecklistItem) => {
-    if (!isAdmin) return alert('Only admins can edit items');
     setEditModal({ open: true, section, data: { ...item }, isNew: false });
   };
 
   const openEditSite = () => {
-    if (!isAdmin) return alert('Only admins can edit site details');
     if (!currentReport) return;
     setEditSiteModal({
       open: true,
@@ -250,7 +249,7 @@ const PostTransitionChecklistsPage: React.FC = () => {
   };
 
   const handleDelete = async (section: string, srNo: number) => {
-    if (!isAdmin) return alert('Only admins can delete items');
+    if (!(isAdmin || isCadmin)) return alert('Only admins and cadmins can delete items');
     if (!currentReport) return;
     if (!confirm('Are you sure you want to delete this item?')) return;
 
@@ -342,34 +341,32 @@ const PostTransitionChecklistsPage: React.FC = () => {
                 )}
               </div>
             </div>
-            {isAdmin && (
-              <div className="flex space-x-3">
-                <button
-                  onClick={openEditSite}
-                  disabled={!currentReport}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                    currentReport 
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  <Edit3 className="h-4 w-4" />
-                  <span>Edit Site</span>
-                </button>
-                <button
-                  onClick={() => activeSection ? openAdd(activeSection) : alert('Please select a section first')}
-                  disabled={!selectedPropertyId || !activeSection}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                    selectedPropertyId && activeSection
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
-                </button>
-              </div>
-            )}
+            <div className="flex space-x-3">
+              <button
+                onClick={openEditSite}
+                disabled={!currentReport}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  currentReport 
+                    ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Edit Site</span>
+              </button>
+              <button
+                onClick={() => activeSection ? openAdd(activeSection) : alert('Please select a section first')}
+                disabled={!selectedPropertyId || !activeSection}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  selectedPropertyId && activeSection
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Item</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -508,15 +505,13 @@ const PostTransitionChecklistsPage: React.FC = () => {
                               <button onClick={() => openView(item)} className="text-blue-600 hover:text-blue-900">
                                 <Eye className="h-4 w-4" />
                               </button>
-                              {isAdmin && (
-                                <>
-                                  <button onClick={() => openEdit(activeSection, item)} className="text-orange-600 hover:text-orange-900">
-                                    <Pencil className="h-4 w-4" />
-                                  </button>
-                                  <button onClick={() => handleDelete(activeSection, item.sr_no)} className="text-red-600 hover:text-red-900">
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                </>
+                              <button onClick={() => openEdit(activeSection, item)} className="text-orange-600 hover:text-orange-900">
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              {(isAdmin || isCadmin) && (
+                                <button onClick={() => handleDelete(activeSection, item.sr_no)} className="text-red-600 hover:text-red-900">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
                               )}
                             </div>
                           </td>

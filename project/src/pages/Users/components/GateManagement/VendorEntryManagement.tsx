@@ -58,16 +58,19 @@ const CVendorEntryManagementPage: React.FC = () => {
   console.log('?? VendorEntryManagement: Component initialized');
   const { user } = useAuth();
   console.log('?? VendorEntryManagement: User loaded', { userId: user?.userId });
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [data, setData] = useState<VisitorManagementReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: VendorEntryManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: VendorEntryManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
+  // All users can add/edit, only admin and cadmin can delete
   useEffect(() => {
     if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    setCanEdit(true); // All users can add/edit
+    setCanDelete(user.userType === 'admin' || user.userType === 'cadmin'); // Only admin/cadmin can delete
   }, [user]);
 
 
@@ -76,6 +79,7 @@ const CVendorEntryManagementPage: React.FC = () => {
   const fetchData = async () => {
     if (!user?.propertyId) return;
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
       const res = await axios.get(`${API_URL}?property_id=${user.propertyId}`, {
         headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
@@ -85,7 +89,9 @@ const CVendorEntryManagementPage: React.FC = () => {
         ? items.filter(r => r.property_id === (user?.propertyId || ''))
         : [];
       setData(filtered);
+      console.log('Fetched data:', filtered);
     } catch (e) {
+      console.error('Fetch error:', e);
       setError('Failed to fetch visitor management reports');
     }
     setLoading(false);
@@ -118,7 +124,9 @@ const CVendorEntryManagementPage: React.FC = () => {
       // Remove the entry
       const newArr = report.vendor_entry_management.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { vendor_entry_management: newArr });
+      await axios.put(`${API_URL}${reportId}`, { vendor_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -137,16 +145,25 @@ const CVendorEntryManagementPage: React.FC = () => {
       if (!report) return;
       let newArr: VendorEntryManagement[];
       if (editModal.isNew) {
-        newArr = [...report.vendor_entry_management, editModal.item];
+        // For new entries, create a copy without the id field (backend will generate it)
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.vendor_entry_management, newEntry];
       } else {
+        // For existing entries, keep the id field
         newArr = report.vendor_entry_management.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { vendor_entry_management: newArr });
+      console.log('Sending data:', { vendor_entry_management: newArr });
+      const response = await axios.put(`${API_URL}${editModal.reportId}`, { vendor_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      console.log('Save response:', response.data);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {
+      console.error('Save error:', e);
       setError('Failed to save changes');
     }
   };
@@ -207,11 +224,11 @@ const CVendorEntryManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -223,7 +240,7 @@ const CVendorEntryManagementPage: React.FC = () => {
         </table>
       </div>
       {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {canEdit && data.length > 0 && (
         <button
           onClick={() => handleAdd(data[0].id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"

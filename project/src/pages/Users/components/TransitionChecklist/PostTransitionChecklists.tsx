@@ -3,14 +3,6 @@ import axios from 'axios';
 import { useAuth } from '../../../../context/AuthContext';
 import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Layers, Edit3 } from 'lucide-react';
 
-interface Property {
-  id: string;
-  name: string;
-  title?: string;
-  description?: string;
-  logo_base64?: string;
-}
-
 interface ChecklistItem {
   sr_no: number;
   description: string;
@@ -42,8 +34,7 @@ interface TransitionChecklistReport {
   sections: SectionsMap;
 }
 
-const API_URL = 'https://server.prktechindia.in/transition-checklists/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
+const API_URL = 'https://server.prktechindia.in/post-transition-checklist/';
 
 // Helper function to format field names
 const formatFieldName = (fieldName: string): string => {
@@ -128,6 +119,12 @@ const CPostTransitionChecklistsPage: React.FC = () => {
   
   // New state for editing site details
   const [editSiteModal, setEditSiteModal] = useState<{
+    open: boolean;
+    data: Partial<TransitionChecklistReport>;
+  }>({ open: false, data: {} });
+
+  // New state for creating new report
+  const [createReportModal, setCreateReportModal] = useState<{
     open: boolean;
     data: Partial<TransitionChecklistReport>;
   }>({ open: false, data: {} });
@@ -230,10 +227,24 @@ const CPostTransitionChecklistsPage: React.FC = () => {
     });
   };
 
+  const openCreateReport = () => {
+    setCreateReportModal({
+      open: true,
+      data: {
+        site_name: '',
+        transition_details: '',
+        prepared_by: '',
+        company_logo: '',
+        client_logo: '',
+      }
+    });
+  };
+
   const closeModals = () => {
     setViewModal({ open: false, data: null });
     setEditModal({ open: false, section: '', data: null, isNew: false });
     setEditSiteModal({ open: false, data: {} });
+    setCreateReportModal({ open: false, data: {} });
   };
 
   const handleDelete = async (section: string, srNo: number) => {
@@ -303,6 +314,31 @@ const CPostTransitionChecklistsPage: React.FC = () => {
     }
   };
 
+  const handleCreateReport = async () => {
+    if (!createReportModal.data || !user?.propertyId) return;
+
+    try {
+      setLoading(true);
+      // Create new report with minimal required data - let API handle defaults
+      const requestBody = {
+        property_id: user.propertyId,
+        site_name: createReportModal.data.site_name || '',
+        transition_details: createReportModal.data.transition_details || '',
+        prepared_by: createReportModal.data.prepared_by || '',
+        company_logo: createReportModal.data.company_logo || '',
+        client_logo: createReportModal.data.client_logo || ''
+      };
+      await axios.post(API_URL, requestBody);
+      closeModals();
+      await fetchReports();
+    } catch (e: any) {
+      console.error('Create report error:', e);
+      setError('Failed to create new report: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -344,16 +380,24 @@ const CPostTransitionChecklistsPage: React.FC = () => {
                   <span>Edit Site</span>
                 </button>
                 <button
-                  onClick={() => activeSection ? openAdd(activeSection) : alert('Please select a section first')}
-                  disabled={!user?.propertyId || !activeSection}
+                  onClick={() => {
+                    if (!currentReport) {
+                      openCreateReport();
+                    } else if (activeSection) {
+                      openAdd(activeSection);
+                    } else {
+                      alert('Please select a section first');
+                    }
+                  }}
+                  disabled={!user?.propertyId}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                    user?.propertyId && activeSection
+                    user?.propertyId
                       ? 'bg-orange-500 hover:bg-orange-600 text-white' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Item</span>
+                  <span>{currentReport ? 'Add Item' : 'Create Report'}</span>
                 </button>
               </div>
             )}
@@ -415,15 +459,18 @@ const CPostTransitionChecklistsPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Transition Checklist Found</h3>
             <p className="text-gray-600 mb-4">
               {user?.propertyId 
-                ? `No transition checklist report found for the current property. ${isAdmin ? 'You can create one or wait for data to be loaded.' : ''}`
+                ? 'No transition checklist report found for the current property. You can create a new one to get started.'
                 : 'No property assigned to your account.'
               }
             </p>
-            {isAdmin && user?.propertyId && (
-              <div className="text-sm text-gray-500">
-                <p>• The Add Item button will be enabled once a section is selected</p>
-                <p>• The Edit Site button will be enabled once a report is loaded</p>
-              </div>
+            {user?.propertyId && (
+              <button
+                onClick={openCreateReport}
+                className="flex items-center space-x-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors mx-auto"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Create New Post-Transition Checklist</span>
+              </button>
             )}
           </div>
         )}
@@ -639,6 +686,100 @@ const CPostTransitionChecklistsPage: React.FC = () => {
               <button onClick={handleSaveSite} className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                 <Save className="h-4 w-4" />
                 <span>Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Report Modal */}
+      {createReportModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Create New Post-Transition Checklist</h2>
+              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Site Name *</label>
+                <input
+                  type="text"
+                  value={createReportModal.data.site_name || ''}
+                  onChange={(e) =>
+                    setCreateReportModal((m) => m && { ...m, data: { ...m.data, site_name: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter site name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Transition Details *</label>
+                <textarea
+                  value={createReportModal.data.transition_details || ''}
+                  onChange={(e) =>
+                    setCreateReportModal((m) => m && { ...m, data: { ...m.data, transition_details: e.target.value } })
+                  }
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter transition details"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prepared By *</label>
+                <input
+                  type="text"
+                  value={createReportModal.data.prepared_by || ''}
+                  onChange={(e) =>
+                    setCreateReportModal((m) => m && { ...m, data: { ...m.data, prepared_by: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter preparer name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company Logo</label>
+                <input
+                  type="text"
+                  value={createReportModal.data.company_logo || ''}
+                  onChange={(e) =>
+                    setCreateReportModal((m) => m && { ...m, data: { ...m.data, company_logo: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter company logo URL or base64"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Client Logo</label>
+                <input
+                  type="text"
+                  value={createReportModal.data.client_logo || ''}
+                  onChange={(e) =>
+                    setCreateReportModal((m) => m && { ...m, data: { ...m.data, client_logo: e.target.value } })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter client logo URL or base64"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button onClick={closeModals} className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                Cancel
+              </button>
+              <button 
+                onClick={handleCreateReport} 
+                disabled={!createReportModal.data.site_name || !createReportModal.data.transition_details || !createReportModal.data.prepared_by}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                <Save className="h-4 w-4" />
+                <span>Create Report</span>
               </button>
             </div>
           </div>

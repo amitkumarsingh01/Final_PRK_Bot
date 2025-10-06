@@ -620,8 +620,8 @@ const AppRoutes = () => {
         <Route path="user/site-security-patrolling-report" element={<CSiteSecurityPageP />} />
         <Route path="user/technical-team-patrolling-report" element={<CTechnicalTeamPatrollingPageP />} />
         <Route path="user/audit-reports" element={<CAuditReportPageP />} />
-        <Route path="user/transition-checklists" element={<CTransitionChecklistsPageP />} />
-        <Route path="user/post-transition-checklist" element={<CPostTransitionChecklistsPageP />} />
+        <Route path="user/transition-checklists" element={<TransitionChecklistsPage />} />
+        <Route path="user/post-transition-checklist" element={<PostTransitionChecklistsPage />} />
         
         {/* User Gate Management Routes */}
         <Route path="user/visitor-management" element={<CVisitorManagementP />} />

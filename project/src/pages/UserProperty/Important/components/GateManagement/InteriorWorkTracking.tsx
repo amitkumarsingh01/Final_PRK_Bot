@@ -60,11 +60,13 @@ const CInteriorWorkTrackingPage: React.FC = () => {
   console.log('🚀 InteriorWorkTracking: Component initialized');
   const { user } = useAuth();
   console.log('👤 InteriorWorkTracking: User loaded', { userId: user?.userId });
-  const [isAdmin, setIsAdmin] = useState(false);
-  // Treat admin and cadmin as having action permissions
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+  // All users can add/edit, only admin and cadmin can delete
   useEffect(() => {
     if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    setCanEdit(true); // All users can add/edit
+    setCanDelete(user.userType === 'admin' || user.userType === 'cadmin'); // Only admin/cadmin can delete
   }, [user]);
 
   // Fetch data for user's property
@@ -228,11 +230,11 @@ const CInteriorWorkTrackingPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -244,7 +246,7 @@ const CInteriorWorkTrackingPage: React.FC = () => {
         </table>
       </div>
       {/* Add Button */}
-      {isAdmin && (
+      {canEdit && (
         <button
           onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
