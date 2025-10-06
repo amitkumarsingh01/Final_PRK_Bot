@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../../../context/AuthContext';
 
 // Property interface not needed here as we show fixed label only
 

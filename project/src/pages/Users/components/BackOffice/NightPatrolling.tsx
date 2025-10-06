@@ -90,7 +90,7 @@ interface PatrollingRecord {
 }
 
 const API_URL = 'https://server.prktechindia.in/patrolling-details/';
-const  = 'https://server.prktechindia.in/properties';
+const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 
 const emptyPatrollingRecord: PatrollingRecord = {

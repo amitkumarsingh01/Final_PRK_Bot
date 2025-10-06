@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../../../context/AuthContext';
 import { Building, Plus, Pencil, Trash2, Eye, Save, X, FileText, Calendar, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface Property {
