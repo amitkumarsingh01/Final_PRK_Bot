@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -55,7 +55,8 @@ const InventoryTrackingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: InventoryItem | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: InventoryItem | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -82,11 +83,9 @@ const InventoryTrackingPage: React.FC = () => {
         if (matchedUser && matchedUser.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
         }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        // All users can add/edit, only admin and cadmin can delete
+        setCanEdit(true);
+        setCanDelete(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -120,7 +119,7 @@ const InventoryTrackingPage: React.FC = () => {
       if (existing) return existing.id;
       if (!selectedPropertyId) return null;
       const created = await axios.post(API_URL, { property_id: selectedPropertyId }, {
-        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       const newId = created?.data?.id;
       await fetchData(selectedPropertyId);
@@ -143,7 +142,7 @@ const InventoryTrackingPage: React.FC = () => {
       if (!report) return;
       const newArr = report.inventory_items.filter(i => i.id !== itemId);
       await axios.put(`${API_URL}${reportId}`, { inventory_items: newArr }, {
-        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -161,14 +160,16 @@ const InventoryTrackingPage: React.FC = () => {
       if (!report) return;
       let newArr: InventoryItem[];
       if (editModal.isNew) {
-        newArr = [...report.inventory_items, editModal.item];
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.inventory_items, newEntry];
       } else {
         newArr = report.inventory_items.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
       await axios.put(`${API_URL}${editModal.reportId}`, { inventory_items: newArr }, {
-        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : undefined,
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
       });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
@@ -223,7 +224,7 @@ const InventoryTrackingPage: React.FC = () => {
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   report.inventory_items.map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{idx + 1}</td>
@@ -238,11 +239,11 @@ const InventoryTrackingPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -253,7 +254,8 @@ const InventoryTrackingPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && selectedPropertyId && (
+      {/* Add Button */}
+      {canEdit && (
         <button
           onClick={handleAdd}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"

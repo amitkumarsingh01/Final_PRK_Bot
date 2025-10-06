@@ -274,6 +274,7 @@ const InteriorWorkApprovalsPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {/* Add Button */}
       {canEdit && (
         <button
           onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
