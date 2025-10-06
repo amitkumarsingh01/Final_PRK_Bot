@@ -64,13 +64,27 @@ const CAuditReportPageP: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCadmin, setIsCadmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: AuditReport | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: AuditReport | null; isNew: boolean }>({ open: false, item: null, isNew: false });
 
-  // Allow actions for admin and cadmin users
+  // Load profile to detect role
   useEffect(() => {
-    if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    const fetchUserProfile = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const profile = await response.json();
+        setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProfile();
   }, [user]);
 
   // Fetch audit reports for user's property
@@ -162,16 +176,18 @@ const CAuditReportPageP: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Audit Report Management</h2>
-      {/* Property Display */}
-      <div className="mb-6 max-w-md">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+      {/* Property Display - Only for Admin */}
+      {isAdmin && (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -211,11 +227,9 @@ const CAuditReportPageP: React.FC = () => {
                     <td className="border px-2 py-1">{item.assigned_to}</td>
                     <td className="border px-2 py-1 text-center">
                       <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                      {isAdmin && (
-                        <>
-                          <button onClick={() => handleEdit(item)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                          <button onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 size={18} /></button>
-                        </>
+                      <button onClick={() => handleEdit(item)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                      {(isAdmin || isCadmin) && (
+                        <button onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 size={18} /></button>
                       )}
                     </td>
                   </tr>
@@ -225,14 +239,12 @@ const CAuditReportPageP: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && (
-        <button
-          onClick={handleAdd}
-          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
-        >
-          <Plus size={18} className="mr-2" /> Add Audit Report
-        </button>
-      )}
+      <button
+        onClick={handleAdd}
+        className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+      >
+        <Plus size={18} className="mr-2" /> Add Audit Report
+      </button>
 
       {/* Edit/Add Modal */}
       {editModal.open && editModal.item && (
@@ -255,7 +267,7 @@ const CAuditReportPageP: React.FC = () => {
                 <div className="font-semibold mb-2">Basic Information</div>
                 <div className="grid grid-cols-2 gap-2">
                   <input className="border rounded px-2 py-1" placeholder="Audit ID" value={editModal.item.audit_id} onChange={e => updateEditField('audit_id', e.target.value)} required />
-                  <input className="border rounded px-2 py-1" placeholder="Audit Date" value={editModal.item.audit_date} onChange={e => updateEditField('audit_date', e.target.value)} required />
+                  <input className="border rounded px-2 py-1" type="date" placeholder="Audit Date" value={editModal.item.audit_date} onChange={e => updateEditField('audit_date', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Site Name" value={editModal.item.site_name} onChange={e => updateEditField('site_name', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Location" value={editModal.item.location} onChange={e => updateEditField('location', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Auditor Name" value={editModal.item.auditor_name} onChange={e => updateEditField('auditor_name', e.target.value)} required />

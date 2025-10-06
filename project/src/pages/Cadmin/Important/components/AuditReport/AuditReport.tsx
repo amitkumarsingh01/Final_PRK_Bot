@@ -255,7 +255,7 @@ const CAuditReportPage: React.FC = () => {
                 <div className="font-semibold mb-2">Basic Information</div>
                 <div className="grid grid-cols-2 gap-2">
                   <input className="border rounded px-2 py-1" placeholder="Audit ID" value={editModal.item.audit_id} onChange={e => updateEditField('audit_id', e.target.value)} required />
-                  <input className="border rounded px-2 py-1" placeholder="Audit Date" value={editModal.item.audit_date} onChange={e => updateEditField('audit_date', e.target.value)} required />
+                  <input className="border rounded px-2 py-1" type="date" placeholder="Audit Date" value={editModal.item.audit_date} onChange={e => updateEditField('audit_date', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Site Name" value={editModal.item.site_name} onChange={e => updateEditField('site_name', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Location" value={editModal.item.location} onChange={e => updateEditField('location', e.target.value)} required />
                   <input className="border rounded px-2 py-1" placeholder="Auditor Name" value={editModal.item.auditor_name} onChange={e => updateEditField('auditor_name', e.target.value)} required />

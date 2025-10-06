@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import 'react-datepicker/dist/react-datepicker.css';
 
 // --- Types matching backend API ---
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface SecuritySiteInfo {
   id?: string;
@@ -93,7 +86,6 @@ interface SecurityPatrollingReport {
 }
 
 const API_URL = 'https://server.prktechindia.in/security-patrolling-reports/';
-const PROPERTIES_URL = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 const orangeDark = '#E06002';
 
@@ -153,13 +145,27 @@ const CSiteSecurityPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCadmin, setIsCadmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: SecurityPatrollingReport | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: SecurityPatrollingReport | null; isNew: boolean }>({ open: false, item: null, isNew: false });
 
-  // Allow actions for admin and cadmin users
+  // Load profile to detect role
   useEffect(() => {
-    if (!user) return;
-    setIsAdmin(user.userType === 'admin' || user.userType === 'cadmin');
+    const fetchUserProfile = async () => {
+      if (!user?.token || !user?.userId) return;
+      try {
+        const response = await fetch(`https://server.prktechindia.in/profile/${user.userId}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const profile = await response.json();
+        setIsAdmin(profile?.user_role === 'admin');
+        setIsCadmin(profile?.user_role === 'cadmin');
+      } catch (e) {
+        setError('Failed to fetch user profile');
+      }
+    };
+    fetchUserProfile();
   }, [user]);
 
   // Fetch security patrolling reports for user's property
@@ -226,9 +232,6 @@ const CSiteSecurityPage: React.FC = () => {
   };
 
   // Form state handlers for edit/add modal
-  const updateEditField = (field: keyof SecurityPatrollingReport, value: any) => {
-    setEditModal((prev) => prev.item ? { ...prev, item: { ...prev.item, [field]: value } } : prev);
-  };
   // For nested objects
   const updateNestedField = (section: keyof SecurityPatrollingReport, field: string, value: any) => {
     setEditModal((prev) => prev.item ? {
@@ -555,16 +558,18 @@ const CSiteSecurityPage: React.FC = () => {
   return (
     <div className="p-6" style={{ background: '#fff' }}>
       <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Security Patrolling Report Management</h2>
-      {/* Property Display */}
-      <div className="mb-6 max-w-md">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
-        <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-gray-400" />
-          <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+      {/* Property Display - Only for Admin */}
+      {isAdmin && (
+        <div className="mb-6 max-w-md">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+          <div className="flex items-center gap-2">
+            <Building className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 border border-gray-300 rounded-md p-2 bg-gray-100">
+              {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       {error && <div className="mb-2 text-red-600">{error}</div>}
       <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
         <table className="min-w-full text-sm">
@@ -600,11 +605,9 @@ const CSiteSecurityPage: React.FC = () => {
                     <td className="border px-2 py-1">{item.patrolling_schedule_summary?.completed}</td>
                     <td className="border px-2 py-1 text-center">
                       <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                      {isAdmin && (
-                        <>
-                          <button onClick={() => handleEdit(item)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                          <button onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 size={18} /></button>
-                        </>
+                      <button onClick={() => handleEdit(item)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                      {(isAdmin || isCadmin) && (
+                        <button onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 size={18} /></button>
                       )}
                     </td>
                   </tr>
@@ -614,14 +617,12 @@ const CSiteSecurityPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && (
-        <button
-          onClick={handleAdd}
-          className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
-        >
-          <Plus size={18} className="mr-2" /> Add Security Patrolling Report
-        </button>
-      )}
+      <button
+        onClick={handleAdd}
+        className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
+      >
+        <Plus size={18} className="mr-2" /> Add Security Patrolling Report
+      </button>
 
       {/* Edit/Add Modal */}
       {editModal.open && editModal.item && (
