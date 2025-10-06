@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -61,7 +61,8 @@ const InteriorWorkApprovalsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: InteriorWorkApproval | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: InteriorWorkApproval | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -88,11 +89,9 @@ const InteriorWorkApprovalsPage: React.FC = () => {
         if (matchedUser && matchedUser.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
         }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        // All users can add/edit, only admin and cadmin can delete
+        setCanEdit(true);
+        setCanDelete(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -103,7 +102,9 @@ const InteriorWorkApprovalsPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch community reports');
@@ -128,13 +129,35 @@ const InteriorWorkApprovalsPage: React.FC = () => {
       reportId,
     });
   };
+  
+  // Create an empty report for the property if none exists
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!selectedPropertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: selectedPropertyId,
+        interior_work_approvals: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
+  };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
       const newArr = report.interior_work_approvals.filter(i => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { interior_work_approvals: newArr });
+      await axios.put(`${API_URL}${reportId}`, { interior_work_approvals: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -151,13 +174,17 @@ const InteriorWorkApprovalsPage: React.FC = () => {
       if (!report) return;
       let newArr: InteriorWorkApproval[];
       if (editModal.isNew) {
-        newArr = [...report.interior_work_approvals, editModal.item];
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.interior_work_approvals, newEntry];
       } else {
         newArr = report.interior_work_approvals.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { interior_work_approvals: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { interior_work_approvals: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -214,7 +241,7 @@ const InteriorWorkApprovalsPage: React.FC = () => {
               <tr><td colSpan={17} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   report.interior_work_approvals.map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{idx + 1}</td>
@@ -232,11 +259,11 @@ const InteriorWorkApprovalsPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -247,9 +274,9 @@ const InteriorWorkApprovalsPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {isAdmin && data.length > 0 && (
+      {canEdit && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Interior Work Approval

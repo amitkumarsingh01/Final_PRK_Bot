@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // --- Types matching backend API ---
@@ -17,6 +17,7 @@ interface VendorEntryManagement {
   report_id?: string;
   vendor_id: string;
   vendor_name: string;
+  company_name: string;
   contact_number: string;
   entry_date: string;
   entry_time: string;
@@ -43,6 +44,7 @@ const orangeDark = '#E06002';
 const emptyVendor: VendorEntryManagement = {
   vendor_id: '',
   vendor_name: '',
+  company_name: '',
   contact_number: '',
   entry_date: '',
   entry_time: '',
@@ -61,7 +63,8 @@ const VendorEntryManagementPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: VendorEntryManagement | null }>({ open: false, item: null });
   const [editModal, setEditModal] = useState<{ open: boolean; item: VendorEntryManagement | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
 
@@ -90,11 +93,9 @@ const VendorEntryManagementPage: React.FC = () => {
         if (matchedUser && matchedUser.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
         }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        // All users can add/edit, only admin and cadmin can delete
+        setCanEdit(true);
+        setCanDelete(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -106,7 +107,9 @@ const VendorEntryManagementPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch visitor management reports');
@@ -132,6 +135,26 @@ const VendorEntryManagementPage: React.FC = () => {
       reportId,
     });
   };
+  
+  // Create an empty report for the property if none exists
+  const ensureReportForProperty = async (): Promise<string | null> => {
+    if (data.length > 0) return data[0].id;
+    if (!selectedPropertyId) return null;
+    try {
+      const res = await axios.post(API_URL, {
+        property_id: selectedPropertyId,
+        vendor_entry_management: [],
+      }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
+      const created = res.data;
+      setData([created, ...data]);
+      return created.id as string;
+    } catch (e) {
+      setError('Failed to initialize report for this property');
+      return null;
+    }
+  };
   const handleDelete = async (itemId: string, reportId: string) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
@@ -141,7 +164,9 @@ const VendorEntryManagementPage: React.FC = () => {
       // Remove the entry
       const newArr = report.vendor_entry_management.filter(i => i.id !== itemId);
       // Update the report
-      await axios.put(`${API_URL}${reportId}`, { vendor_entry_management: newArr });
+      await axios.put(`${API_URL}${reportId}`, { vendor_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -160,13 +185,17 @@ const VendorEntryManagementPage: React.FC = () => {
       if (!report) return;
       let newArr: VendorEntryManagement[];
       if (editModal.isNew) {
-        newArr = [...report.vendor_entry_management, editModal.item];
+        const newEntry = { ...editModal.item };
+        delete newEntry.id; // Remove id field for new entries
+        newArr = [...report.vendor_entry_management, newEntry];
       } else {
         newArr = report.vendor_entry_management.map(i =>
           i.id === editModal.item!.id ? editModal.item! : i
         );
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { vendor_entry_management: newArr });
+      await axios.put(`${API_URL}${editModal.reportId}`, { vendor_entry_management: newArr }, {
+        headers: user?.token ? { Authorization: `Bearer ${user.token}` } : {},
+      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -206,6 +235,7 @@ const VendorEntryManagementPage: React.FC = () => {
               <th className="px-3 py-2 border">Sl.No</th>
               <th className="px-3 py-2 border">Vendor ID</th>
               <th className="px-3 py-2 border">Vendor Name</th>
+              <th className="px-3 py-2 border">Company Name</th>
               <th className="px-3 py-2 border">Contact</th>
               <th className="px-3 py-2 border">Entry Date</th>
               <th className="px-3 py-2 border">Entry Time</th>
@@ -220,15 +250,16 @@ const VendorEntryManagementPage: React.FC = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={13} className="text-center py-6">Loading...</td></tr>
+              <tr><td colSpan={14} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   report.vendor_entry_management.map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{idx + 1}</td>
                       <td className="border px-2 py-1">{item.vendor_id}</td>
                       <td className="border px-2 py-1">{item.vendor_name}</td>
+                      <td className="border px-2 py-1">{item.company_name}</td>
                       <td className="border px-2 py-1">{item.contact_number}</td>
                       <td className="border px-2 py-1">{item.entry_date}</td>
                       <td className="border px-2 py-1">{item.entry_time}</td>
@@ -240,11 +271,11 @@ const VendorEntryManagementPage: React.FC = () => {
                       <td className="border px-2 py-1">{item.remarks}</td>
                       <td className="border px-2 py-1 text-center">
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
-                          </>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
                         )}
                       </td>
                     </tr>
@@ -255,10 +286,10 @@ const VendorEntryManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      {/* Add Button (only if a report exists for the property) */}
-      {isAdmin && data.length > 0 && (
+      {/* Add Button */}
+      {canEdit && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={async () => { const id = await ensureReportForProperty(); if (id) handleAdd(id); }}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Vendor Entry
@@ -284,6 +315,7 @@ const VendorEntryManagementPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <input className="border rounded px-3 py-2" placeholder="Vendor ID" value={editModal.item.vendor_id} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, vendor_id: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Vendor Name" value={editModal.item.vendor_name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, vendor_name: e.target.value } })} required />
+                <input className="border rounded px-3 py-2" placeholder="Company Name" value={editModal.item.company_name} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, company_name: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Contact Number" value={editModal.item.contact_number} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, contact_number: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Entry Date" type="date" value={editModal.item.entry_date} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, entry_date: e.target.value } })} required />
                 <input className="border rounded px-3 py-2" placeholder="Entry Time" type="time" value={editModal.item.entry_time} onChange={e => setEditModal(m => m && { ...m, item: { ...m.item!, entry_time: e.target.value } })} required />
@@ -321,6 +353,7 @@ const VendorEntryManagementPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><b>Vendor ID:</b> {viewModal.item.vendor_id}</div>
               <div><b>Vendor Name:</b> {viewModal.item.vendor_name}</div>
+              <div><b>Company Name:</b> {viewModal.item.company_name}</div>
               <div><b>Contact Number:</b> {viewModal.item.contact_number}</div>
               <div><b>Entry Date:</b> {viewModal.item.entry_date}</div>
               <div><b>Entry Time:</b> {viewModal.item.entry_time}</div>
