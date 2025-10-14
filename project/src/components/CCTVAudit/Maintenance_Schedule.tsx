@@ -63,7 +63,7 @@ const MaintenanceSchedulePage: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null }>({ open: false, item: null });
-  const [editModal, setEditModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: CctvMaintenanceSchedule | null; isNew: boolean; reportId: string | null; index?: number }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -103,7 +103,7 @@ const MaintenanceSchedulePage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       console.log('Maintenance Schedule - API Response:', res.data);
       setData(res.data);
     } catch (e) {
@@ -119,8 +119,8 @@ const MaintenanceSchedulePage: React.FC = () => {
     }
   }, [selectedPropertyId]);
 
-  const handleEdit = (item: CctvMaintenanceSchedule, reportId: string) => {
-    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  const handleEdit = (item: CctvMaintenanceSchedule, reportId: string, index?: number) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId, index });
   };
 
   const handleAdd = (reportId: string) => {
@@ -132,15 +132,16 @@ const MaintenanceSchedulePage: React.FC = () => {
     });
   };
 
-  const handleDelete = async (itemId: string, reportId: string) => {
+  const handleDelete = async (itemId: string | undefined, reportId: string, index?: number) => {
     if (!window.confirm('Delete this maintenance schedule entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = (report.cctv_audit_data?.Maintenance_Schedule || []).filter((i: CctvMaintenanceSchedule) => i.id !== itemId);
+      const current = (report.cctv_audit_data?.Maintenance_Schedule || []);
+      const newArr = itemId ? current.filter((i: CctvMaintenanceSchedule) => i.id !== itemId) : current.filter((_, idx: number) => idx !== (index ?? -1));
       await axios.put(`${API_URL}${reportId}`, { 
         CCTV_Audit: { Maintenance_Schedule: newArr }
-      });
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -158,15 +159,23 @@ const MaintenanceSchedulePage: React.FC = () => {
       if (!report) return;
       let newArr: CctvMaintenanceSchedule[];
       if (editModal.isNew) {
-                newArr = [...(report.cctv_audit_data?.Maintenance_Schedule || []), editModal.item];
+        newArr = [...(report.cctv_audit_data?.Maintenance_Schedule || []), editModal.item];
       } else {
-        newArr = (report.cctv_audit_data?.Maintenance_Schedule || []).map((i: CctvMaintenanceSchedule) =>
-          i.id === editModal.item!.id ? editModal.item! : i
-        );
+        const hasId = Boolean(editModal.item!.id);
+        if (hasId) {
+          newArr = (report.cctv_audit_data?.Maintenance_Schedule || []).map((i: CctvMaintenanceSchedule) =>
+            i.id === editModal.item!.id ? editModal.item! : i
+          );
+        } else if (typeof editModal.index === 'number') {
+          newArr = [...(report.cctv_audit_data?.Maintenance_Schedule || [])];
+          newArr[editModal.index] = editModal.item!;
+        } else {
+          newArr = (report.cctv_audit_data?.Maintenance_Schedule || []);
+        }
       }
       await axios.put(`${API_URL}${editModal.reportId}`, { 
         CCTV_Audit: { Maintenance_Schedule: newArr }
-      });
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {

@@ -128,7 +128,7 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
       const newArr = report.site_assessments.filter(i => i.id !== itemId);
       await axios.put(`${API_URL}${reportId}`, { 
         Fire_Safety_Management: { Site_Assessment_and_Planning: newArr }
-      });
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData();
     } catch (e) {
       setError('Failed to delete');
@@ -154,7 +154,7 @@ const SiteAssessmentAndPlanningPage: React.FC = () => {
       }
       await axios.put(`${API_URL}${editModal.reportId}`, { 
         Fire_Safety_Management: { Site_Assessment_and_Planning: newArr }
-      });
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData();
     } catch (e) {

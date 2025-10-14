@@ -159,10 +159,13 @@ const TemporaryStructurePage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}property/${propertyId}`);
+      setError(null); // Clear any previous errors
+      const res = await axios.get(`${API_URL}property/${propertyId}/`);
       setData(res.data);
     } catch (e) {
+      console.error('Fetch error:', e);
       setError('Failed to fetch temporary structure permits');
+      setData([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -190,9 +193,11 @@ const TemporaryStructurePage: React.FC = () => {
     
     if (window.confirm('Are you sure you want to delete this temporary structure permit?')) {
       try {
-        await axios.delete(`${API_URL}${recordId}`);
+        await axios.delete(`${API_URL}${recordId}/`);
         fetchData(selectedPropertyId);
+        setError(null); // Clear any previous errors
       } catch (e) {
+        console.error('Delete error:', e);
         setError('Failed to delete temporary structure permit');
       }
     }
@@ -209,11 +214,13 @@ const TemporaryStructurePage: React.FC = () => {
       if (editModal.isNew) {
         await axios.post(API_URL, editModal.record);
       } else {
-        await axios.put(`${API_URL}${editModal.record.id}`, editModal.record);
+        await axios.put(`${API_URL}${editModal.record.id}/`, editModal.record);
       }
       setEditModal({ open: false, record: null, isNew: false });
       fetchData(selectedPropertyId);
+      setError(null); // Clear any previous errors
     } catch (e) {
+      console.error('Save error:', e);
       setError('Failed to save temporary structure permit');
     }
   };
@@ -543,6 +550,533 @@ const TemporaryStructurePage: React.FC = () => {
                   <p className="text-gray-700">{viewModal.record.remarks_or_observations}</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.open && editModal.record && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editModal.isNew ? 'Add New Temporary Structure Permit' : 'Edit Temporary Structure Permit'}
+              </h2>
+              <button
+                onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Permit Number</label>
+                    <input
+                      type="text"
+                      value={editModal.record.permit_number}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_number: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
+                    <input
+                      type="date"
+                      value={editModal.record.date_of_issue}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, date_of_issue: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                    <input
+                      type="date"
+                      value={editModal.record.permit_valid_from}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_valid_from: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valid To</label>
+                    <input
+                      type="date"
+                      value={editModal.record.permit_valid_to}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_valid_to: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Installation Location</label>
+                    <input
+                      type="text"
+                      value={editModal.record.site_location_of_installation}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, site_location_of_installation: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Structure</label>
+                    <input
+                      type="text"
+                      value={editModal.record.nature_of_temporary_structure}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, nature_of_temporary_structure: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Structure Type</label>
+                    <input
+                      type="text"
+                      value={editModal.record.type_of_temporary_structure}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, type_of_temporary_structure: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Units</label>
+                    <input
+                      type="number"
+                      value={editModal.record.number_of_units}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, number_of_units: parseInt(e.target.value) || 0 } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Area (sqm)</label>
+                    <input
+                      type="number"
+                      value={editModal.record.total_area_covered_sqm}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, total_area_covered_sqm: parseFloat(e.target.value) || 0 } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (meters)</label>
+                    <input
+                      type="number"
+                      value={editModal.record.height_of_structure_meters}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, height_of_structure_meters: parseFloat(e.target.value) || 0 } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contractor Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Contractor Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contractor Name</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contractor_agency_name}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contractor_agency_name: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contractor Contact</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contact_details_contractor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contact_details_contractor: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor Name</label>
+                    <input
+                      type="text"
+                      value={editModal.record.supervisor_name_on_site}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, supervisor_name_on_site: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor Contact</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contact_details_supervisor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contact_details_supervisor: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Workers</label>
+                    <input
+                      type="number"
+                      value={editModal.record.number_of_workers_involved}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, number_of_workers_involved: parseInt(e.target.value) || 0 } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Specifications */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Technical Specifications</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Foundation Type</label>
+                    <select
+                      value={editModal.record.foundation_type}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, foundation_type: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select Foundation Type</option>
+                      <option value="Concrete">Concrete</option>
+                      <option value="Steel">Steel</option>
+                      <option value="Wood">Wood</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Foundation Analysis Done</label>
+                    <select
+                      value={editModal.record.foundation_analysis_done}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, foundation_analysis_done: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Structural Engineering Approval</label>
+                    <select
+                      value={editModal.record.structural_engineering_approval}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, structural_engineering_approval: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Wind Load Calculations</label>
+                    <select
+                      value={editModal.record.wind_load_calculations}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, wind_load_calculations: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Seismic Considerations</label>
+                    <select
+                      value={editModal.record.seismic_considerations}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, seismic_considerations: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Safety & Compliance */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Safety & Compliance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fire Safety Measures</label>
+                    <select
+                      value={editModal.record.fire_safety_measures}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, fire_safety_measures: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Exits Planned</label>
+                    <select
+                      value={editModal.record.emergency_exits_planned}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, emergency_exits_planned: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Aid Facility</label>
+                    <select
+                      value={editModal.record.first_aid_facility}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, first_aid_facility: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Details</label>
+                    <input
+                      type="text"
+                      value={editModal.record.emergency_contact_details}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, emergency_contact_details: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Security Measures</label>
+                    <select
+                      value={editModal.record.security_measures}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, security_measures: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Lighting Arrangement</label>
+                    <select
+                      value={editModal.record.lighting_arrangement}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, lighting_arrangement: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Utilities & Infrastructure */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Utilities & Infrastructure</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Utilities Connection Plan</label>
+                    <select
+                      value={editModal.record.utilities_connection_plan}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, utilities_connection_plan: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Electrical Installation Plan</label>
+                    <select
+                      value={editModal.record.electrical_installation_plan}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, electrical_installation_plan: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Water Supply Connection</label>
+                    <select
+                      value={editModal.record.water_supply_connection}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, water_supply_connection: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sewage Disposal Arrangement</label>
+                    <select
+                      value={editModal.record.sewage_disposal_arrangement}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, sewage_disposal_arrangement: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Access Roads Planned</label>
+                    <select
+                      value={editModal.record.access_roads_planned}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, access_roads_planned: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Parking Arrangement</label>
+                    <select
+                      value={editModal.record.parking_arrangement}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, parking_arrangement: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Installation Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Installation Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pre-work Site Inspection Done</label>
+                    <select
+                      value={editModal.record.pre_work_site_inspection_done}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, pre_work_site_inspection_done: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Work Authorization By</label>
+                    <input
+                      type="text"
+                      value={editModal.record.work_authorization_by}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, work_authorization_by: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Installation Completion Time</label>
+                    <input
+                      type="datetime-local"
+                      value={editModal.record.installation_completion_time}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, installation_completion_time: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Post-installation Inspection Done By</label>
+                    <input
+                      type="text"
+                      value={editModal.record.post_installation_inspection_done_by}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, post_installation_inspection_done_by: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Final Clearance Given</label>
+                    <select
+                      value={editModal.record.final_clearance_given}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, final_clearance_given: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Structure Handover Verified</label>
+                    <select
+                      value={editModal.record.structure_handover_verified}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, structure_handover_verified: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signatures */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Signatures</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_supervisor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, signature_of_supervisor: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Safety Officer Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_safety_officer}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, signature_of_safety_officer: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contractor Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_contractor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, signature_of_contractor: e.target.value } })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Remarks */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Remarks & Observations</h3>
+                <textarea
+                  value={editModal.record.remarks_or_observations}
+                  onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, remarks_or_observations: e.target.value } })}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter any remarks or observations..."
+                />
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+              >
+                <Save className="h-4 w-4" />
+                <span>{editModal.isNew ? 'Create Permit' : 'Update Permit'}</span>
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -61,7 +61,7 @@ const ConfigurationTestingPage: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: ConfigurationTestingChecklist | null }>({ open: false, item: null });
-  const [editModal, setEditModal] = useState<{ open: boolean; item: ConfigurationTestingChecklist | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: ConfigurationTestingChecklist | null; isNew: boolean; reportId: string | null; index?: number }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -101,7 +101,7 @@ const ConfigurationTestingPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch CCTV audit reports');
@@ -115,8 +115,8 @@ const ConfigurationTestingPage: React.FC = () => {
     }
   }, [selectedPropertyId]);
 
-  const handleEdit = (item: ConfigurationTestingChecklist, reportId: string) => {
-    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  const handleEdit = (item: ConfigurationTestingChecklist, reportId: string, index?: number) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId, index });
   };
 
   const handleAdd = (reportId: string) => {
@@ -128,15 +128,16 @@ const ConfigurationTestingPage: React.FC = () => {
     });
   };
 
-  const handleDelete = async (itemId: string, reportId: string) => {
+  const handleDelete = async (itemId: string | undefined, reportId: string, index?: number) => {
     if (!window.confirm('Delete this configuration testing entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = (report.cctv_audit_data?.Configuration_Testing_Checklist || []).filter((i: ConfigurationTestingChecklist) => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { 
-        CCTV_Audit: { Configuration_Testing_Checklist: newArr }
-      });
+      const current = (report.cctv_audit_data?.Configuration_Testing_Checklist || []);
+      const newArr = itemId ? current.filter((i: ConfigurationTestingChecklist) => i.id !== itemId) : current.filter((_, idx: number) => idx !== (index ?? -1));
+      await axios.put(`${API_URL}${reportId}`, {
+        CCTV_Audit: { ...(report.cctv_audit_data || {}), Configuration_Testing_Checklist: newArr }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -154,15 +155,23 @@ const ConfigurationTestingPage: React.FC = () => {
       if (!report) return;
       let newArr: ConfigurationTestingChecklist[];
       if (editModal.isNew) {
-                newArr = [...(report.cctv_audit_data?.Configuration_Testing_Checklist || []), editModal.item];
+        newArr = [...(report.cctv_audit_data?.Configuration_Testing_Checklist || []), editModal.item];
       } else {
-        newArr = (report.cctv_audit_data?.Configuration_Testing_Checklist || []).map((i: ConfigurationTestingChecklist) =>
-          i.id === editModal.item!.id ? editModal.item! : i
-        );
+        const hasId = Boolean(editModal.item!.id);
+        if (hasId) {
+          newArr = (report.cctv_audit_data?.Configuration_Testing_Checklist || []).map((i: ConfigurationTestingChecklist) =>
+            i.id === editModal.item!.id ? editModal.item! : i
+          );
+        } else if (typeof editModal.index === 'number') {
+          newArr = [...(report.cctv_audit_data?.Configuration_Testing_Checklist || [])];
+          newArr[editModal.index] = editModal.item!;
+        } else {
+          newArr = (report.cctv_audit_data?.Configuration_Testing_Checklist || []);
+        }
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { 
-        CCTV_Audit: { Configuration_Testing_Checklist: newArr }
-      });
+      await axios.put(`${API_URL}${editModal.reportId}`, {
+        CCTV_Audit: { ...(report.cctv_audit_data || {}), Configuration_Testing_Checklist: newArr }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -219,7 +228,7 @@ const ConfigurationTestingPage: React.FC = () => {
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   (report.cctv_audit_data?.Configuration_Testing_Checklist || []).map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{item.SL_No}</td>
@@ -236,8 +245,8 @@ const ConfigurationTestingPage: React.FC = () => {
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                         {isAdmin && (
                           <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                            <button onClick={() => handleEdit(item, report.id, idx)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(item.id, report.id, idx)} className="text-red-600"><Trash2 size={18} /></button>
                           </>
                         )}
                       </td>

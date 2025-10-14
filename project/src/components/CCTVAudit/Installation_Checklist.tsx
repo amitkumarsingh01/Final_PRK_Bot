@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -52,6 +52,16 @@ const emptyInstallationChecklist: InstallationChecklist = {
   Remarks: '',
 };
 
+const defaultDocumentationFormat = {
+  Site_Information: {
+    Site_Name_Code: '',
+    Address: '',
+    Contact_Person_Site_Incharge: '',
+    CCTV_Install_Date: ''
+  },
+  Camera_Inventory_Log: [] as any[],
+};
+
 const InstallationChecklistPage: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<CctvAuditReport[]>([]);
@@ -61,7 +71,7 @@ const InstallationChecklistPage: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: InstallationChecklist | null }>({ open: false, item: null });
-  const [editModal, setEditModal] = useState<{ open: boolean; item: InstallationChecklist | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: InstallationChecklist | null; isNew: boolean; reportId: string | null; index?: number }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -101,7 +111,7 @@ const InstallationChecklistPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch CCTV audit reports');
@@ -115,28 +125,35 @@ const InstallationChecklistPage: React.FC = () => {
     }
   }, [selectedPropertyId]);
 
-  const handleEdit = (item: InstallationChecklist, reportId: string) => {
-    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  const handleEdit = (item: InstallationChecklist, reportId: string, index?: number) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId, index });
   };
 
-  const handleAdd = (reportId: string) => {
+  const handleAdd = (reportId?: string) => {
     setEditModal({
       open: true,
       isNew: true,
       item: { ...emptyInstallationChecklist },
-      reportId,
+      reportId: reportId ?? null,
     });
   };
 
-  const handleDelete = async (itemId: string, reportId: string) => {
+  const handleDelete = async (itemId: string | undefined, reportId: string, index?: number) => {
     if (!window.confirm('Delete this installation checklist entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = (report.cctv_audit_data?.Installation_Checklist || []).filter((i: InstallationChecklist) => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { 
-        CCTV_Audit: { Installation_Checklist: newArr }
-      });
+      const current = (report.cctv_audit_data?.Installation_Checklist || []);
+      const newArr = itemId ? current.filter((i: InstallationChecklist) => i.id !== itemId) : current.filter((_, idx: number) => idx !== (index ?? -1));
+      await axios.put(`${API_URL}${reportId}`, {
+        CCTV_Audit: {
+          ...(report.cctv_audit_data || {}),
+          Documentation_Format: {
+            ...(report.cctv_audit_data?.Documentation_Format || defaultDocumentationFormat),
+          },
+          Installation_Checklist: newArr
+        }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -148,21 +165,61 @@ const InstallationChecklistPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!editModal.item || !editModal.reportId) return;
+    if (!editModal.item) return;
     try {
-      const report = data.find(r => r.id === editModal.reportId);
-      if (!report) return;
-      let newArr: InstallationChecklist[];
-      if (editModal.isNew) {
-                newArr = [...(report.cctv_audit_data?.Installation_Checklist || []), editModal.item];
+      if (editModal.isNew && !editModal.reportId) {
+        if (!selectedPropertyId) return;
+        const newPayload = {
+          property_id: selectedPropertyId,
+          CCTV_Audit: {
+            Site_Assessment_Format: [],
+            Installation_Checklist: [editModal.item],
+            Configuration_Testing_Checklist: [],
+            Daily_Operations_Monitoring: [],
+            Maintenance_Schedule: [],
+            Documentation_Format: {
+              Site_Information: {
+                Site_Name_Code: '',
+                Address: '',
+                Contact_Person_Site_Incharge: '',
+                CCTV_Install_Date: ''
+              },
+              Camera_Inventory_Log: []
+            },
+            AMC_Compliance_Format: []
+          }
+        };
+        await axios.post(`${API_URL}`, newPayload, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       } else {
-        newArr = (report.cctv_audit_data?.Installation_Checklist || []).map((i: InstallationChecklist) =>
-          i.id === editModal.item!.id ? editModal.item! : i
-        );
+        if (!editModal.reportId) return;
+        const report = data.find(r => r.id === editModal.reportId);
+        if (!report) return;
+        let newArr: InstallationChecklist[];
+        if (editModal.isNew) {
+          newArr = [...(report.cctv_audit_data?.Installation_Checklist || []), editModal.item];
+        } else {
+          const hasId = Boolean(editModal.item!.id);
+          if (hasId) {
+            newArr = (report.cctv_audit_data?.Installation_Checklist || []).map((i: InstallationChecklist) =>
+              i.id === editModal.item!.id ? editModal.item! : i
+            );
+          } else if (typeof editModal.index === 'number') {
+            newArr = [...(report.cctv_audit_data?.Installation_Checklist || [])];
+            newArr[editModal.index] = editModal.item!;
+          } else {
+            newArr = (report.cctv_audit_data?.Installation_Checklist || []);
+          }
+        }
+        await axios.put(`${API_URL}${editModal.reportId}`, {
+          CCTV_Audit: {
+            ...(report.cctv_audit_data || {}),
+            Documentation_Format: {
+              ...(report.cctv_audit_data?.Documentation_Format || defaultDocumentationFormat),
+            },
+            Installation_Checklist: newArr
+          }
+        }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { 
-        CCTV_Audit: { Installation_Checklist: newArr }
-      });
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -219,7 +276,7 @@ const InstallationChecklistPage: React.FC = () => {
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   (report.cctv_audit_data?.Installation_Checklist || []).map((item, idx) => (
                     <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{item.SL_No}</td>
@@ -236,8 +293,8 @@ const InstallationChecklistPage: React.FC = () => {
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                         {isAdmin && (
                           <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                            <button onClick={() => handleEdit(item, report.id, idx)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(item.id, report.id, idx)} className="text-red-600"><Trash2 size={18} /></button>
                           </>
                         )}
                       </td>
@@ -250,9 +307,9 @@ const InstallationChecklistPage: React.FC = () => {
         </table>
       </div>
 
-      {isAdmin && data.length > 0 && (
+      {isAdmin && (
         <button
-          onClick={() => handleAdd(data[0].id)}
+          onClick={() => handleAdd(data[0]?.id)}
           className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
         >
           <Plus size={18} className="mr-2" /> Add Installation Checklist Entry

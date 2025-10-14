@@ -130,11 +130,7 @@ const GeneralMaintenancePage: React.FC = () => {
         if (matchedUser && matchedUser.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
         }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        setIsAdmin(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }

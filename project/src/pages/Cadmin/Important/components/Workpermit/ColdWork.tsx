@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Snowflake } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Eye, Users, FileText, CheckCircle, AlertTriangle, Snowflake } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface ColdWorkPermit {
   id?: number;
@@ -50,8 +43,6 @@ interface ColdWorkPermit {
 }
 
 const API_URL = 'https://server.prktechindia.in/cold-work-permit/';
-const  = 'https://server.prktechindia.in/properties';
-const orange = '#FB7E03';
 
 const emptyColdWorkPermit: ColdWorkPermit = {
   property_id: '',
@@ -102,7 +93,7 @@ const ColdWorkPage: React.FC = () => {
   };
 
   const handleAdd = () => {
-    setEditModal({ open: true, record: { ...emptyColdWorkPermit, property_id: user?.propertyId }, isNew: true });
+    setEditModal({ open: true, record: { ...emptyColdWorkPermit, property_id: user?.propertyId || '' }, isNew: true });
   };
 
   const handleDelete = async (recordId: number) => {
@@ -141,8 +132,31 @@ const ColdWorkPage: React.FC = () => {
     }
   };
 
-  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+      const filteredData = user?.propertyId 
+        ? response.data.filter((item: ColdWorkPermit) => item.property_id === user.propertyId)
+        : response.data;
+      setData(filteredData);
+    } catch (e) {
+      setError('Failed to fetch cold work permits');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (user) {
+      const matchedUser = user;
+      setIsAdmin(matchedUser && (matchedUser.role === 'admin' || matchedUser.role === 'cadmin'));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.propertyId]);
 
   const isPermitActive = (permit: ColdWorkPermit) => {
     const now = new Date();
@@ -180,7 +194,7 @@ const ColdWorkPage: React.FC = () => {
                 <Snowflake className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Cold Work Permits</h1>
+                <h1 className="text-2xl font-bold text-gray-900">ddCold Work Permits</h1>
                 <p className="text-gray-600">Manage cold work permits and general safety compliance</p>
               </div>
             </div>
@@ -196,17 +210,6 @@ const ColdWorkPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-          </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -603,9 +606,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, safety_instructions_explained_to_team: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -615,9 +618,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, risk_assessment_attached: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -627,9 +630,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, msds_required: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -639,9 +642,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, work_area_inspected_before_start: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
               </div>
@@ -655,9 +658,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, nearby_sensitive_equipment_covered_or_protected: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -667,9 +670,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, floor_corridor_wall_protection_arranged: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -679,9 +682,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, emergency_exit_access_ensured: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -691,9 +694,9 @@ const ColdWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, fire_safety_equipment_nearby: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
               </div>
@@ -706,11 +709,11 @@ const ColdWorkPage: React.FC = () => {
                   onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, waste_disposal_method: e.target.value}})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
-                  
-                  
-                  
-                  
-                  
+                  <option value="">Select</option>
+                  <option value="Proper disposal containers">Proper disposal containers</option>
+                  <option value="Hazardous waste collection">Hazardous waste collection</option>
+                  <option value="Recycling">Recycling</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 

@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Hammer } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Eye, Users, Calendar, FileText, CheckCircle, Hammer } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface DemolitionWorkPermit {
   id?: number;
-  property_id: string;
+  property_id?: string;
   permit_number: string;
   date_of_issue: string;
   permit_valid_from: string;
@@ -61,8 +54,6 @@ interface DemolitionWorkPermit {
 }
 
 const API_URL = 'https://server.prktechindia.in/demolition-work-permit/';
-const  = 'https://server.prktechindia.in/properties';
-const orange = '#FB7E03';
 
 const emptyDemolitionPermit: DemolitionWorkPermit = {
   property_id: '',
@@ -110,7 +101,7 @@ const emptyDemolitionPermit: DemolitionWorkPermit = {
   remarks_or_observations: ''
 };
 
-const DemolitionPage: React.FC = () => {
+const CDemolitionPage: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<DemolitionWorkPermit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +115,7 @@ const DemolitionPage: React.FC = () => {
   };
 
   const handleAdd = () => {
-    setEditModal({ open: true, record: { ...emptyDemolitionPermit, property_id: user?.propertyId }, isNew: true });
+    setEditModal({ open: true, record: { ...emptyDemolitionPermit, property_id: user?.propertyId || '' }, isNew: true });
   };
 
   const handleDelete = async (recordId: number) => {
@@ -163,8 +154,33 @@ const DemolitionPage: React.FC = () => {
     }
   };
 
-  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+      const filteredData = user?.propertyId 
+        ? response.data.filter((item: DemolitionWorkPermit) => item.property_id === user.propertyId)
+        : response.data;
+      setData(filteredData);
+    } catch (e) {
+      setError('Failed to fetch demolition permits');
+    } finally {
+      setLoading(false);
+    }
   };
+
+
+
+  useEffect(() => {
+    if (user) {
+      const matchedUser = user;
+      setIsAdmin(matchedUser && (matchedUser.role === 'admin' || matchedUser.role === 'cadmin'));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.propertyId]);
 
   const isPermitActive = (permit: DemolitionWorkPermit) => {
     const now = new Date();
@@ -214,17 +230,6 @@ const DemolitionPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-          </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -494,8 +499,270 @@ const DemolitionPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {editModal.open && editModal.record && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editModal.isNew ? 'Add Demolition Permit' : 'Edit Demolition Permit'}
+              </h2>
+              <button
+                onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Permit Number</label>
+                  <input
+                    type="text"
+                    value={editModal.record.permit_number}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_number: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Issue</label>
+                  <input
+                    type="date"
+                    value={editModal.record.date_of_issue}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, date_of_issue: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                  <input
+                    type="date"
+                    value={editModal.record.permit_valid_from}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_valid_from: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Valid To</label>
+                  <input
+                    type="date"
+                    value={editModal.record.permit_valid_to}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, permit_valid_to: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Site Location</label>
+                  <input
+                    type="text"
+                    value={editModal.record.site_location_of_demolition}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, site_location_of_demolition: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nature of Demolition Work</label>
+                  <textarea
+                    value={editModal.record.nature_of_demolition_work}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, nature_of_demolition_work: e.target.value } as DemolitionWorkPermit })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Contractor Information */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Contractor Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contractor Agency Name</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contractor_agency_name}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contractor_agency_name: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Details</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contact_details_contractor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contact_details_contractor: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor Name</label>
+                    <input
+                      type="text"
+                      value={editModal.record.supervisor_name_on_site}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, supervisor_name_on_site: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor Contact</label>
+                    <input
+                      type="text"
+                      value={editModal.record.contact_details_supervisor}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, contact_details_supervisor: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Workers</label>
+                    <input
+                      type="number"
+                      value={editModal.record.number_of_workers_involved}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, number_of_workers_involved: parseInt(e.target.value) || 0 } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Structure Details */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Structure Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Structure to be Demolished</label>
+                    <input
+                      type="text"
+                      value={editModal.record.structure_to_be_demolished}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, structure_to_be_demolished: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Area (sqm)</label>
+                    <input
+                      type="number"
+                      value={editModal.record.area_to_be_demolished_sqm}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, area_to_be_demolished_sqm: parseFloat(e.target.value) || 0 } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Height (meters)</label>
+                    <input
+                      type="number"
+                      value={editModal.record.height_of_structure_meters}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, height_of_structure_meters: parseFloat(e.target.value) || 0 } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Demolition Method</label>
+                    <select
+                      value={editModal.record.demolition_method}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, demolition_method: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select method</option>
+                      <option value="Manual">Manual</option>
+                      <option value="Mechanical">Mechanical</option>
+                      <option value="Explosive">Explosive</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Safety Compliance */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Safety Compliance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Structural Analysis Done</label>
+                    <select
+                      value={editModal.record.structural_analysis_done}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, structural_analysis_done: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Electrical Isolation Done</label>
+                    <select
+                      value={editModal.record.electrical_isolation_done}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, electrical_isolation_done: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Water Supply Isolated</label>
+                    <select
+                      value={editModal.record.water_supply_isolated}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, water_supply_isolated: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gas Supply Isolated</label>
+                    <select
+                      value={editModal.record.gas_supply_isolated}
+                      onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, gas_supply_isolated: e.target.value } as DemolitionWorkPermit })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Remarks */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks & Observations</label>
+                <textarea
+                  value={editModal.record.remarks_or_observations}
+                    onChange={(e) => setEditModal({ ...editModal, record: { ...editModal.record, remarks_or_observations: e.target.value } as DemolitionWorkPermit })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+              <button
+                onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                <Save className="h-4 w-4" />
+                <span>{editModal.isNew ? 'Add Permit' : 'Update Permit'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default DemolitionPage;
+export default CDemolitionPage;

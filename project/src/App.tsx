@@ -293,6 +293,11 @@ import AssetAuditPage from './components/AssetsManagement/AssetAudit';
 import CAssetAuditPage from './pages/Users/components/AssetsManagement/AssetAudit.tsx';
 import DepreciationReplacementPage from './pages/Users/components/AssetsManagement/DepreciationReplacement.tsx';
 import MaintenanceSchedulePageP from './pages/Users/components/AssetsManagement/MaintenanceSchedule.tsx';
+import SiteAssessmentAndPlanningPage from './components/FireSafety/Site_Assessment_and_Planning';
+import CDemolitionPage from './pages/Cadmin/Important/components/Workpermit/Demolition.tsx';
+import CGeneralMaintenancePage from './pages/Cadmin/Important/components/Workpermit/GeneralMaintainence.tsx';
+import HotWorkPage from './pages/Cadmin/Important/components/Workpermit/HotWork.tsx';
+import ColdWorkPage from './pages/Cadmin/Important/components/Workpermit/ColdWork.tsx';
 // import UserTasks from './pages/Users/usertasks';
 
 
@@ -611,8 +616,8 @@ const AppRoutes = () => {
         {/* Cadmin - Work Permit */}
         <Route path="cadmin/interior-work-permit" element={<InteriorWorkPermitPage />} />
         <Route path="cadmin/vehicle-entry-permit" element={<VehicleEntryPermitPage />} />
-        <Route path="cadmin/hot-work-permit" element={<HotWorkPermitPage />} />
-        <Route path="cadmin/cold-work-permit" element={<ColdWorkPermitPage />} />
+        <Route path="cadmin/hot-work-permit" element={<HotWorkPage />} />
+        <Route path="cadmin/cold-work-permit" element={<ColdWorkPage />} />
         <Route path="cadmin/electrical-work-permit" element={<ElectricalWorkPermitPage />} />
         <Route path="cadmin/height-work-permit" element={<HeightWorkPermitPage />} />
         <Route path="cadmin/confined-space-work-permit" element={<ConfinedSpaceWorkPage />} />
@@ -620,11 +625,14 @@ const AppRoutes = () => {
         <Route path="cadmin/lockout-tagout-permit" element={<LockoutTagoutPermitPage />} />
         <Route path="cadmin/chemical-work-permit" element={<ChemicalWorkPermitPage />} />
         <Route path="cadmin/lift-work-permit" element={<LiftingPage />} />
-        <Route path="cadmin/demolition-work-permit" element={<DemolitionPage />} />
-        <Route path="cadmin/general-maintainence-work-permit" element={<GeneralMaintenancePage />} />
+        <Route path="cadmin/demolition-work-permit" element={<CDemolitionPage />} /> 
+        <Route path="cadmin/general-maintenance-work-permit" element={<CGeneralMaintenancePage />} />
         <Route path="cadmin/temporary-structure-work-permit" element={<TemporaryStructurePage />} />
         <Route path="cadmin/vehicle-work-permit" element={<VehicleEntryPermitPage />} />
         <Route path="cadmin/working-alone-work-permit" element={<VehicleEntryPermitPage />} />
+
+        {/* Direct access route for general maintenance work permit */}
+        <Route path="general-maintenance-work-permit" element={<GeneralMaintenancePage />} />
 
         <Route path="user/tasks" element={<UserTasks />} />
         
@@ -885,7 +893,7 @@ const AppRoutes = () => {
           <Route path="documentation-and-reporting" element={<DocumentationReporting />} />
           
           {/* Fire and Safety */}
-          <Route path="site-assessment-and-planning" element={<SiteAssessmentAndPlanning />} />
+          <Route path="site-assessment-and-planning" element={<SiteAssessmentAndPlanningPage />} />
           <Route path="installation-and-equipment-setup" element={<InstallationAndEquipmentSetup />} />
           <Route path="fire-safety-documents" element={<FireSafetyDocuments />} />
           <Route path="compliance-reports" element={<ComplianceReports />} />
@@ -973,7 +981,6 @@ const AppRoutes = () => {
           <Route path="chemical-work-permit" element={<ChemicalWorkPermitPage />} />
           <Route path="lift-work-permit" element={<LiftingPage />} />
           <Route path="demolition-work-permit" element={<DemolitionPage />} />
-          <Route path="general-maintenance-work-permit" element={<GeneralMaintenancePage />} />
           <Route path="temporary-structure-work-permit" element={<TemporaryStructurePage />} />
           <Route path="working-alone-work-permit" element={<VehicleEntryPermitPage />} />
         </Route>

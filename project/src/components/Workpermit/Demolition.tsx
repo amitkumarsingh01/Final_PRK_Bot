@@ -144,11 +144,7 @@ const DemolitionPage: React.FC = () => {
         if (matchedUser && matchedUser.property_id) {
           setSelectedPropertyId(matchedUser.property_id);
         }
-        if (matchedUser && matchedUser.user_role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        setIsAdmin(matchedUser && (matchedUser.user_role === 'admin' || matchedUser.user_role === 'cadmin'));
       } catch (e) {
         setError('Failed to fetch user profile');
       }
@@ -557,6 +553,323 @@ const DemolitionPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.open && editModal.record && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editModal.isNew ? 'Add' : 'Edit'} Demolition Work Permit
+              </h2>
+              <button
+                onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Permit Number"
+                      value={editModal.record.permit_number}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, permit_number: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Issue Date"
+                      type="date"
+                      value={editModal.record.date_of_issue}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, date_of_issue: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Valid From"
+                      type="date"
+                      value={editModal.record.permit_valid_from}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, permit_valid_from: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Valid To"
+                      type="date"
+                      value={editModal.record.permit_valid_to}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, permit_valid_to: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Site Location of Demolition"
+                      value={editModal.record.site_location_of_demolition}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, site_location_of_demolition: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Nature of Demolition Work"
+                      value={editModal.record.nature_of_demolition_work}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, nature_of_demolition_work: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Structure to be Demolished"
+                      value={editModal.record.structure_to_be_demolished}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, structure_to_be_demolished: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Area to be Demolished (sqm)"
+                      type="number"
+                      value={editModal.record.area_to_be_demolished_sqm}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, area_to_be_demolished_sqm: parseFloat(e.target.value) || 0 } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Height of Structure (meters)"
+                      type="number"
+                      value={editModal.record.height_of_structure_meters}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, height_of_structure_meters: parseFloat(e.target.value) || 0 } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Demolition Method"
+                      value={editModal.record.demolition_method}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, demolition_method: e.target.value } })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Contractor Information */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Contractor Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Contractor Agency Name"
+                      value={editModal.record.contractor_agency_name}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, contractor_agency_name: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Contact Details Contractor"
+                      value={editModal.record.contact_details_contractor}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, contact_details_contractor: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Supervisor Name on Site"
+                      value={editModal.record.supervisor_name_on_site}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, supervisor_name_on_site: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Contact Details Supervisor"
+                      value={editModal.record.contact_details_supervisor}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, contact_details_supervisor: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Number of Workers Involved"
+                      type="number"
+                      value={editModal.record.number_of_workers_involved}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, number_of_workers_involved: parseInt(e.target.value) || 0 } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Heavy Equipment Required"
+                      value={editModal.record.heavy_equipment_required}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, heavy_equipment_required: e.target.value } })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Safety & Compliance */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Safety & Compliance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.structural_analysis_done}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, structural_analysis_done: e.target.value } })}
+                      required
+                    >
+                      <option value="">Structural Analysis Done</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.load_bearing_walls_identified}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, load_bearing_walls_identified: e.target.value } })}
+                      required
+                    >
+                      <option value="">Load Bearing Walls Identified</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.utilities_disconnected}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, utilities_disconnected: e.target.value } })}
+                      required
+                    >
+                      <option value="">Utilities Disconnected</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.electrical_isolation_done}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, electrical_isolation_done: e.target.value } })}
+                      required
+                    >
+                      <option value="">Electrical Isolation Done</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.water_supply_isolated}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, water_supply_isolated: e.target.value } })}
+                      required
+                    >
+                      <option value="">Water Supply Isolated</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.gas_supply_isolated}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, gas_supply_isolated: e.target.value } })}
+                      required
+                    >
+                      <option value="">Gas Supply Isolated</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Work Details */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Work Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Work Authorization By"
+                      value={editModal.record.work_authorization_by}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, work_authorization_by: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Work Completion Time"
+                      value={editModal.record.work_completion_time}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, work_completion_time: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Post Work Inspection Done By"
+                      value={editModal.record.post_work_inspection_done_by}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, post_work_inspection_done_by: e.target.value } })}
+                      required
+                    />
+                    <select
+                      className="border rounded px-3 py-2"
+                      value={editModal.record.final_clearance_given}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, final_clearance_given: e.target.value } })}
+                      required
+                    >
+                      <option value="">Final Clearance Given</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Signatures */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Signatures</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Signature of Supervisor"
+                      value={editModal.record.signature_of_supervisor}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, signature_of_supervisor: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Signature of Safety Officer"
+                      value={editModal.record.signature_of_safety_officer}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, signature_of_safety_officer: e.target.value } })}
+                      required
+                    />
+                    <input
+                      className="border rounded px-3 py-2"
+                      placeholder="Signature of Contractor"
+                      value={editModal.record.signature_of_contractor}
+                      onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, signature_of_contractor: e.target.value } })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Remarks & Observations</h3>
+                  <textarea
+                    className="border rounded px-3 py-2 w-full"
+                    placeholder="Remarks or Observations"
+                    value={editModal.record.remarks_or_observations}
+                    onChange={(e) => setEditModal(m => m && { ...m, record: { ...m.record!, remarks_or_observations: e.target.value } })}
+                    rows={4}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setEditModal({ open: false, record: null, isNew: false })}
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-orange-500 text-white font-semibold hover:bg-orange-600"
+                >
+                  <Save className="h-4 w-4 inline mr-2" />
+                  {editModal.isNew ? 'Add' : 'Update'} Permit
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

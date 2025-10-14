@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -81,7 +81,7 @@ const DocumentationPage: React.FC = () => {
   
   // Camera Inventory modals
   const [viewCameraModal, setViewCameraModal] = useState<{ open: boolean; item: CameraInventoryLog | null }>({ open: false, item: null });
-  const [editCameraModal, setEditCameraModal] = useState<{ open: boolean; item: CameraInventoryLog | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [editCameraModal, setEditCameraModal] = useState<{ open: boolean; item: CameraInventoryLog | null; isNew: boolean; reportId: string | null; index?: number }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -121,7 +121,7 @@ const DocumentationPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch CCTV audit reports');
@@ -140,24 +140,30 @@ const DocumentationPage: React.FC = () => {
     setEditSiteModal({ open: true, item: { ...item }, isNew: false, reportId });
   };
 
-  const handleAddSite = (reportId: string) => {
+  const handleAddSite = () => {
     setEditSiteModal({
       open: true,
       isNew: true,
       item: { ...emptySiteInformation },
-      reportId,
+      reportId: null,
     });
   };
 
-  const handleDeleteSite = async (itemId: string, reportId: string) => {
+  const handleDeleteSite = async (_itemId: string, reportId: string) => {
     if (!window.confirm('Delete this site information entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      // Site information is a single object, not an array
-      await axios.put(`${API_URL}${reportId}`, { 
-        CCTV_Audit: { Documentation_Format: { Site_Information: null } }
-      });
+      // Preserve Camera_Inventory_Log; set Site_Information to empty to satisfy required schema
+      await axios.put(`${API_URL}${reportId}`, {
+        CCTV_Audit: {
+          ...(report.cctv_audit_data || {}),
+          Documentation_Format: {
+            ...(report.cctv_audit_data?.Documentation_Format || {}),
+            Site_Information: { ...emptySiteInformation }
+          }
+        }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -169,13 +175,40 @@ const DocumentationPage: React.FC = () => {
   };
 
   const handleSaveSite = async () => {
-    if (!editSiteModal.item || !editSiteModal.reportId) return;
+    if (!editSiteModal.item) return;
     try {
-      const report = data.find(r => r.id === editSiteModal.reportId);
-      if (!report) return;
-      await axios.put(`${API_URL}${editSiteModal.reportId}`, { 
-        CCTV_Audit: { Documentation_Format: { Site_Information: editSiteModal.item } }
-      });
+      if (editSiteModal.isNew) {
+        if (!selectedPropertyId) return;
+        const newPayload = {
+          property_id: selectedPropertyId,
+          CCTV_Audit: {
+            Site_Assessment_Format: [],
+            Installation_Checklist: [],
+            Configuration_Testing_Checklist: [],
+            Daily_Operations_Monitoring: [],
+            Maintenance_Schedule: [],
+            Documentation_Format: {
+              Site_Information: editSiteModal.item,
+              Camera_Inventory_Log: []
+            },
+            AMC_Compliance_Format: []
+          }
+        };
+        await axios.post(`${API_URL}`, newPayload, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      } else {
+        if (!editSiteModal.reportId) return;
+        const report = data.find(r => r.id === editSiteModal.reportId);
+        if (!report) return;
+        await axios.put(`${API_URL}${editSiteModal.reportId}`, {
+          CCTV_Audit: {
+            ...(report.cctv_audit_data || {}),
+            Documentation_Format: {
+              ...(report.cctv_audit_data?.Documentation_Format || {}),
+              Site_Information: editSiteModal.item
+            }
+          }
+        }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
+      }
       setEditSiteModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -184,8 +217,8 @@ const DocumentationPage: React.FC = () => {
   };
 
   // Camera Inventory handlers
-  const handleEditCamera = (item: CameraInventoryLog, reportId: string) => {
-    setEditCameraModal({ open: true, item: { ...item }, isNew: false, reportId });
+  const handleEditCamera = (item: CameraInventoryLog, reportId: string, index?: number) => {
+    setEditCameraModal({ open: true, item: { ...item }, isNew: false, reportId, index });
   };
 
   const handleAddCamera = (reportId: string) => {
@@ -197,15 +230,22 @@ const DocumentationPage: React.FC = () => {
     });
   };
 
-  const handleDeleteCamera = async (itemId: string, reportId: string) => {
+  const handleDeleteCamera = async (itemId: string | undefined, reportId: string, index?: number) => {
     if (!window.confirm('Delete this camera inventory entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).filter((i: CameraInventoryLog) => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { 
-        CCTV_Audit: { Documentation_Format: { Camera_Inventory_Log: newArr } }
-      });
+      const current = (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []);
+      const newArr = itemId ? current.filter((i: CameraInventoryLog) => i.id !== itemId) : current.filter((_, idx: number) => idx !== (index ?? -1));
+      await axios.put(`${API_URL}${reportId}`, {
+        CCTV_Audit: {
+          ...(report.cctv_audit_data || {}),
+          Documentation_Format: {
+            ...(report.cctv_audit_data?.Documentation_Format || {}),
+            Camera_Inventory_Log: newArr
+          }
+        }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -225,13 +265,27 @@ const DocumentationPage: React.FC = () => {
       if (editCameraModal.isNew) {
         newArr = [...(report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []), editCameraModal.item];
       } else {
-        newArr = (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).map((i: CameraInventoryLog) =>
-          i.id === editCameraModal.item!.id ? editCameraModal.item! : i
-        );
+        const hasId = Boolean(editCameraModal.item!.id);
+        if (hasId) {
+          newArr = (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).map((i: CameraInventoryLog) =>
+            i.id === editCameraModal.item!.id ? editCameraModal.item! : i
+          );
+        } else if (typeof editCameraModal.index === 'number') {
+          newArr = [...(report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || [])];
+          newArr[editCameraModal.index] = editCameraModal.item!;
+        } else {
+          newArr = (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []);
+        }
       }
-      await axios.put(`${API_URL}${editCameraModal.reportId}`, { 
-        CCTV_Audit: { Documentation_Format: { Camera_Inventory_Log: newArr } }
-      });
+      await axios.put(`${API_URL}${editCameraModal.reportId}`, {
+        CCTV_Audit: {
+          ...(report.cctv_audit_data || {}),
+          Documentation_Format: {
+            ...(report.cctv_audit_data?.Documentation_Format || {}),
+            Camera_Inventory_Log: newArr
+          }
+        }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setEditCameraModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -313,11 +367,11 @@ const DocumentationPage: React.FC = () => {
                   <tr><td colSpan={5} className="text-center py-6">Loading...</td></tr>
                 ) : (
                   <>
-                    {data.flatMap((report, rIdx) => {
+                    {data.flatMap((report) => {
                       const siteInfo = report.cctv_audit_data?.Documentation_Format?.Site_Information;
                       if (!siteInfo) return [];
                       return [(
-                        <tr key={siteInfo.id || rIdx} style={{ background: '#fff' }}>
+                        <tr key={siteInfo.id || report.id} style={{ background: '#fff' }}>
                           <td className="border px-2 py-1">{siteInfo.Site_Name_Code}</td>
                           <td className="border px-2 py-1">{siteInfo.Address}</td>
                           <td className="border px-2 py-1">{siteInfo.Contact_Person_Site_Incharge}</td>
@@ -340,9 +394,9 @@ const DocumentationPage: React.FC = () => {
             </table>
           </div>
 
-          {isAdmin && data.length > 0 && (
+          {isAdmin && (
             <button
-              onClick={() => handleAddSite(data[0].id)}
+              onClick={() => handleAddSite()}
               className="mb-6 flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
             >
               <Plus size={18} className="mr-2" /> Add Site Information
@@ -373,7 +427,7 @@ const DocumentationPage: React.FC = () => {
                   <tr><td colSpan={8} className="text-center py-6">Loading...</td></tr>
                 ) : (
                   <>
-                    {data.flatMap((report, rIdx) =>
+                    {data.flatMap((report) =>
                       (report.cctv_audit_data?.Documentation_Format?.Camera_Inventory_Log || []).map((item, idx) => (
                         <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                           <td className="border px-2 py-1">{item.Camera_ID_Name}</td>
@@ -387,8 +441,8 @@ const DocumentationPage: React.FC = () => {
                             <button onClick={() => handleViewCamera(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                             {isAdmin && (
                               <>
-                                <button onClick={() => handleEditCamera(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                                <button onClick={() => handleDeleteCamera(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                                <button onClick={() => handleEditCamera(item, report.id, idx)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                                <button onClick={() => handleDeleteCamera(item.id, report.id, idx)} className="text-red-600"><Trash2 size={18} /></button>
                               </>
                             )}
                           </td>

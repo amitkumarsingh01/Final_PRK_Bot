@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Building, Eye } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -61,7 +61,7 @@ const SystemDesignPlanningPage: React.FC = () => {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; item: SiteAssessmentFormat | null }>({ open: false, item: null });
-  const [editModal, setEditModal] = useState<{ open: boolean; item: SiteAssessmentFormat | null; isNew: boolean; reportId: string | null }>({ open: false, item: null, isNew: false, reportId: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; item: SiteAssessmentFormat | null; isNew: boolean; reportId: string | null; index?: number }>({ open: false, item: null, isNew: false, reportId: null });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -101,7 +101,7 @@ const SystemDesignPlanningPage: React.FC = () => {
   const fetchData = async (propertyId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}?property_id=${propertyId}`);
+      const res = await axios.get(`${API_URL}?property_id=${propertyId}`, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setData(res.data);
     } catch (e) {
       setError('Failed to fetch CCTV audit reports');
@@ -115,8 +115,8 @@ const SystemDesignPlanningPage: React.FC = () => {
     }
   }, [selectedPropertyId]);
 
-  const handleEdit = (item: SiteAssessmentFormat, reportId: string) => {
-    setEditModal({ open: true, item: { ...item }, isNew: false, reportId });
+  const handleEdit = (item: SiteAssessmentFormat, reportId: string, index?: number) => {
+    setEditModal({ open: true, item: { ...item }, isNew: false, reportId, index });
   };
 
   const handleAdd = (reportId: string) => {
@@ -128,15 +128,16 @@ const SystemDesignPlanningPage: React.FC = () => {
     });
   };
 
-  const handleDelete = async (itemId: string, reportId: string) => {
+  const handleDelete = async (itemId: string | undefined, reportId: string, index?: number) => {
     if (!window.confirm('Delete this system design entry?')) return;
     try {
       const report = data.find(r => r.id === reportId);
       if (!report) return;
-      const newArr = (report.cctv_audit_data?.Site_Assessment_Format || []).filter((i: SiteAssessmentFormat) => i.id !== itemId);
-      await axios.put(`${API_URL}${reportId}`, { 
-        CCTV_Audit: { Site_Assessment_Format: newArr }
-      });
+      const current = (report.cctv_audit_data?.Site_Assessment_Format || []);
+      const newArr = itemId ? current.filter((i: SiteAssessmentFormat) => i.id !== itemId) : current.filter((_, idx: number) => idx !== (index ?? -1));
+      await axios.put(`${API_URL}${reportId}`, {
+        CCTV_Audit: { ...(report.cctv_audit_data || {}), Site_Assessment_Format: newArr }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       fetchData(selectedPropertyId);
     } catch (e) {
       setError('Failed to delete');
@@ -156,13 +157,21 @@ const SystemDesignPlanningPage: React.FC = () => {
       if (editModal.isNew) {
         newArr = [...(report.cctv_audit_data?.Site_Assessment_Format || []), editModal.item];
       } else {
-                        newArr = (report.cctv_audit_data?.Site_Assessment_Format || []).map((i: SiteAssessmentFormat) =>
-          i.id === editModal.item!.id ? editModal.item! : i
-        );
+        const hasId = Boolean(editModal.item!.id);
+        if (hasId) {
+          newArr = (report.cctv_audit_data?.Site_Assessment_Format || []).map((i: SiteAssessmentFormat) =>
+            i.id === editModal.item!.id ? editModal.item! : i
+          );
+        } else if (typeof editModal.index === 'number') {
+          newArr = [...(report.cctv_audit_data?.Site_Assessment_Format || [])];
+          newArr[editModal.index] = editModal.item!;
+        } else {
+          newArr = (report.cctv_audit_data?.Site_Assessment_Format || []);
+        }
       }
-      await axios.put(`${API_URL}${editModal.reportId}`, { 
-        CCTV_Audit: { Site_Assessment_Format: newArr }
-      });
+      await axios.put(`${API_URL}${editModal.reportId}`, {
+        CCTV_Audit: { ...(report.cctv_audit_data || {}), Site_Assessment_Format: newArr }
+      }, user?.token ? { headers: { Authorization: `Bearer ${user.token}` } } : undefined);
       setEditModal({ open: false, item: null, isNew: false, reportId: null });
       fetchData(selectedPropertyId);
     } catch (e) {
@@ -219,9 +228,9 @@ const SystemDesignPlanningPage: React.FC = () => {
               <tr><td colSpan={11} className="text-center py-6">Loading...</td></tr>
             ) : (
               <>
-                {data.flatMap((report, rIdx) =>
+                {data.flatMap((report) =>
                   (report.cctv_audit_data?.Site_Assessment_Format || []).map((item, idx) => (
-                    <tr key={item.id || `${rIdx}-${idx}`} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
+                    <tr key={item.id || idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFF7ED' }}>
                       <td className="border px-2 py-1">{item.SL_No}</td>
                       <td className="border px-2 py-1">{item.Description}</td>
                       <td className="border px-2 py-1">{item.Checklist_Points}</td>
@@ -236,8 +245,8 @@ const SystemDesignPlanningPage: React.FC = () => {
                         <button onClick={() => handleView(item)} className="text-blue-600 mr-2"><Eye size={18} /></button>
                         {isAdmin && (
                           <>
-                            <button onClick={() => handleEdit(item, report.id)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
-                            <button onClick={() => handleDelete(item.id!, report.id)} className="text-red-600"><Trash2 size={18} /></button>
+                            <button onClick={() => handleEdit(item, report.id, idx)} className="text-orange-600 mr-2"><Pencil size={18} /></button>
+                            <button onClick={() => handleDelete(item.id, report.id, idx)} className="text-red-600"><Trash2 size={18} /></button>
                           </>
                         )}
                       </td>

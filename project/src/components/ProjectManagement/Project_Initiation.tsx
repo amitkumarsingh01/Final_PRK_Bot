@@ -140,10 +140,38 @@ const ProjectInitiationPage: React.FC = () => {
     if (!editModal.project) return;
     try {
       if (editModal.isNew) {
+        // ensure project_id exists; if user left it blank, generate one
+        const projectId = editModal.project.project_id && editModal.project.project_id.trim().length > 0
+          ? editModal.project.project_id
+          : `PRJ-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+
+        const startDate = editModal.project.start_date;
+        const endDate = startDate
+          ? new Date(new Date(startDate).getTime() + 90 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0]
+          : '';
+
+        const planId = `PLN-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+
         await axios.post(API_URL, {
           property_id: selectedPropertyId,
-          project_initiation: editModal.project,
-          project_planning: null,
+          project_initiation: {
+            ...editModal.project,
+            project_id: projectId,
+          },
+          project_planning: {
+            plan_id: planId,
+            project_id: projectId,
+            scope: 'Project scope to be defined',
+            milestones: ['Project Initiation', 'Planning Phase', 'Execution Phase', 'Closure'],
+            start_date: startDate,
+            end_date: endDate,
+            resources_required: ['Project Manager', 'Development Team', 'Testing Team'],
+            risk_assessment: 'Initial risk assessment pending',
+            status: 'Draft',
+            remarks: 'Planning phase to be completed'
+          },
           team_resource_allocation: [],
           execution_implementation: [],
           monitoring_control: [],

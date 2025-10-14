@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Calendar, Users, Target, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Target, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface Property {
@@ -127,6 +127,19 @@ const ProjectManagementDashboard: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; project: ProjectMaster | null }>({ open: false, project: null });
   const [selectedTab, setSelectedTab] = useState<string>('overview');
+  const [addModal, setAddModal] = useState<{ open: boolean }>({ open: false });
+  const [editModal, setEditModal] = useState<{ open: boolean; project: ProjectMaster | null }>({ open: false, project: null });
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; project: ProjectMaster | null }>({ open: false, project: null });
+  const [formData, setFormData] = useState({
+    project_name: '',
+    sponsor: '',
+    objective: '',
+    start_date: '',
+    budget: '',
+    project_manager: '',
+    stakeholders: '',
+    remarks: ''
+  });
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -184,6 +197,172 @@ const ProjectManagementDashboard: React.FC = () => {
     setViewModal({ open: true, project });
   };
 
+  const handleAdd = () => {
+    setFormData({
+      project_name: '',
+      sponsor: '',
+      objective: '',
+      start_date: '',
+      budget: '',
+      project_manager: '',
+      stakeholders: '',
+      remarks: ''
+    });
+    setAddModal({ open: true });
+  };
+
+  const handleEdit = (project: ProjectMaster) => {
+    setFormData({
+      project_name: project.project_initiation.project_name,
+      sponsor: project.project_initiation.sponsor,
+      objective: project.project_initiation.objective,
+      start_date: project.project_initiation.start_date,
+      budget: project.project_initiation.budget.toString(),
+      project_manager: project.project_initiation.project_manager,
+      stakeholders: project.project_initiation.stakeholders.join(', '),
+      remarks: project.project_initiation.remarks
+    });
+    setEditModal({ open: true, project });
+  };
+
+  const handleDelete = (project: ProjectMaster) => {
+    setDeleteModal({ open: true, project });
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const generateProjectId = () => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 5);
+    return `PRJ-${timestamp}-${random}`.toUpperCase();
+  };
+
+  const generatePlanId = () => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 5);
+    return `PLN-${timestamp}-${random}`.toUpperCase();
+  };
+
+  const handleSubmitAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const projectId = generateProjectId();
+      const projectData = {
+        property_id: selectedPropertyId,
+        project_initiation: {
+          project_id: projectId,
+          project_name: formData.project_name,
+          sponsor: formData.sponsor,
+          objective: formData.objective,
+          start_date: formData.start_date,
+          budget: parseFloat(formData.budget),
+          project_manager: formData.project_manager,
+          stakeholders: formData.stakeholders.split(',').map(s => s.trim()).filter(s => s),
+          remarks: formData.remarks,
+          status: 'In Progress'
+        },
+        project_planning: {
+          plan_id: generatePlanId(),
+          project_id: projectId,
+          scope: 'Project scope to be defined',
+          milestones: ['Project Initiation', 'Planning Phase', 'Execution Phase', 'Closure'],
+          start_date: formData.start_date,
+          end_date: new Date(new Date(formData.start_date).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days from start
+          resources_required: ['Project Manager', 'Development Team', 'Testing Team'],
+          risk_assessment: 'Initial risk assessment pending',
+          status: 'Pending',
+          remarks: 'Planning phase to be completed'
+        },
+        team_resource_allocation: [],
+        execution_implementation: [],
+        monitoring_control: [],
+        documentation_reporting: [],
+        depreciation_replacement: []
+      };
+
+      await axios.post(API_URL, projectData);
+      setAddModal({ open: false });
+      fetchData(selectedPropertyId);
+      setFormData({
+        project_name: '',
+        sponsor: '',
+        objective: '',
+        start_date: '',
+        budget: '',
+        project_manager: '',
+        stakeholders: '',
+        remarks: ''
+      });
+    } catch (error) {
+      console.error('Error adding project:', error);
+      setError('Failed to add project');
+    }
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModal.project) return;
+    
+    try {
+      const projectData = {
+        property_id: selectedPropertyId,
+        project_initiation: {
+          ...editModal.project.project_initiation,
+          project_name: formData.project_name,
+          sponsor: formData.sponsor,
+          objective: formData.objective,
+          start_date: formData.start_date,
+          budget: parseFloat(formData.budget),
+          project_manager: formData.project_manager,
+          stakeholders: formData.stakeholders.split(',').map(s => s.trim()).filter(s => s),
+          remarks: formData.remarks
+        },
+        project_planning: editModal.project.project_planning ? {
+          ...editModal.project.project_planning,
+          project_id: editModal.project.project_initiation.project_id
+        } : {
+          plan_id: generatePlanId(),
+          project_id: editModal.project.project_initiation.project_id,
+          scope: 'Project scope to be defined',
+          milestones: ['Project Initiation', 'Planning Phase', 'Execution Phase', 'Closure'],
+          start_date: formData.start_date,
+          end_date: new Date(new Date(formData.start_date).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          resources_required: ['Project Manager', 'Development Team', 'Testing Team'],
+          risk_assessment: 'Initial risk assessment pending',
+          status: 'Pending',
+          remarks: 'Planning phase to be completed'
+        },
+        team_resource_allocation: editModal.project.team_resource_allocation || [],
+        execution_implementation: editModal.project.execution_implementation || [],
+        monitoring_control: editModal.project.monitoring_control || [],
+        documentation_reporting: editModal.project.documentation_reporting || [],
+        depreciation_replacement: editModal.project.depreciation_replacement || []
+      };
+
+      await axios.put(`${API_URL}${editModal.project.project_initiation.id}`, projectData);
+      setEditModal({ open: false, project: null });
+      fetchData(selectedPropertyId);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      setError('Failed to update project');
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.project) return;
+    
+    try {
+      await axios.delete(`${API_URL}${deleteModal.project.project_initiation.id}`);
+      setDeleteModal({ open: false, project: null });
+      fetchData(selectedPropertyId);
+    } catch (error) {
+      setError('Failed to delete project');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed': return 'bg-green-100 text-green-800';
@@ -211,7 +390,18 @@ const ProjectManagementDashboard: React.FC = () => {
 
   return (
     <div className="p-6" style={{ background: '#fff' }}>
-      <h2 className="text-2xl font-bold mb-4" style={{ color: orangeDark }}>Project Management Dashboard</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold" style={{ color: orangeDark }}>Project Management Dashboard</h2>
+        {isAdmin && (
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-[#FB7E03] text-white rounded-md hover:bg-[#E06002] transition-colors"
+          >
+            <Plus size={20} />
+            Add Project
+          </button>
+        )}
+      </div>
       
       {/* Property Selection Dropdown */}
       <div className="mb-6 max-w-md">
@@ -342,9 +532,21 @@ const ProjectManagementDashboard: React.FC = () => {
                   </td>
                   <td className="border px-2 py-1">{project.team_resource_allocation.length}</td>
                   <td className="border px-2 py-1 text-center">
-                    <button onClick={() => handleView(project)} className="text-blue-600">
-                      <Eye size={18} />
-                    </button>
+                    <div className="flex justify-center gap-2">
+                      <button onClick={() => handleView(project)} className="text-blue-600 hover:text-blue-800" title="View">
+                        <Eye size={18} />
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(project)} className="text-green-600 hover:text-green-800" title="Edit">
+                            <Pencil size={18} />
+                          </button>
+                          <button onClick={() => handleDelete(project)} className="text-red-600 hover:text-red-800" title="Delete">
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -601,6 +803,307 @@ const ProjectManagementDashboard: React.FC = () => {
                   </table>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Project Modal */}
+      {addModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Add New Project</h3>
+              <button
+                onClick={() => setAddModal({ open: false })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitAdd} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
+                  <input
+                    type="text"
+                    name="project_name"
+                    value={formData.project_name}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor *</label>
+                  <input
+                    type="text"
+                    name="sponsor"
+                    value={formData.sponsor}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Manager *</label>
+                  <input
+                    type="text"
+                    name="project_manager"
+                    value={formData.project_manager}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget *</label>
+                  <input
+                    type="number"
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleFormChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stakeholders</label>
+                  <input
+                    type="text"
+                    name="stakeholders"
+                    value={formData.stakeholders}
+                    onChange={handleFormChange}
+                    placeholder="Comma separated list"
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Objective *</label>
+                <textarea
+                  name="objective"
+                  value={formData.objective}
+                  onChange={handleFormChange}
+                  required
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleFormChange}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAddModal({ open: false })}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#FB7E03] text-white rounded-md hover:bg-[#E06002] flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  Add Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editModal.open && editModal.project && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Project</h3>
+              <button
+                onClick={() => setEditModal({ open: false, project: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitEdit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
+                  <input
+                    type="text"
+                    name="project_name"
+                    value={formData.project_name}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sponsor *</label>
+                  <input
+                    type="text"
+                    name="sponsor"
+                    value={formData.sponsor}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Manager *</label>
+                  <input
+                    type="text"
+                    name="project_manager"
+                    value={formData.project_manager}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleFormChange}
+                    required
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget *</label>
+                  <input
+                    type="number"
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleFormChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stakeholders</label>
+                  <input
+                    type="text"
+                    name="stakeholders"
+                    value={formData.stakeholders}
+                    onChange={handleFormChange}
+                    placeholder="Comma separated list"
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Objective *</label>
+                <textarea
+                  name="objective"
+                  value={formData.objective}
+                  onChange={handleFormChange}
+                  required
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleFormChange}
+                  rows={2}
+                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-[#FB7E03] focus:border-[#FB7E03]"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditModal({ open: false, project: null })}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#FB7E03] text-white rounded-md hover:bg-[#E06002] flex items-center gap-2"
+                >
+                  <Save size={18} />
+                  Update Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && deleteModal.project && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+              <button
+                onClick={() => setDeleteModal({ open: false, project: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-600 mb-2">
+                Are you sure you want to delete this project?
+              </p>
+              <div className="bg-gray-50 p-3 rounded-md">
+                <p><strong>Project:</strong> {deleteModal.project.project_initiation.project_name}</p>
+                <p><strong>Manager:</strong> {deleteModal.project.project_initiation.project_manager}</p>
+                <p><strong>Status:</strong> {deleteModal.project.project_initiation.status}</p>
+              </div>
+              <p className="text-red-600 text-sm mt-2">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteModal({ open: false, project: null })}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 size={18} />
+                Delete Project
+              </button>
             </div>
           </div>
         </div>

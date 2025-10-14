@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Box } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Box } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface GasTestConductedBy {
   name: string;
@@ -70,7 +63,6 @@ interface ConfinedSpaceWorkPermit {
 }
 
 const API_URL = 'https://server.prktechindia.in/confined-space-work-permit/';
-const  = 'https://server.prktechindia.in/properties';
 const orange = '#FB7E03';
 
 const emptyConfinedSpaceWorkPermit: ConfinedSpaceWorkPermit = {
@@ -221,17 +213,6 @@ const ConfinedSpaceWorkPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-          </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">

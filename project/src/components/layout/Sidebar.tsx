@@ -224,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile, isOpen, onClose }) => {
         'Move-In Coordination', 'Move-Out Coordination', 'Interior Work Approvals',
         'Work Permit Tracking', 'Inventory Management', 'Asset Management',
         'Site Visit Reports', 'Training Reports', 'Night Patrolling Reports',
-        'Minutes of Meetings', 'Escalation Matrix', 'Work Permits'
+        'Minutes of Meetings', 'Escalation Matrix', 'Work Permit'
       ],
       
       // Management roles

@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Wrench } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Eye, Users, Calendar, FileText, CheckCircle, Wrench } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext'; 
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface GeneralMaintenancePermit {
   id?: number;
-  property_id: string;
+  property_id?: string;
   permit_number: string;
   date_of_issue: string;
   permit_valid_from: string;
@@ -54,8 +47,6 @@ interface GeneralMaintenancePermit {
 }
 
 const API_URL = 'https://server.prktechindia.in/general-maintenance-permit/';
-const  = 'https://server.prktechindia.in/properties';
-const orange = '#FB7E03';
 
 const emptyGeneralMaintenancePermit: GeneralMaintenancePermit = {
   property_id: '',
@@ -96,7 +87,7 @@ const emptyGeneralMaintenancePermit: GeneralMaintenancePermit = {
   signature_of_approving_authority: ''
 };
 
-const GeneralMaintenancePage: React.FC = () => {
+const CGeneralMaintenancePage: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<GeneralMaintenancePermit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +101,7 @@ const GeneralMaintenancePage: React.FC = () => {
   };
 
   const handleAdd = () => {
-    setEditModal({ open: true, record: { ...emptyGeneralMaintenancePermit, property_id: user?.propertyId }, isNew: true });
+    setEditModal({ open: true, record: { ...emptyGeneralMaintenancePermit, property_id: user?.propertyId || '' }, isNew: true });
   };
 
   const handleDelete = async (recordId: number) => {
@@ -149,8 +140,33 @@ const GeneralMaintenancePage: React.FC = () => {
     }
   };
 
-  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+      const filteredData = user?.propertyId 
+        ? response.data.filter((item: GeneralMaintenancePermit) => item.property_id === user.propertyId)
+        : response.data;
+      setData(filteredData);
+    } catch (e) {
+      setError('Failed to fetch general maintenance permits');
+    } finally {
+      setLoading(false);
+    }
   };
+
+
+
+  useEffect(() => {
+    if (user) {
+      const matchedUser = user;
+      setIsAdmin(matchedUser && (matchedUser.role === 'admin' || matchedUser.role === 'cadmin'));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.propertyId]);
 
   const isPermitActive = (permit: GeneralMaintenancePermit) => {
     const now = new Date();
@@ -184,7 +200,7 @@ const GeneralMaintenancePage: React.FC = () => {
                 <Wrench className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">General Maintenance Permits</h1>
+                <h1 className="text-2xl font-bold text-gray-900">ddGfeneral Maintenance Permits</h1>
                 <p className="text-gray-600">Manage general maintenance permits and facility upkeep</p>
               </div>
             </div>
@@ -200,17 +216,6 @@ const GeneralMaintenancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-          </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -659,9 +664,9 @@ const GeneralMaintenancePage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, electrical_isolation_required: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -671,9 +676,9 @@ const GeneralMaintenancePage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, water_supply_shutdown_required: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -683,9 +688,9 @@ const GeneralMaintenancePage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, ppe_required: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -695,9 +700,9 @@ const GeneralMaintenancePage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, safety_briefing_given: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
               </div>
@@ -759,4 +764,4 @@ const GeneralMaintenancePage: React.FC = () => {
   );
 };
 
-export default GeneralMaintenancePage;
+export default CGeneralMaintenancePage;

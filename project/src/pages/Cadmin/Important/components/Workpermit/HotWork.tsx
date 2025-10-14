@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash2, Plus, Save, X, Building, Eye, Users, Calendar, FileText, CheckCircle, AlertTriangle, Flame } from 'lucide-react';
+import { Pencil, Trash2, Plus, Save, X, Eye, FileText, CheckCircle, AlertTriangle, Flame } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 
-interface Property {
-  id: string;
-  name: string;
-  title: string;
-  description?: string;
-  logo_base64?: string;
-}
 
 interface HotWorkPermit {
   id?: number;
@@ -53,8 +46,6 @@ interface HotWorkPermit {
 }
 
 const API_URL = 'https://server.prktechindia.in/hot-work-permit/';
-const  = 'https://server.prktechindia.in/properties';
-const orange = '#FB7E03';
 
 const emptyHotWorkPermit: HotWorkPermit = {
   property_id: '',
@@ -102,13 +93,15 @@ const HotWorkPage: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [viewModal, setViewModal] = useState<{ open: boolean; record: HotWorkPermit | null }>({ open: false, record: null });
   const [editModal, setEditModal] = useState<{ open: boolean; record: HotWorkPermit | null; isNew: boolean }>({ open: false, record: null, isNew: false });
+  const [editingPpeIndex, setEditingPpeIndex] = useState<number | null>(null);
+  const [tempPpeValue, setTempPpeValue] = useState<string>('');
 
   const handleEdit = (record: HotWorkPermit) => {
     setEditModal({ open: true, record: { ...record }, isNew: false });
   };
 
   const handleAdd = () => {
-    setEditModal({ open: true, record: { ...emptyHotWorkPermit, property_id: user?.propertyId }, isNew: true });
+    setEditModal({ open: true, record: { ...emptyHotWorkPermit, property_id: user?.propertyId || '' }, isNew: true });
   };
 
   const handleDelete = async (recordId: number) => {
@@ -147,8 +140,73 @@ const HotWorkPage: React.FC = () => {
     }
   };
 
-  
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(API_URL);
+      const filteredData = user?.propertyId 
+        ? response.data.filter((item: HotWorkPermit) => item.property_id === user.propertyId)
+        : response.data;
+      setData(filteredData);
+    } catch (e) {
+      setError('Failed to fetch hot work permits');
+    } finally {
+      setLoading(false);
+    }
   };
+
+
+
+  // PPE Management Handlers
+  const handleEditPpe = (index: number, value: string) => {
+    setEditingPpeIndex(index);
+    setTempPpeValue(value);
+  };
+
+  const handleSavePpe = () => {
+    if (editingPpeIndex !== null) {
+      const newPpe = [...(editModal.record?.ppe_verified || [])];
+      newPpe[editingPpeIndex] = tempPpeValue;
+      setEditModal({...editModal, record: {...editModal.record!, ppe_verified: newPpe}});
+      setEditingPpeIndex(null);
+      setTempPpeValue('');
+    }
+  };
+
+  const handleCancelEditPpe = () => {
+    setEditingPpeIndex(null);
+    setTempPpeValue('');
+  };
+
+  const handleDeletePpe = (index: number) => {
+    const newPpe = (editModal.record?.ppe_verified || []).filter((_, i) => i !== index);
+    setEditModal({...editModal, record: {...editModal.record!, ppe_verified: newPpe}});
+    if (editingPpeIndex === index) {
+      setEditingPpeIndex(null);
+      setTempPpeValue('');
+    } else if (editingPpeIndex !== null && editingPpeIndex > index) {
+      setEditingPpeIndex(editingPpeIndex - 1);
+    }
+  };
+
+  const handleViewPpe = (ppe: string) => {
+    alert(`PPE Item: ${ppe}`);
+  };
+
+  useEffect(() => {
+    if (user) {
+      console.log('HotWork - User object:', user);
+      console.log('HotWork - UserType:', user.userType);
+      console.log('HotWork - Role:', user.role);
+      // Since this is the Cadmin section, assume all users have admin privileges
+      setIsAdmin(true);
+      console.log('HotWork - IsAdmin (Cadmin section):', true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [user?.propertyId]);
 
   const isPermitActive = (permit: HotWorkPermit) => {
     const now = new Date();
@@ -193,26 +251,15 @@ const HotWorkPage: React.FC = () => {
             {isAdmin && (
               <button
                 onClick={handleAdd}
-                className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow hover:from-[#FB7E03] hover:to-[#E06002]"
               >
-                <Plus className="h-4 w-4" />
-                <span>Add Hot Work Permit</span>
+                <Plus size={18} className="mr-2" />
+                Add Hot Work Permit
               </button>
             )}
           </div>
         </div>
 
-        {/* Property Selector */}
-        {/* Property Display */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Building className="h-5 w-5 text-gray-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Property</h2>
-          </div>
-          <div className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
-            {user?.propertyId ? 'Current Property' : 'No Property Assigned'}
-          </div>
-        </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -310,31 +357,32 @@ const HotWorkPage: React.FC = () => {
                         {getPermitStatus(permit)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleView(permit)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(permit)}
-                              className="text-orange-600 hover:text-orange-900"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(permit.id!)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                      <button 
+                        onClick={() => handleView(permit)} 
+                        className="text-blue-600 mr-2"
+                        title="View Hot Work Permit"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button 
+                            onClick={() => handleEdit(permit)} 
+                            className="text-orange-600 mr-2"
+                            title="Edit Hot Work Permit"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(permit.id!)} 
+                            className="text-red-600"
+                            title="Delete Hot Work Permit"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -347,6 +395,14 @@ const HotWorkPage: React.FC = () => {
               <Flame className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No hot work permits</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by creating a new hot work permit.</p>
+              {isAdmin && (
+                <button 
+                  onClick={handleAdd} 
+                  className="mt-4 px-3 py-1 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow"
+                >
+                  Add Hot Work Permit
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -593,9 +649,9 @@ const HotWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, fire_watch_personnel_assigned: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -614,9 +670,9 @@ const HotWorkPage: React.FC = () => {
                     onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, fire_extinguisher_available: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
                 <div>
@@ -628,30 +684,304 @@ const HotWorkPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
-              </div>
-
-              {/* Safety Checks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gas Detector Used</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fire Blanket/Shielding Used</label>
                   <select
-                    value={editModal.record.gas_detector_used}
-                    onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, gas_detector_used: e.target.value}})}
+                    value={editModal.record.fire_blanket_or_shielding_used}
+                    onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, fire_blanket_or_shielding_used: e.target.value}})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    
-                    
-                    
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gas Test Reading (PPM)</label>
-                  <input
-                    type="number"
-                    value={editModal.record.last_gas_test_reading_ppm}
-                    onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, last_gas_test_reading_ppm: parseInt(e.target.value)}})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+              </div>
+
+              {/* Working Conditions */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Working Conditions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Flammable Materials Removed/Covered</label>
+                    <select
+                      value={editModal.record.nearby_flammable_materials_removed_or_covered}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, nearby_flammable_materials_removed_or_covered: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gas Cylinders Condition Verified</label>
+                    <select
+                      value={editModal.record.gas_cylinders_condition_verified}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, gas_cylinders_condition_verified: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Work Area Ventilation Verified</label>
+                    <select
+                      value={editModal.record.work_area_ventilation_verified}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, work_area_ventilation_verified: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sparks and Heat Barriers Installed</label>
+                    <select
+                      value={editModal.record.sparks_and_heat_barriers_installed}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, sparks_and_heat_barriers_installed: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Area Wet Down (if required)</label>
+                    <select
+                      value={editModal.record.area_wet_down_if_required}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, area_wet_down_if_required: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                      <option value="Not Required">Not Required</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gas Detector Used</label>
+                    <select
+                      value={editModal.record.gas_detector_used}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, gas_detector_used: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gas Test Reading (PPM)</label>
+                    <input
+                      type="number"
+                      value={editModal.record.last_gas_test_reading_ppm}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, last_gas_test_reading_ppm: parseInt(e.target.value)}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* PPE Equipment Management */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">Personal Protective Equipment</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentPpe = editModal.record?.ppe_verified || [];
+                      const newPpe = [...currentPpe, 'New PPE Item'];
+                      setEditModal({...editModal, record: {...editModal.record!, ppe_verified: newPpe}});
+                    }}
+                    className="flex items-center space-x-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Add PPE</span>
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(editModal.record?.ppe_verified && editModal.record.ppe_verified.length > 0) ? (
+                    editModal.record.ppe_verified.map((ppe, index) => (
+                      <div key={index} className="flex items-center space-x-2 mb-2">
+                        {editingPpeIndex === index ? (
+                          <input
+                            type="text"
+                            value={tempPpeValue}
+                            onChange={(e) => setTempPpeValue(e.target.value)}
+                            className="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Enter PPE item"
+                          />
+                        ) : (
+                          <span className="flex-grow px-3 py-2 border border-transparent rounded-lg bg-gray-50">{ppe}</span>
+                        )}
+                        <div className="flex space-x-1">
+                          {editingPpeIndex !== index && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewPpe(ppe)}
+                              className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                              title="View PPE"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          )}
+                          {editingPpeIndex === index ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleSavePpe}
+                                className="text-green-600 hover:text-green-900 p-1 rounded-md hover:bg-green-100 transition-colors"
+                                title="Save PPE"
+                              >
+                                <Save className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelEditPpe}
+                                className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Cancel"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleEditPpe(index, ppe)}
+                              className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-100 transition-colors"
+                              title="Edit PPE"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePpe(index)}
+                            className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-100 transition-colors"
+                            title="Delete PPE"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <p>No PPE items added yet. Click "Add PPE" to get started.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Work Completion Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Work Completion Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Permit Validity Period</label>
+                    <input
+                      type="text"
+                      value={editModal.record.permit_validity_period}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, permit_validity_period: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Emergency Procedure Explained</label>
+                    <select
+                      value={editModal.record.emergency_procedure_explained_to_workers}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, emergency_procedure_explained_to_workers: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Area Inspected Before Work By</label>
+                    <input
+                      type="text"
+                      value={editModal.record.area_inspected_before_work_by}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, area_inspected_before_work_by: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Area Inspected After Work By</label>
+                    <input
+                      type="text"
+                      value={editModal.record.area_inspected_after_work_by}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, area_inspected_after_work_by: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Work Completed Time</label>
+                    <input
+                      type="datetime-local"
+                      value={editModal.record.work_completed_time}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, work_completed_time: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Post-work Fire Watch Time</label>
+                    <input
+                      type="datetime-local"
+                      value={editModal.record.post_work_fire_watch_time}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, post_work_fire_watch_time: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Final Area Clearance Given By</label>
+                    <input
+                      type="text"
+                      value={editModal.record.final_area_clearance_given_by}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, final_area_clearance_given_by: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Signatures */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Signatures</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Worker Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_worker}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, signature_of_worker: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fire Watcher Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_fire_watcher}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, signature_of_fire_watcher: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Safety Officer Signature</label>
+                    <input
+                      type="text"
+                      value={editModal.record.signature_of_safety_officer}
+                      onChange={(e) => setEditModal({...editModal, record: {...editModal.record!, signature_of_safety_officer: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -667,19 +997,19 @@ const HotWorkPage: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end gap-2 mt-4">
                 <button
+                  type="button"
                   onClick={() => setEditModal({ open: false, record: null, isNew: false })}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 rounded bg-gradient-to-r from-[#E06002] to-[#FB7E03] text-white font-semibold shadow"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>Save</span>
+                  Save
                 </button>
               </div>
             </div>
